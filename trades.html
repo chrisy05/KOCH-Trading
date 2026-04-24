@@ -130,8 +130,13 @@ function render(){
   });
   f.sort((a,b)=>{
     let av=a[sk],bv=b[sk];
-    if(av===null||av==='')av=sd>0?Infinity:-Infinity;
-    if(bv===null||bv==='')bv=sd>0?Infinity:-Infinity;
+    // Numerische Felder immer als Zahl sortieren
+    if(sk==='nr'||sk==='roi'||sk==='pnl'||sk==='net_pnl'||sk==='hebel'||sk==='einsatz'){
+      av=parseFloat(av)||0; bv=parseFloat(bv)||0;
+      return sd*(bv-av);
+    }
+    if(av===null||av==='')av=sd>0?'zzz':'';
+    if(bv===null||bv==='')bv=sd>0?'zzz':'';
     if(typeof av==='string')return sd*av.localeCompare(bv);
     return sd*(bv-av);
   });
