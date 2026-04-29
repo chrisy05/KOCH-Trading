@@ -192,13 +192,16 @@ function render() {
     }
   }
 
+  // Netto PNL: net_pnl wenn vorhanden, sonst pnl (Fallback für ältere Trades)
+  const eff = t => t.net_pnl !== null ? t.net_pnl : t.pnl;
+
   // KPIs
   const withPnl = filtered.filter(t => t.pnl !== null);
   const wins = withPnl.filter(t => t.pnl > 0);
   const losses = withPnl.filter(t => t.pnl < 0);
-  const totalPnl = withPnl.reduce((s, t) => s + t.pnl, 0);
+  const totalPnl = withPnl.reduce((s, t) => s + eff(t), 0);
   const avgPnl = withPnl.length ? totalPnl / withPnl.length : 0;
-  const best = withPnl.reduce((b, t) => t.pnl > (b?.pnl ?? -Infinity) ? t : b, null);
+  const best = withPnl.reduce((b, t) => eff(t) > eff(b ?? {net_pnl:null,pnl:-Infinity}) ? t : b, null);
   const wr = withPnl.length ? (wins.length / withPnl.length * 100) : 0;
 
   document.getElementById('kTrades').textContent = filtered.length;
@@ -210,7 +213,7 @@ function render() {
   document.getElementById('kWrSub').textContent = `${wins.length}W / ${losses.length}L`;
   const ka = document.getElementById('kAvg');
   ka.textContent = fmt(avgPnl); ka.className = 'val ' + (avgPnl >= 0 ? 'green' : 'red');
-  document.getElementById('kBest').textContent = best ? fmt(best.pnl) : '—';
+  document.getElementById('kBest').textContent = best ? fmt(eff(best)) : '—';
   document.getElementById('kBestCoin').textContent = best ? `${best.coin} #${best.nr}` : '—';
 
   document.getElementById('filterInfo').textContent =
@@ -219,7 +222,7 @@ function render() {
   // ── Chart 1: Kumulative PNL ────────────────────────────────────────────────
   const sorted = [...filtered].filter(t => t._date && t.pnl !== null).sort((a, b) => a._date - b._date);
   let cum = 0;
-  const pnlPoints = sorted.map(t => { cum += t.pnl; return { x: dateStr(t._date), y: +cum.toFixed(2) }; });
+  const pnlPoints = sorted.map(t => { cum += eff(t); return { x: dateStr(t._date), y: +cum.toFixed(2) }; });
   // Add start point
   if (pnlPoints.length && fromDate) pnlPoints.unshift({ x: from, y: 0 });
 
@@ -263,7 +266,7 @@ function render() {
   const sgMap = {};
   filtered.filter(t => t.pnl !== null).forEach(t => {
     const s = t.signal || '?';
-    sgMap[s] = (sgMap[s] || 0) + t.pnl;
+    sgMap[s] = (sgMap[s] || 0) + eff(t);
   });
   const sgSorted = Object.entries(sgMap).sort((a, b) => b[1] - a[1]);
   if (chartSig) chartSig.destroy();
@@ -293,7 +296,7 @@ function render() {
   // ── Chart 3: Top Coins ──────────────────────────────────────────────────────
   const coinMap = {};
   filtered.filter(t => t.pnl !== null && t.coin && t.coin !== 'Versch').forEach(t => {
-    coinMap[t.coin] = (coinMap[t.coin] || 0) + t.pnl;
+    coinMap[t.coin] = (coinMap[t.coin] || 0) + eff(t);
   });
   const coinTop = Object.entries(coinMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
   if (chartCoin) chartCoin.destroy();
@@ -331,7 +334,7 @@ function render() {
     const key = dateStr(mon);
     if (!weekMap[key]) weekMap[key] = { trades: 0, pnl: 0 };
     weekMap[key].trades++;
-    if (t.pnl !== null) weekMap[key].pnl += t.pnl;
+    if (t.pnl !== null) weekMap[key].pnl += eff(t);
   });
   const weeks = Object.entries(weekMap).sort((a, b) => a[0].localeCompare(b[0]));
   if (chartWeek) chartWeek.destroy();
