@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOCH Trading — Statistik</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0e1a;color:#e0e6f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+header{background:linear-gradient(135deg,#0d1b2e,#1a2a4a);padding:18px 28px;border-bottom:1px solid #1e3a5f;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+header h1{font-size:1.4rem;font-weight:700;letter-spacing:1px;color:#e0e6f0}
+header h1 span{color:#00c8ff}
+.nav{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
+.nav a{color:#4a7a9b;text-decoration:none;font-size:.8rem;padding:5px 12px;border:1px solid #1e3a5f;border-radius:20px;transition:all .2s}
+.nav a:hover,.nav a.active{background:#00c8ff22;color:#00c8ff;border-color:#00c8ff55}
+.filters{background:#0d1b2e;border-bottom:1px solid #1e2d45;padding:14px 28px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.filters label{font-size:.75rem;color:#4a7a9b;text-transform:uppercase;letter-spacing:.5px}
+.filters input,.filters select{background:#111827;border:1px solid #1e2d45;color:#e0e6f0;padding:7px 12px;border-radius:8px;font-size:.83rem;outline:none;transition:border-color .2s}
+.filters input:focus,.filters select:focus{border-color:#00c8ff55}
+.filters input[type=date]{color-scheme:dark}
+.btn-reset{background:#1e2d45;border:1px solid #2a3f5f;color:#aac0d8;padding:7px 14px;border-radius:8px;font-size:.8rem;cursor:pointer;transition:all .2s}
+.btn-reset:hover{background:#2a3f5f;color:#00c8ff}
+.container{max-width:1280px;margin:0 auto;padding:24px 20px}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#111827;border:1px solid #1e2d45;border-radius:12px;padding:16px;text-align:center}
+.kpi .lbl{font-size:.68rem;color:#4a7a9b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.kpi .val{font-size:1.5rem;font-weight:700}
+.kpi .sub{font-size:.72rem;color:#556a80;margin-top:3px}
+.green{color:#22c55e}.red{color:#ef4444}.blue{color:#3b9eff}.gold{color:#f59e0b}.white{color:#e0e6f0}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+@media(max-width:800px){.charts-grid{grid-template-columns:1fr}}
+.card{background:#111827;border:1px solid #1e2d45;border-radius:12px;padding:20px}
+.card h2{font-size:.72rem;font-weight:600;letter-spacing:1.5px;color:#4a7a9b;text-transform:uppercase;margin-bottom:16px}
+.chart-wrap{position:relative;height:300px}
+.chart-wrap-tall{position:relative;height:360px}
+footer{text-align:center;padding:20px;color:#2a3a50;font-size:.75rem;border-top:1px solid #161f30;margin-top:8px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>TOCH <span>Trading</span> — Statistik</h1>
+  <div class="nav">
+    <a href="index.html">Dashboard</a>
+    <a href="trades.html">Trade Log</a>
+    <a href="stats.html" class="active">Trade-Statistik</a>
+  </div>
+</header>
+
+<div class="filters">
+  <div style="display:flex;align-items:center;gap:8px">
+    <label>Von</label>
+    <input type="date" id="fFrom" value="2026-02-17">
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <label>Bis</label>
+    <input type="date" id="fTo" value="2026-04-29">
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <label>Signalgeber</label>
+    <select id="fSig">
+      <option value="">Alle</option>
+    </select>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">Zurücksetzen</button>
+  <span id="filterInfo" style="font-size:.78rem;color:#4a7a9b;margin-left:auto"></span>
+</div>
+
+<div class="container">
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="lbl">Trades</div><div class="val white" id="kTrades">—</div><div class="sub">abgeschlossen</div></div>
+    <div class="kpi"><div class="lbl">Gesamt PNL</div><div class="val" id="kPnl">—</div><div class="sub">USDT</div></div>
+    <div class="kpi"><div class="lbl">Winrate</div><div class="val" id="kWr">—</div><div class="sub" id="kWrSub">—</div></div>
+    <div class="kpi"><div class="lbl">Ø PNL / Trade</div><div class="val" id="kAvg">—</div><div class="sub">USDT</div></div>
+    <div class="kpi"><div class="lbl">Bester Trade</div><div class="val green" id="kBest">—</div><div class="sub" id="kBestCoin">—</div></div>
+  </div>
+
+  <!-- Main chart: Cumulative PNL -->
+  <div class="card" style="margin-bottom:20px">
+    <h2>Kumulativer PNL-Verlauf</h2>
+    <div class="chart-wrap-tall"><canvas id="chartPnl"></canvas></div>
+  </div>
+
+  <!-- Two column charts -->
+  <div class="charts-grid">
+    <div class="card">
+      <h2>PNL pro Signalgeber</h2>
+      <div class="chart-wrap"><canvas id="chartSig"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Top Coins — PNL</h2>
+      <div class="chart-wrap"><canvas id="chartCoin"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="card">
+      <h2>Trades pro Woche</h2>
+      <div class="chart-wrap"><canvas id="chartWeek"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Win / Loss Verteilung pro Signalgeber</h2>
+      <div class="chart-wrap"><canvas id="chartWL"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>TOCH Trading Dashboard 2026 · Chris Ko · Powered by Claude Code · Stand: 29.04.2026</footer>
+
+<script>
+const ALL_TRADES=[{"nr": 1, "signal": "Viona", "datum": "17.02.26", "coin": "BEAM", "richtung": "", "roi": 18.37, "pnl": 1.85, "net_pnl": null}, {"nr": 2, "signal": "Viona", "datum": "20.02.26", "coin": "FF", "richtung": "", "roi": 17.67, "pnl": 2.66, "net_pnl": null}, {"nr": 3, "signal": "Viona", "datum": "20.02.26", "coin": "RSR", "richtung": "", "roi": 17.92, "pnl": 1.78, "net_pnl": null}, {"nr": 4, "signal": "Viona", "datum": "24.02.26", "coin": "ALGO", "richtung": "", "roi": 13.89, "pnl": 8.67, "net_pnl": null}, {"nr": 5, "signal": "Viona", "datum": "24.02.26", "coin": "ALT", "richtung": "", "roi": 19.21, "pnl": 9.5, "net_pnl": null}, {"nr": 6, "signal": "Viona", "datum": "26.02.26", "coin": "SUI", "richtung": "", "roi": 11.08, "pnl": 9.54, "net_pnl": null}, {"nr": 7, "signal": "Viona", "datum": "26.02.26", "coin": "CAKE", "richtung": "", "roi": 7.24, "pnl": 13.29, "net_pnl": null}, {"nr": 8, "signal": "Viona", "datum": "02.03.26", "coin": "AGLD", "richtung": "", "roi": 16.8, "pnl": 7.98, "net_pnl": null}, {"nr": 9, "signal": "Viona", "datum": "03.03.26", "coin": "ENA", "richtung": "", "roi": 2.22, "pnl": 5.49, "net_pnl": null}, {"nr": 10, "signal": "CryptoCult", "datum": "03.03.26", "coin": "XLM", "richtung": "", "roi": 22.36, "pnl": 46.85, "net_pnl": null}, {"nr": 11, "signal": "Global Crypto Research", "datum": "05.03.26", "coin": "AGLD", "richtung": "L", "roi": 35.15, "pnl": 15.94, "net_pnl": null}, {"nr": 12, "signal": "Global Crypto Research", "datum": "04.03.26", "coin": "WET", "richtung": "", "roi": -7.4, "pnl": -9.55, "net_pnl": null}, {"nr": 13, "signal": "Global Crypto Research", "datum": "04.03.26", "coin": "WET", "richtung": "", "roi": -28.3, "pnl": -35.62, "net_pnl": null}, {"nr": 14, "signal": "CryptoCult", "datum": "04.03.26", "coin": "PHA", "richtung": "", "roi": -50.75, "pnl": -92.52, "net_pnl": null}, {"nr": 15, "signal": "Viona", "datum": "05.03.26", "coin": "LINK", "richtung": "S", "roi": 40.72, "pnl": 70.1, "net_pnl": null}, {"nr": 16, "signal": "Crypto pro Traders", "datum": "07.03.26", "coin": "TRUMP", "richtung": "S", "roi": 6.66, "pnl": -0.12, "net_pnl": null}, {"nr": 17, "signal": "Crypto pro Traders", "datum": "07.03.26", "coin": "ALLO", "richtung": "S", "roi": -101.13, "pnl": -10.42, "net_pnl": null}, {"nr": 18, "signal": "Binance 360", "datum": "07.03.26", "coin": "RLC", "richtung": "", "roi": null, "pnl": null, "net_pnl": null}, {"nr": 19, "signal": "Viona", "datum": "11.03.26", "coin": "SUI", "richtung": "S", "roi": 7.88, "pnl": 77.97, "net_pnl": null}, {"nr": 20, "signal": "Viona", "datum": "10.03.26", "coin": "LINK", "richtung": "S", "roi": 1.98, "pnl": 5.5, "net_pnl": null}, {"nr": 21, "signal": "Crypto pro Traders", "datum": "11.03.26", "coin": "DEGO", "richtung": "S", "roi": -96.37, "pnl": -79.83, "net_pnl": null}, {"nr": 22, "signal": "Viona", "datum": "11.03.26", "coin": "AVAX", "richtung": "S", "roi": 6.14, "pnl": 4.8, "net_pnl": null}, {"nr": 23, "signal": "Viona", "datum": "13.03.26", "coin": "BCH", "richtung": "", "roi": 1.37, "pnl": 1.46, "net_pnl": null}, {"nr": 24, "signal": "Viona", "datum": "16.03.26", "coin": "CELO", "richtung": "", "roi": -14.59, "pnl": -29.04, "net_pnl": null}, {"nr": 25, "signal": "Viona", "datum": "18.03.26", "coin": "1INCH", "richtung": "", "roi": 10.8, "pnl": 10.64, "net_pnl": null}, {"nr": 26, "signal": "SignalGruppe", "datum": "12.03.26", "coin": "LINK", "richtung": "", "roi": -101.5, "pnl": -52.8, "net_pnl": null}, {"nr": 27, "signal": "SignalGruppe", "datum": "16.03.26", "coin": "SOL", "richtung": "", "roi": -2.07, "pnl": -11.85, "net_pnl": null}, {"nr": 28, "signal": "Viona", "datum": "17.03.26", "coin": "SOL", "richtung": "S", "roi": 26.05, "pnl": 222.79, "net_pnl": null}, {"nr": 29, "signal": "Viona", "datum": "20.03.26", "coin": "ORCA", "richtung": "", "roi": 8.57, "pnl": 62.23, "net_pnl": null}, {"nr": 30, "signal": "Cornix", "datum": "17.03.26", "coin": "Versch", "richtung": "", "roi": -3.75, "pnl": -14.3, "net_pnl": null}, {"nr": 31, "signal": "Cornix", "datum": "20.03.26", "coin": "Versch", "richtung": "", "roi": 7.8, "pnl": 30.13, "net_pnl": null}, {"nr": 32, "signal": "Cornix", "datum": "", "coin": "Versch", "richtung": "", "roi": -18.53, "pnl": -126.7, "net_pnl": null}, {"nr": 33, "signal": "Viona", "datum": "26.03.26", "coin": "BAT", "richtung": "S", "roi": 23.29, "pnl": 171.8, "net_pnl": null}, {"nr": 34, "signal": "Viona", "datum": "27.03.26", "coin": "DOGE", "richtung": "L", "roi": 36.94, "pnl": 327.0, "net_pnl": null}, {"nr": 35, "signal": "CK", "datum": "29.03.26", "coin": "THX", "richtung": "L", "roi": -3.04, "pnl": -4.55, "net_pnl": null}, {"nr": 36, "signal": "MarkTrade", "datum": "30.03.26", "coin": "ETH", "richtung": "L", "roi": 7.89, "pnl": 105.21, "net_pnl": null}, {"nr": 37, "signal": "Viona", "datum": "30.03.26", "coin": "XMR", "richtung": "S", "roi": 17.59, "pnl": 160.69, "net_pnl": null}, {"nr": 38, "signal": "Viona", "datum": "30.03.26", "coin": "RUNE", "richtung": "S", "roi": -1.29, "pnl": -18.9, "net_pnl": null}, {"nr": 39, "signal": "Viona", "datum": "31.03.26", "coin": "DOGE", "richtung": "L", "roi": 12.62, "pnl": 101.76, "net_pnl": null}, {"nr": 40, "signal": "CK", "datum": "31.03.26", "coin": "BAT", "richtung": "L", "roi": -3.95, "pnl": -13.16, "net_pnl": null}, {"nr": 41, "signal": "Viona", "datum": "01.04.26", "coin": "LINK", "richtung": "S", "roi": 17.6, "pnl": 171.04, "net_pnl": null}, {"nr": 42, "signal": "Viona", "datum": "02.04.26", "coin": "LTC", "richtung": "L", "roi": 8.25, "pnl": 117.16, "net_pnl": null}, {"nr": 43, "signal": "CK", "datum": "03.04.26", "coin": "TAO", "richtung": "L", "roi": 21.04, "pnl": 166.82, "net_pnl": null}, {"nr": 44, "signal": "CK", "datum": "06.04.26", "coin": "TAO", "richtung": "S", "roi": -5.86, "pnl": -13.82, "net_pnl": null}, {"nr": 45, "signal": "CK", "datum": "5-4-26", "coin": "TAO", "richtung": "S", "roi": 3.41, "pnl": 38.52, "net_pnl": null}, {"nr": 46, "signal": "Viona", "datum": "6-4-26", "coin": "LTC", "richtung": "S", "roi": 9.63, "pnl": 117.74, "net_pnl": null}, {"nr": 47, "signal": "Viona", "datum": "7-4-26", "coin": "APT", "richtung": "L", "roi": 18.65, "pnl": 195.37, "net_pnl": null}, {"nr": 48, "signal": "Viona", "datum": "8-4-26", "coin": "BAT", "richtung": "S", "roi": 14.64, "pnl": 106.58, "net_pnl": null}, {"nr": 49, "signal": "Viona", "datum": "9-4-26", "coin": "LPT", "richtung": "L", "roi": 15.45, "pnl": 143.73, "net_pnl": null}, {"nr": 50, "signal": "Viona", "datum": "10-4-26", "coin": "XMR", "richtung": "S", "roi": 11.61, "pnl": 131.93, "net_pnl": null}, {"nr": 51, "signal": "CK", "datum": "8-4-26", "coin": "AVAX", "richtung": "S", "roi": 49.29, "pnl": 103.14, "net_pnl": null}, {"nr": 52, "signal": "MarkTrade", "datum": "9-4-26", "coin": "BTC", "richtung": "S", "roi": 21.23, "pnl": 101.13, "net_pnl": null}, {"nr": 53, "signal": "CK", "datum": "10-4-26", "coin": "DOGE", "richtung": "L", "roi": 5.54, "pnl": 18.8, "net_pnl": null}, {"nr": 54, "signal": "Viona", "datum": "13-4-26", "coin": "JASMY", "richtung": "L", "roi": 16.94, "pnl": 758.26, "net_pnl": null}, {"nr": 55, "signal": "Viona", "datum": "14-4-26", "coin": "BTC", "richtung": "S", "roi": 3.7, "pnl": 651.97, "net_pnl": null}, {"nr": 56, "signal": "CK ClaudeBot", "datum": "15-4-26", "coin": "XLM", "richtung": "S", "roi": -10.14, "pnl": -36.12, "net_pnl": -42.03}, {"nr": 57, "signal": "MarkTrade", "datum": "15-4-26", "coin": "SOL", "richtung": "S", "roi": 10.17, "pnl": 59.42, "net_pnl": 50.6}, {"nr": 58, "signal": "CK", "datum": "15-4-26", "coin": "TAO", "richtung": "S", "roi": 16.47, "pnl": 3.25, "net_pnl": 3.25}, {"nr": 59, "signal": "EchtzeitErfolgKanal", "datum": "15-4-26", "coin": "LINK", "richtung": "S", "roi": -2.49, "pnl": -3.84, "net_pnl": -24.9}, {"nr": 60, "signal": "Viona", "datum": "16-4-26", "coin": "LTC", "richtung": "S", "roi": 9.15, "pnl": 1010.47, "net_pnl": 1010.47}, {"nr": 61, "signal": "Viona", "datum": "17-4-26", "coin": "ETH", "richtung": "L", "roi": 32.32, "pnl": 334.47, "net_pnl": 316.78}, {"nr": 62, "signal": "Viona", "datum": "17-4-26", "coin": "HBAR", "richtung": "S", "roi": -0.45, "pnl": -11.74, "net_pnl": -11.74}, {"nr": 63, "signal": "MarkTrade", "datum": "18-4-26", "coin": "ETH", "richtung": "S", "roi": 10.89, "pnl": 27.72, "net_pnl": 21.33}, {"nr": 64, "signal": "Viona", "datum": "20-4-26", "coin": "GLM", "richtung": "L", "roi": -4.69, "pnl": -134.79, "net_pnl": -180.72}, {"nr": 65, "signal": "Viona", "datum": "21-4-26", "coin": "MEME", "richtung": "L", "roi": -9.97, "pnl": -240.19, "net_pnl": -240.19}, {"nr": 66, "signal": "Viona", "datum": "22-4-26", "coin": "OGN", "richtung": "S", "roi": -1.33, "pnl": -10.71, "net_pnl": -10.71}, {"nr": 67, "signal": "CK", "datum": "24-4-26", "coin": "BCH", "richtung": "L", "roi": 1.5, "pnl": 18.52, "net_pnl": 12.66}, {"nr": 68, "signal": "Viona", "datum": "24-4-26", "coin": "CRV", "richtung": "S", "roi": 5.0, "pnl": 192.36, "net_pnl": 152.33}, {"nr": 69, "signal": "CK", "datum": "24-4-26", "coin": "AVAX", "richtung": "S", "roi": 4.87, "pnl": 60.21, "net_pnl": 48.46}, {"nr": 70, "signal": "Viona", "datum": "27-4-26", "coin": "SEI", "richtung": "S", "roi": -2.01, "pnl": -13.96, "net_pnl": -35.04}, {"nr": 71, "signal": "Viona", "datum": "27-4-26", "coin": "SEI", "richtung": "L", "roi": 4.32, "pnl": 98.81, "net_pnl": 75.68}, {"nr": 72, "signal": "CK", "datum": "22-4-26", "coin": "LTC", "richtung": "L", "roi": 2.27, "pnl": 22.77, "net_pnl": 11.33}, {"nr": 73, "signal": "MarkTrade", "datum": "25-4-26", "coin": "BTC", "richtung": "S", "roi": -3.96, "pnl": -16.05, "net_pnl": -33.35}, {"nr": 74, "signal": "Viona", "datum": "28-4-26", "coin": "CFX", "richtung": "L", "roi": 20.87, "pnl": 208.77, "net_pnl": 208.77}, {"nr": 75, "signal": "CK", "datum": "29-4-26", "coin": "DOGE", "richtung": "S", "roi": 50.69, "pnl": 1146.42, "net_pnl": 1083.02}];
+
+// ── Date Parser ──────────────────────────────────────────────────────────────
+function parseDate(s) {
+  if (!s || s.trim() === '') return null;
+  // "2026-04-02 00:00:00"
+  if (/^\d{4}-/.test(s)) {
+    const p = s.split(/[-\s]/);
+    return new Date(+p[0], +p[1]-1, +p[2]);
+  }
+  // "17.02.26" or "17.03.26"
+  if (s.includes('.')) {
+    const p = s.split('.');
+    if (p.length === 3) return new Date(2000 + +p[2], +p[1]-1, +p[0]);
+  }
+  // "17-4-26" or "5-4-26"
+  if (s.includes('-')) {
+    const p = s.split('-');
+    if (p.length === 3 && p[2].length <= 2) return new Date(2000 + +p[2], +p[1]-1, +p[0]);
+  }
+  return null;
+}
+
+function fmt(n, dec=2) {
+  if (n === null || n === undefined) return '—';
+  const s = Math.abs(n).toFixed(dec).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (n >= 0 ? '+' : '-') + s;
+}
+
+function dateStr(d) {
+  if (!d) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+// ── Populate signalgeber dropdown ────────────────────────────────────────────
+const sigs = [...new Set(ALL_TRADES.map(t => t.signal).filter(Boolean))].sort();
+const sel = document.getElementById('fSig');
+sigs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+
+// ── Chart instances ──────────────────────────────────────────────────────────
+let chartPnl, chartSig, chartCoin, chartWeek, chartWL;
+const GRID = { color: '#1a2a3a' };
+const TICK = { color: '#4a7a9b', font: { size: 11 } };
+
+function makeChart(id, config) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, config);
+}
+
+// ── Main render ──────────────────────────────────────────────────────────────
+function render() {
+  const from = document.getElementById('fFrom').value;
+  const to   = document.getElementById('fTo').value;
+  const sig  = document.getElementById('fSig').value;
+
+  const fromDate = from ? new Date(from) : null;
+  const toDate   = to   ? new Date(to + 'T23:59:59') : null;
+
+  // Assign parsed dates
+  const trades = ALL_TRADES.map(t => ({ ...t, _date: parseDate(t.datum) }));
+
+  // Filter
+  let filtered = trades.filter(t => {
+    if (!t._date && t.datum !== '') return false; // skip unparseable (not trade 32)
+    if (t._date && fromDate && t._date < fromDate) return false;
+    if (t._date && toDate && t._date > toDate) return false;
+    if (sig && t.signal !== sig) return false;
+    return true;
+  });
+
+  // Trade 32 (Cornix, no date) — include if no date filter and sig matches
+  if (!fromDate && !toDate || (!sig || sig === 'Cornix')) {
+    const t32 = trades.find(t => t.nr === 32);
+    if (t32 && !filtered.find(t => t.nr === 32)) {
+      if (!sig || sig === 'Cornix') filtered.push(t32);
+    }
+  }
+
+  // KPIs
+  const withPnl = filtered.filter(t => t.pnl !== null);
+  const wins = withPnl.filter(t => t.pnl > 0);
+  const losses = withPnl.filter(t => t.pnl < 0);
+  const totalPnl = withPnl.reduce((s, t) => s + t.pnl, 0);
+  const avgPnl = withPnl.length ? totalPnl / withPnl.length : 0;
+  const best = withPnl.reduce((b, t) => t.pnl > (b?.pnl ?? -Infinity) ? t : b, null);
+  const wr = withPnl.length ? (wins.length / withPnl.length * 100) : 0;
+
+  document.getElementById('kTrades').textContent = filtered.length;
+  const kp = document.getElementById('kPnl');
+  kp.textContent = fmt(totalPnl); kp.className = 'val ' + (totalPnl >= 0 ? 'green' : 'red');
+  const kw = document.getElementById('kWr');
+  kw.textContent = wr.toFixed(1).replace('.', ',') + '%';
+  kw.className = 'val ' + (wr >= 60 ? 'green' : wr >= 45 ? 'gold' : 'red');
+  document.getElementById('kWrSub').textContent = `${wins.length}W / ${losses.length}L`;
+  const ka = document.getElementById('kAvg');
+  ka.textContent = fmt(avgPnl); ka.className = 'val ' + (avgPnl >= 0 ? 'green' : 'red');
+  document.getElementById('kBest').textContent = best ? fmt(best.pnl) : '—';
+  document.getElementById('kBestCoin').textContent = best ? `${best.coin} #${best.nr}` : '—';
+
+  document.getElementById('filterInfo').textContent =
+    `${filtered.length} Trades gefiltert${sig ? ' · ' + sig : ''}`;
+
+  // ── Chart 1: Kumulative PNL ────────────────────────────────────────────────
+  const sorted = [...filtered].filter(t => t._date && t.pnl !== null).sort((a, b) => a._date - b._date);
+  let cum = 0;
+  const pnlPoints = sorted.map(t => { cum += t.pnl; return { x: dateStr(t._date), y: +cum.toFixed(2) }; });
+  // Add start point
+  if (pnlPoints.length && fromDate) pnlPoints.unshift({ x: from, y: 0 });
+
+  const gradColors = pnlPoints.map(p => p.y >= 0 ? '#22c55e' : '#ef4444');
+  const finalPositive = pnlPoints.length === 0 || pnlPoints[pnlPoints.length-1].y >= 0;
+
+  if (chartPnl) chartPnl.destroy();
+  chartPnl = makeChart('chartPnl', {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Kumulativer PNL (USDT)',
+        data: pnlPoints,
+        borderColor: finalPositive ? '#22c55e' : '#ef4444',
+        backgroundColor: finalPositive ? '#22c55e18' : '#ef444418',
+        fill: true,
+        tension: 0.3,
+        pointRadius: pnlPoints.length < 30 ? 4 : 2,
+        pointBackgroundColor: finalPositive ? '#22c55e' : '#ef4444',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#0d1b2e', borderColor: '#1e3a5f', borderWidth: 1,
+        callbacks: {
+          label: ctx => ' ' + fmt(ctx.parsed.y) + ' USDT'
+        }
+      }},
+      scales: {
+        x: { type: 'time', time: { unit: 'week', displayFormats: { week: 'dd.MM' } },
+             grid: GRID, ticks: TICK, adapters: { date: {} } },
+        y: { grid: GRID, ticks: { ...TICK, callback: v => fmt(v, 0) },
+             title: { display: true, text: 'USDT', color: '#4a7a9b', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // ── Chart 2: PNL pro Signalgeber ────────────────────────────────────────────
+  const sgMap = {};
+  filtered.filter(t => t.pnl !== null).forEach(t => {
+    const s = t.signal || '?';
+    sgMap[s] = (sgMap[s] || 0) + t.pnl;
+  });
+  const sgSorted = Object.entries(sgMap).sort((a, b) => b[1] - a[1]);
+  if (chartSig) chartSig.destroy();
+  chartSig = makeChart('chartSig', {
+    type: 'bar',
+    data: {
+      labels: sgSorted.map(x => x[0]),
+      datasets: [{
+        data: sgSorted.map(x => +x[1].toFixed(2)),
+        backgroundColor: sgSorted.map(x => x[1] >= 0 ? '#22c55e99' : '#ef444499'),
+        borderColor: sgSorted.map(x => x[1] >= 0 ? '#22c55e' : '#ef4444'),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0d1b2e', borderColor: '#1e3a5f', borderWidth: 1,
+        callbacks: { label: ctx => ' ' + fmt(ctx.parsed.y) + ' USDT' }
+      }},
+      scales: {
+        x: { grid: { display: false }, ticks: { ...TICK, maxRotation: 35 } },
+        y: { grid: GRID, ticks: { ...TICK, callback: v => fmt(v, 0) } }
+      }
+    }
+  });
+
+  // ── Chart 3: Top Coins ──────────────────────────────────────────────────────
+  const coinMap = {};
+  filtered.filter(t => t.pnl !== null && t.coin && t.coin !== 'Versch').forEach(t => {
+    coinMap[t.coin] = (coinMap[t.coin] || 0) + t.pnl;
+  });
+  const coinTop = Object.entries(coinMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (chartCoin) chartCoin.destroy();
+  chartCoin = makeChart('chartCoin', {
+    type: 'bar',
+    data: {
+      labels: coinTop.map(x => x[0]),
+      datasets: [{
+        data: coinTop.map(x => +x[1].toFixed(2)),
+        backgroundColor: coinTop.map(x => x[1] >= 0 ? '#3b9eff99' : '#ef444499'),
+        borderColor: coinTop.map(x => x[1] >= 0 ? '#3b9eff' : '#ef4444'),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0d1b2e', borderColor: '#1e3a5f', borderWidth: 1,
+        callbacks: { label: ctx => ' ' + fmt(ctx.parsed.x) + ' USDT' }
+      }},
+      scales: {
+        x: { grid: GRID, ticks: { ...TICK, callback: v => fmt(v, 0) } },
+        y: { grid: { display: false }, ticks: TICK }
+      }
+    }
+  });
+
+  // ── Chart 4: Trades pro Woche ───────────────────────────────────────────────
+  const weekMap = {};
+  sorted.forEach(t => {
+    const d = new Date(t._date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const mon = new Date(d.setDate(diff));
+    const key = dateStr(mon);
+    if (!weekMap[key]) weekMap[key] = { trades: 0, pnl: 0 };
+    weekMap[key].trades++;
+    if (t.pnl !== null) weekMap[key].pnl += t.pnl;
+  });
+  const weeks = Object.entries(weekMap).sort((a, b) => a[0].localeCompare(b[0]));
+  if (chartWeek) chartWeek.destroy();
+  chartWeek = makeChart('chartWeek', {
+    type: 'bar',
+    data: {
+      labels: weeks.map(([k]) => k.slice(5).replace('-', '.')),
+      datasets: [
+        { label: 'Trades', data: weeks.map(([,v]) => v.trades), backgroundColor: '#3b9eff66', borderColor: '#3b9eff', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
+        { label: 'PNL', data: weeks.map(([,v]) => +v.pnl.toFixed(2)), backgroundColor: weeks.map(([,v]) => v.pnl >= 0 ? '#22c55e44' : '#ef444444'), borderColor: weeks.map(([,v]) => v.pnl >= 0 ? '#22c55e' : '#ef4444'), borderWidth: 1, borderRadius: 3, type: 'line', yAxisID: 'y2', tension: 0.3, pointRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#4a7a9b', font: { size: 11 }, boxWidth: 12 } }, tooltip: { backgroundColor: '#0d1b2e', borderColor: '#1e3a5f', borderWidth: 1 }},
+      scales: {
+        x: { grid: { display: false }, ticks: { ...TICK, maxRotation: 45 } },
+        y: { grid: GRID, ticks: { ...TICK, stepSize: 1 }, title: { display: true, text: 'Trades', color: '#3b9eff', font: { size: 10 } } },
+        y2: { position: 'right', grid: { display: false }, ticks: { ...TICK, callback: v => fmt(v, 0) }, title: { display: true, text: 'PNL', color: '#22c55e', font: { size: 10 } } }
+      }
+    }
+  });
+
+  // ── Chart 5: Win/Loss pro Signalgeber ──────────────────────────────────────
+  const wlMap = {};
+  filtered.filter(t => t.pnl !== null).forEach(t => {
+    const s = t.signal || '?';
+    if (!wlMap[s]) wlMap[s] = { w: 0, l: 0 };
+    if (t.pnl > 0) wlMap[s].w++; else wlMap[s].l++;
+  });
+  const wlSorted = Object.entries(wlMap).sort((a, b) => (b[1].w + b[1].l) - (a[1].w + a[1].l)).slice(0, 8);
+  if (chartWL) chartWL.destroy();
+  chartWL = makeChart('chartWL', {
+    type: 'bar',
+    data: {
+      labels: wlSorted.map(([s]) => s),
+      datasets: [
+        { label: 'Wins', data: wlSorted.map(([,v]) => v.w), backgroundColor: '#22c55e88', borderColor: '#22c55e', borderWidth: 1, borderRadius: 3 },
+        { label: 'Losses', data: wlSorted.map(([,v]) => v.l), backgroundColor: '#ef444488', borderColor: '#ef4444', borderWidth: 1, borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#4a7a9b', font: { size: 11 }, boxWidth: 12 } }, tooltip: { backgroundColor: '#0d1b2e', borderColor: '#1e3a5f', borderWidth: 1 }},
+      scales: {
+        x: { grid: { display: false }, ticks: { ...TICK, maxRotation: 35 } },
+        y: { grid: GRID, ticks: { ...TICK, stepSize: 1 }, stacked: false }
+      }
+    }
+  });
+}
+
+function resetFilters() {
+  document.getElementById('fFrom').value = '2026-02-17';
+  document.getElementById('fTo').value = '2026-04-29';
+  document.getElementById('fSig').value = '';
+  render();
+}
+
+// ── Chart.js braucht date adapter für Zeitachse ─────────────────────────────
+// Einfacher Fallback ohne externe Abhängigkeit
+Chart.register({
+  id: 'customTimeAdapter',
+  beforeInit(chart) {
+    if (chart.options.scales) {
+      Object.values(chart.options.scales).forEach(s => {
+        if (s.type === 'time') s.type = 'category';
+      });
+    }
+  }
+});
+
+document.getElementById('fFrom').addEventListener('change', render);
+document.getElementById('fTo').addEventListener('change', render);
+document.getElementById('fSig').addEventListener('change', render);
+
+render();
+</script>
+</body>
+</html>
