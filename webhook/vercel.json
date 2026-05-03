@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "koda-tv-webhook",
+  "builds": [
+    { "src": "api/tv-webhook.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/tv-webhook", "dest": "/api/tv-webhook.js" }
+  ]
+}
