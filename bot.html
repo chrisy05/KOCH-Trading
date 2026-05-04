@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KODA Bot — Trading Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+
+  /* Login Overlay */
+  #login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#0d0d0d;z-index:1000;display:flex;align-items:center;justify-content:center}
+  .login-box{background:#161616;border:1px solid #2a2a2a;border-radius:16px;padding:40px;text-align:center;max-width:360px;width:90%}
+  .login-box h2{font-size:1.4rem;margin-bottom:6px;color:#00c8ff}
+  .login-box .subtitle{color:#555;font-size:.85rem;margin-bottom:24px}
+  .login-box input{background:#1a1a1a;border:2px solid #2a2a2a;color:#fff;padding:14px 18px;border-radius:10px;font-size:1.2rem;text-align:center;width:100%;outline:none;letter-spacing:8px;transition:border-color .2s}
+  .login-box input:focus{border-color:#00c8ff}
+  .login-box input.error{border-color:#ff5555;animation:shake .3s}
+  .login-box .hint{color:#444;font-size:.75rem;margin-top:12px}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+  /* Header */
+  header{background:#111;border-bottom:1px solid #222;padding:16px 20px;display:flex;align-items:center;gap:12px}
+  header a{color:#888;text-decoration:none;font-size:13px;transition:color .2s}
+  header a:hover{color:#fff}
+  header h1{font-size:18px;font-weight:600;color:#00c8ff}
+  header .sep{color:#333}
+  .bot-badge{background:#00c8ff15;color:#00c8ff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px}
+  .testnet-badge{background:#f59e0b15;color:#f59e0b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;margin-left:8px}
+
+  /* Main content (hidden until login) */
+  #main-content{display:none}
+
+  /* Stats Grid */
+  .container{max-width:1200px;margin:0 auto;padding:24px 20px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  @media(max-width:700px){.grid-4,.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+
+  .stat-box{background:#161616;border:1px solid #1e1e1e;border-radius:12px;padding:18px 14px;text-align:center}
+  .stat-box .label{font-size:.7rem;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+  .stat-box .value{font-size:1.8rem;font-weight:700}
+  .stat-box .sub{font-size:.72rem;color:#444;margin-top:3px}
+  .green{color:#22c55e}.red{color:#ef4444}.blue{color:#00c8ff}.yellow{color:#f59e0b}.white{color:#e0e0e0}
+
+  /* Card */
+  .card{background:#161616;border:1px solid #1e1e1e;border-radius:12px;padding:20px;margin-bottom:16px}
+  .card h2{font-size:.75rem;font-weight:600;letter-spacing:1.5px;color:#555;text-transform:uppercase;margin-bottom:14px}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse}
+  th{background:#131313;color:#555;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;border-bottom:1px solid #222;cursor:pointer;user-select:none;white-space:nowrap;transition:color .2s}
+  th:hover{color:#ccc}
+  td{padding:9px 10px;border-bottom:1px solid #181818;font-size:13px;white-space:nowrap}
+  tr:hover td{background:#1a1a1a}
+  .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700}
+  .long{background:rgba(0,200,100,.12);color:#00c864}
+  .short{background:rgba(255,60,60,.12);color:#ff5555}
+  .pos{color:#00c864}.neg{color:#ff5555}
+  .coin{background:#1a2535;color:#7ab8ff;padding:2px 8px;border-radius:4px;font-weight:700;font-size:12px}
+  .testnet-tag{background:#f59e0b20;color:#f59e0b;padding:1px 6px;border-radius:3px;font-size:10px}
+  .live-tag{background:#22c55e20;color:#22c55e;padding:1px 6px;border-radius:3px;font-size:10px}
+
+  /* Strategy breakdown */
+  .strat-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .strat-name{width:50px;font-size:.8rem;color:#aaa;flex-shrink:0}
+  .strat-bar-outer{flex:1;background:#1e1e1e;border-radius:4px;height:16px;position:relative}
+  .strat-bar-inner{height:16px;border-radius:4px;display:flex;align-items:center;padding-left:6px;font-size:.72rem;font-weight:600;color:#fff;min-width:2px}
+  .strat-val{font-size:.8rem;color:#888;width:70px;text-align:right;flex-shrink:0}
+
+  footer{text-align:center;padding:20px;color:#333;font-size:.72rem;border-top:1px solid #1a1a1a;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div id="login-overlay">
+  <div class="login-box">
+    <h2>KODA Bot</h2>
+    <div class="subtitle">Autonomous Trading System</div>
+    <input type="password" id="pw-input" maxlength="4" placeholder="PIN" autofocus>
+    <div class="hint">4-stelliger PIN eingeben</div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div id="main-content">
+<header>
+  <a href="index.html">← Dashboard</a>
+  <span class="sep">|</span>
+  <h1>KODA Bot</h1>
+  <span class="bot-badge">AUTONOMOUS</span>
+  <span class="testnet-badge" id="mode-badge">TESTNET</span>
+  <a href="trades.html" style="margin-left:auto;color:#555;text-decoration:none;font-size:.8rem;padding:5px 14px;border:1px solid #2a2a2a;border-radius:20px;transition:all .2s" onmouseover="this.style.color='#00c8ff'" onmouseout="this.style.color='#555'">Manuell Trades →</a>
+</header>
+
+<div class="container">
+  <!-- KPI Row -->
+  <div class="grid-4">
+    <div class="stat-box"><div class="label">Bot Trades</div><div class="value white" id="kpi-trades">0</div><div class="sub" id="kpi-trades-sub">—</div></div>
+    <div class="stat-box"><div class="label">Winrate</div><div class="value green" id="kpi-wr">—</div><div class="sub" id="kpi-wr-sub"></div></div>
+    <div class="stat-box"><div class="label">Net PNL</div><div class="value" id="kpi-pnl">$0.00</div><div class="sub" id="kpi-pnl-sub">USDT realisiert</div></div>
+    <div class="stat-box"><div class="label">Avg Trade</div><div class="value" id="kpi-avg">—</div><div class="sub">pro Trade</div></div>
+  </div>
+
+  <!-- Strategy & Performance -->
+  <div class="grid-2">
+    <div class="card">
+      <h2>Strategie Performance</h2>
+      <div id="strat-bars"></div>
+    </div>
+    <div class="card">
+      <h2>Bot Status</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Modus</div><div id="bot-mode" style="font-size:1rem;font-weight:700;color:#f59e0b">TESTNET</div></div>
+        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Strategie</div><div style="font-size:1rem;font-weight:700;color:#00c8ff">ER1</div></div>
+        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Position Size</div><div id="bot-size" style="font-size:1rem;font-weight:700">$10 × 10x</div></div>
+        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">TP / SL</div><div style="font-size:1rem;font-weight:700">+1.0% / -1.2%</div></div>
+        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Split-TP</div><div style="font-size:1rem;font-weight:700;color:#22c55e">50% TP1 + Trail</div></div>
+        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Coins</div><div id="bot-coins" style="font-size:.85rem;font-weight:600">Tier 1 (8)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coin Performance -->
+  <div class="card">
+    <h2>Performance nach Coin</h2>
+    <div id="coin-perf"></div>
+  </div>
+
+  <!-- Trade Log -->
+  <div class="card">
+    <h2>Trade Log</h2>
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Datum</th><th>Coin</th><th>Richt.</th><th>Strat</th>
+          <th>Entry</th><th>TP1</th><th>Rest Exit</th>
+          <th>ROI %</th><th>Net PNL</th><th>Dauer</th>
+          <th>Status</th><th>Notiz</th>
+        </tr>
+      </thead>
+      <tbody id="trade-tbody"></tbody>
+    </table>
+    </div>
+    <div id="empty-msg" style="text-align:center;padding:40px;color:#333">Noch keine Bot-Trades vorhanden</div>
+  </div>
+</div>
+
+<footer>KODA Bot — Autonomous Trading System · ER1 Strategie · KOCH Trading 2026</footer>
+</div>
+
+<script>
+// ── Auth ──
+const PIN = '7777';
+const pwInput = document.getElementById('pw-input');
+pwInput.addEventListener('input', function() {
+  if (this.value.length === 4) {
+    if (this.value === PIN) {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      loadData();
+    } else {
+      this.classList.add('error');
+      this.value = '';
+      setTimeout(() => this.classList.remove('error'), 300);
+    }
+  }
+});
+
+// ── Data Loading ──
+function loadData() {
+  // Load KODA-Bot trades from Excel via embedded JSON
+  // In production: fetch from webhook or JSON endpoint
+  const trades = typeof KODA_TRADES !== 'undefined' ? KODA_TRADES : [];
+  render(trades);
+}
+
+function render(trades) {
+  if (!trades || trades.length === 0) {
+    document.getElementById('empty-msg').style.display = 'block';
+    document.getElementById('kpi-trades').textContent = '0';
+    document.getElementById('kpi-trades-sub').textContent = 'Warte auf ersten Trade...';
+    return;
+  }
+
+  document.getElementById('empty-msg').style.display = 'none';
+
+  const closed = trades.filter(t => t.status !== 'OPEN');
+  const wins = closed.filter(t => t.net_pnl > 0);
+  const losses = closed.filter(t => t.net_pnl <= 0);
+  const totalPnl = closed.reduce((s, t) => s + t.net_pnl, 0);
+  const avgPnl = closed.length > 0 ? totalPnl / closed.length : 0;
+  const wr = closed.length > 0 ? (wins.length / closed.length * 100) : 0;
+
+  // KPIs
+  document.getElementById('kpi-trades').textContent = closed.length;
+  document.getElementById('kpi-trades-sub').textContent = `${wins.length}W / ${losses.length}L`;
+  document.getElementById('kpi-wr').textContent = wr.toFixed(1) + '%';
+  document.getElementById('kpi-wr').className = 'value ' + (wr >= 50 ? 'green' : 'red');
+  document.getElementById('kpi-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+  document.getElementById('kpi-pnl').className = 'value ' + (totalPnl >= 0 ? 'green' : 'red');
+  document.getElementById('kpi-avg').textContent = (avgPnl >= 0 ? '+' : '') + '$' + avgPnl.toFixed(2);
+  document.getElementById('kpi-avg').className = 'value ' + (avgPnl >= 0 ? 'green' : 'red');
+
+  // Coin Performance
+  const coinMap = {};
+  closed.forEach(t => {
+    if (!coinMap[t.coin]) coinMap[t.coin] = {wins: 0, total: 0, pnl: 0};
+    coinMap[t.coin].total++;
+    if (t.net_pnl > 0) coinMap[t.coin].wins++;
+    coinMap[t.coin].pnl += t.net_pnl;
+  });
+
+  const coinPerf = document.getElementById('coin-perf');
+  coinPerf.innerHTML = '';
+  Object.entries(coinMap).sort((a, b) => b[1].pnl - a[1].pnl).forEach(([coin, d]) => {
+    const wr = (d.wins / d.total * 100).toFixed(0);
+    const maxPnl = Math.max(...Object.values(coinMap).map(c => Math.abs(c.pnl)), 1);
+    const width = Math.abs(d.pnl) / maxPnl * 100;
+    const color = d.pnl >= 0 ? '#22c55e' : '#ef4444';
+    coinPerf.innerHTML += `<div class="strat-row">
+      <div class="strat-name">${coin}</div>
+      <div class="strat-bar-outer"><div class="strat-bar-inner" style="width:${width}%;background:${color}">${wr}%</div></div>
+      <div class="strat-val">${d.pnl >= 0 ? '+' : ''}$${d.pnl.toFixed(2)}</div>
+    </div>`;
+  });
+
+  // Trade Table
+  const tbody = document.getElementById('trade-tbody');
+  tbody.innerHTML = '';
+  trades.slice().reverse().forEach(t => {
+    const dirClass = t.direction === 'LONG' ? 'long' : 'short';
+    const pnlClass = t.net_pnl >= 0 ? 'pos' : 'neg';
+    const modeTag = t.status === 'TESTNET' ? '<span class="testnet-tag">TEST</span>' :
+                    t.status === 'LIVE' ? '<span class="live-tag">LIVE</span>' : t.status;
+    tbody.innerHTML += `<tr>
+      <td>${t.id}</td>
+      <td>${t.datum} ${t.zeit || ''}</td>
+      <td><span class="coin">${t.coin}</span></td>
+      <td><span class="badge ${dirClass}">${t.direction}</span></td>
+      <td>${t.strategie || 'ER1'}</td>
+      <td>$${t.entry.toLocaleString()}</td>
+      <td>${t.tp1_kurs ? '$' + t.tp1_kurs.toLocaleString() : '—'}</td>
+      <td>${t.rest_kurs ? '$' + t.rest_kurs.toLocaleString() : '—'}</td>
+      <td class="${pnlClass}">${t.roi_pct >= 0 ? '+' : ''}${t.roi_pct.toFixed(2)}%</td>
+      <td class="${pnlClass}">${t.net_pnl >= 0 ? '+' : ''}$${t.net_pnl.toFixed(2)}</td>
+      <td>${t.dauer || '—'}</td>
+      <td>${modeTag}</td>
+      <td style="color:#555;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis">${t.notiz || ''}</td>
+    </tr>`;
+  });
+}
+
+// Trade data will be injected here by the build script
+var KODA_TRADES = [];
+</script>
+
+</body>
+</html>
