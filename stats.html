@@ -57,7 +57,7 @@ footer{text-align:center;padding:20px;color:#2a3a50;font-size:.75rem;border-top:
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <label>Bis</label>
-    <input type="date" id="fTo" value="2026-04-29">
+    <input type="date" id="fTo" " id="fToPlaceholder">
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <label>Signalgeber</label>
@@ -310,7 +310,7 @@ function render() {
         backgroundColor: coinTop.map(x => x[1] >= 0 ? '#3b9eff99' : '#ef444499'),
         borderColor: coinTop.map(x => x[1] >= 0 ? '#3b9eff' : '#ef4444'),
         borderWidth: 1, borderRadius: 4,
-      }]
+      }, {"nr": 76, "signal": "Viona", "datum": "04.05.26", "coin": "SUI", "richtung": "S", "roi": 18.96, "pnl": 531.84, "net_pnl": 531.84}]
     },
     options: {
       indexAxis: 'y',
@@ -390,7 +390,7 @@ function render() {
 
 function resetFilters() {
   document.getElementById('fFrom').value = '2026-02-17';
-  document.getElementById('fTo').value = '2026-04-29';
+  document.getElementById('fTo').value = new Date().toISOString().slice(0,10);
   document.getElementById('fSig').value = '';
   render();
 }
@@ -413,6 +413,30 @@ document.getElementById('fTo').addEventListener('change', render);
 document.getElementById('fSig').addEventListener('change', render);
 
 render();
+</script>
+
+<script>
+// Set date filters dynamically
+(function() {
+  var today = new Date();
+  var dd = String(today.getDate()).padStart(2,'0');
+  var mm = String(today.getMonth()+1).padStart(2,'0');
+  var yyyy = today.getFullYear();
+  var todayStr = yyyy+'-'+mm+'-'+dd;
+  
+  var fromDate = new Date(today);
+  fromDate.setMonth(fromDate.getMonth()-3);
+  var fdd = String(fromDate.getDate()).padStart(2,'0');
+  var fmm = String(fromDate.getMonth()+1).padStart(2,'0');
+  var fyyyy = fromDate.getFullYear();
+  var fromStr = fyyyy+'-'+fmm+'-'+fdd;
+  
+  document.getElementById('fFrom').value = fromStr;
+  document.getElementById('fTo').value = todayStr;
+  
+  // Also fix reset button
+  var origReset = document.getElementById('fTo').value;
+})();
 </script>
 </body>
 </html>
