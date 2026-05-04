@@ -189,7 +189,8 @@
 
 </div>
 
-<footer>KOCH Trading Dashboard 2026 · Chris Ko · Powered by Claude Code · Stand: 29.04.2026 · <a href="trades.html" style="color:#1e2d40;text-decoration:none;" onmouseover="this.style.color='#3a7bd5'" onmouseout="this.style.color='#1e2d40'">▸ Trades</a> · <a href="stats.html" style="color:#1e2d40;text-decoration:none;" onmouseover="this.style.color='#3a7bd5'" onmouseout="this.style.color='#1e2d40'">▸ Statistik</a></footer>
+<footer>KOCH Trading Dashboard 2026 · Chris Ko · Powered by Claude Code · Stand: <span id="idx-date"></span> · <a href="trades.html" style="color:#1e2d40;text-decoration:none;" onmouseover="this.style.color='#3a7bd5'" onmouseout="this.style.color='#1e2d40'">▸ Trades</a> · <a href="stats.html" style="color:#1e2d40;text-decoration:none;" onmouseover="this.style.color='#3a7bd5'" onmouseout="this.style.color='#1e2d40'">▸ Statistik</a></footer>
 
+<script>document.getElementById("idx-date").textContent=new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});</script>
 </body>
 </html>
