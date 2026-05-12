@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOCH Trading — Auszahlungen</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0e1a; color:#e0e6f0; font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+  .header { background:linear-gradient(135deg,#0d1b2e,#1a2a4a); padding:28px 32px; border-bottom:1px solid #1e3a5f; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  .header h1 { font-size:1.8rem; font-weight:700; letter-spacing:1px; }
+  .header h1 span { color:#00c8ff; }
+  .container { max-width:1200px; margin:0 auto; padding:24px 20px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+  @media(max-width:700px){ .grid-4,.grid-3{grid-template-columns:1fr 1fr;} }
+  .nav { display:flex; gap:8px; flex-wrap:wrap; }
+  .nav a { color:#4a7a9b; text-decoration:none; font-size:.78rem; padding:4px 12px; border:1px solid #1e3a5f; border-radius:20px; transition:all .2s; }
+  .nav a:hover { color:#00c8ff; border-color:#00c8ff55; }
+  .nav a.active { color:#00c8ff; border-color:#00c8ff55; background:#00c8ff10; font-weight:600; }
+  .stat-box { background:#111827; border:1px solid #1e2d45; border-radius:12px; padding:20px 16px; text-align:center; }
+  .stat-box .label { font-size:.72rem; color:#4a7a9b; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+  .stat-box .value { font-size:1.8rem; font-weight:700; }
+  .stat-box .sub { font-size:.75rem; color:#556a80; margin-top:4px; }
+  .green { color:#22c55e; } .red { color:#ef4444; } .blue { color:#3b9eff; } .white { color:#e0e6f0; } .yellow { color:#f59e0b; } .gray { color:#556a80; }
+  .card { background:#111827; border:1px solid #1e2d45; border-radius:12px; padding:20px; margin-bottom:24px; }
+  .card h2 { font-size:.85rem; font-weight:600; letter-spacing:1.5px; color:#4a7a9b; text-transform:uppercase; margin-bottom:16px; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  thead tr { background:#0d1b2e; }
+  thead th { padding:10px 12px; text-align:left; font-size:.7rem; letter-spacing:1px; color:#4a7a9b; text-transform:uppercase; border-bottom:1px solid #1e3a5f; }
+  tbody tr { border-bottom:1px solid #161f30; transition:background .15s; }
+  tbody tr:hover { background:#161f30; }
+  tbody td { padding:9px 12px; }
+  .num { text-align:right; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:.72rem; font-weight:600; }
+  .badge-green { background:#052a17; color:#22c55e; }
+  .badge-yellow { background:#2a2005; color:#f59e0b; }
+  .section-divider { border-top:2px solid #1e3a5f; margin:32px 0 24px; }
+  .rule-box { background:#0d1b2e; border:1px solid #1e3a5f; border-radius:8px; padding:16px; margin-bottom:20px; font-size:.82rem; line-height:1.6; }
+  .rule-box b { color:#00c8ff; }
+  footer { text-align:center; padding:24px; color:#2a3a50; font-size:.75rem; border-top:1px solid #161f30; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>KOCH <span>Trading</span> Auszahlungen</h1>
+    <div style="font-size:.85rem;color:#4a7a9b;margin-top:4px;">Chris Ko · 2026</div>
+  </div>
+  <div class="nav">
+    <a href="index.html">Dashboard</a>
+    <a href="trades.html">Trade Log</a>
+    <a href="stats.html">Statistik</a>
+    <a href="bot.html">BOT</a>
+    <a href="auszahlung.html" class="active">Auszahlung</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- KPIs -->
+  <div class="grid-4">
+    <div class="stat-box">
+      <div class="label">Einzahlungen Gesamt</div>
+      <div class="value blue">20,000</div>
+      <div class="sub">USDT (TR 10K + GT 10K)</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Gewinne Gesamt</div>
+      <div class="value green" id="kpi-gewinne">3,924</div>
+      <div class="sub">USDT brutto realisiert</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Bereits Ausbezahlt</div>
+      <div class="value white" id="kpi-ausbezahlt">2,250</div>
+      <div class="sub">USDT netto verteilt</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Offen zur Verteilung</div>
+      <div class="value yellow" id="kpi-offen">1,574</div>
+      <div class="sub">USDT (noch nicht ausbezahlt)</div>
+    </div>
+  </div>
+
+  <!-- Auszahlungsregel -->
+  <div class="rule-box">
+    <b>Auszahlungsregel:</b> Nur Netto-Gewinne werden ausbezahlt. Funding-Kapital (20K) bleibt permanent im Trading.<br>
+    <b>Verteilung:</b> TR 25% | GT 25% | CK 50% (2x 25% aus TR + GT)<br>
+    <b>Berechnung:</b> Kontostand aller Boersen am Auszahlungstag - Einzahlungen (20K) = Netto-Gewinne. Abzueglich Kosten = Verteilbarer Gewinn.
+  </div>
+
+  <!-- Kontostand -->
+  <div class="card">
+    <h2>Kontostand pro Boerse</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th class="num">Bitget</th>
+          <th class="num">Phemex</th>
+          <th class="num">Toobit</th>
+          <th class="num">Gesamt</th>
+          <th class="num">- Einzahlungen</th>
+          <th class="num">= Gewinn/Verlust</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>14.04.2026</td>
+          <td class="num">19,542</td>
+          <td class="num">2,067</td>
+          <td class="num">0</td>
+          <td class="num"><b>21,609</b></td>
+          <td class="num gray">-20,000</td>
+          <td class="num green">+1,609</td>
+        </tr>
+        <tr>
+          <td>26.04.2026</td>
+          <td class="num">20,310</td>
+          <td class="num">2,010</td>
+          <td class="num">37</td>
+          <td class="num"><b>22,357</b></td>
+          <td class="num gray">-20,000</td>
+          <td class="num green">+2,357</td>
+        </tr>
+        <tr style="background:#111827">
+          <td><b>Aktuell (12.05.)</b></td>
+          <td class="num" id="bal-bitget">—</td>
+          <td class="num" id="bal-phemex">—</td>
+          <td class="num" id="bal-toobit">—</td>
+          <td class="num"><b id="bal-total">—</b></td>
+          <td class="num gray">-20,000</td>
+          <td class="num" id="bal-pnl"><b>—</b></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="font-size:.75rem;color:#556a80;margin-top:8px;">* Aktuelle Kontostande manuell eintragen oder per Screenshot verifizieren</div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- Auszahlungen -->
+  <div class="card">
+    <h2>Auszahlungshistorie</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th class="num">Brutto Gewinn</th>
+          <th class="num">Ausgaben</th>
+          <th class="num">Netto</th>
+          <th class="num">TR (25%)</th>
+          <th class="num">GT (25%)</th>
+          <th class="num">CK (50%)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Auszahlung 1 -->
+        <tr>
+          <td>26.04.2026</td>
+          <td class="num">2,350</td>
+          <td class="num red">-100</td>
+          <td class="num green"><b>2,250</b></td>
+          <td class="num">562.50</td>
+          <td class="num">562.50</td>
+          <td class="num">1,125.00</td>
+          <td><span class="badge badge-green">Ausbezahlt</span></td>
+        </tr>
+        <!-- Aktueller Zeitraum -->
+        <tr style="background:#0d1b2e">
+          <td><b>Aktuell</b><br><span class="gray" style="font-size:.72rem">seit 26.04.</span></td>
+          <td class="num" id="cur-brutto">—</td>
+          <td class="num red" id="cur-ausgaben">—</td>
+          <td class="num yellow" id="cur-netto"><b>—</b></td>
+          <td class="num gray" id="cur-tr">—</td>
+          <td class="num gray" id="cur-gt">—</td>
+          <td class="num gray" id="cur-ck">—</td>
+          <td><span class="badge badge-yellow">-</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Realisierte Trades seit letzter Auszahlung -->
+  <div class="card">
+    <h2>Realisierte Trades seit 26.04.2026</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th>Coin</th>
+          <th>Richtung</th>
+          <th>Boerse</th>
+          <th class="num">PnL (USDT)</th>
+          <th>Notiz</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>12.05.2026</td>
+          <td><b>NEO</b></td>
+          <td><span class="green">LONG</span></td>
+          <td>Bitget</td>
+          <td class="num green"><b>+1,574.47</b></td>
+          <td>TP1 + SL Rest, 14 Tage, +42.9% ROI</td>
+        </tr>
+        <!-- Weitere realisierte Trades hier eintragen -->
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid #1e3a5f">
+          <td colspan="4"><b>Gesamt realisiert</b></td>
+          <td class="num green"><b>+1,574.47</b></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Offene Positionen -->
+  <div class="card">
+    <h2>Offene Positionen</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Coin</th>
+          <th>Richtung</th>
+          <th>Boerse</th>
+          <th class="num">Entry</th>
+          <th class="num">Aktuell</th>
+          <th class="num">Unrealized PnL</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>ETH</b></td>
+          <td><span class="green">LONG</span></td>
+          <td>Bitget</td>
+          <td class="num">$2,310</td>
+          <td class="num" id="eth-price">—</td>
+          <td class="num" id="eth-pnl">—</td>
+          <td>8x, Phase 1</td>
+        </tr>
+        <tr>
+          <td><b>XLM</b></td>
+          <td><span class="green">LONG</span></td>
+          <td>Phemex</td>
+          <td class="num">$0.1734</td>
+          <td class="num" id="xlm-price">—</td>
+          <td class="num" id="xlm-pnl">—</td>
+          <td>9x, warte auf BE</td>
+        </tr>
+        <tr>
+          <td><b>DOGE</b></td>
+          <td><span class="green">LONG</span></td>
+          <td>Bitget</td>
+          <td class="num">$0.1147</td>
+          <td class="num" id="doge-price">—</td>
+          <td class="num" id="doge-pnl">—</td>
+          <td>10x, Compound</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Ausgaben -->
+  <div class="card">
+    <h2>Laufende Ausgaben (seit 26.04.)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th>Beschreibung</th>
+          <th class="num">Betrag (USDT)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="2" class="gray" style="text-align:center;font-style:italic">Noch keine Ausgaben eingetragen</td>
+          <td></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid #1e3a5f">
+          <td colspan="2"><b>Gesamt Ausgaben</b></td>
+          <td class="num red"><b>0</b></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div style="font-size:.75rem;color:#556a80;margin-top:8px;">* Claude Subscription, API-Kosten, Signalgruppen, etc. hier eintragen</div>
+  </div>
+
+</div>
+
+<footer>KOCH Trading Dashboard 2026 · Auszahlungen & Gewinnverteilung</footer>
+
+</body>
+</html>
