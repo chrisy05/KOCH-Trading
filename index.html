@@ -105,11 +105,13 @@ document.getElementById('hdr-date').textContent=today;
 document.getElementById('ft-date').textContent='Stand: '+today;
 
 // Filter valid trades
+// Netto PNL: net_pnl wenn vorhanden, sonst pnl (Fallback fuer aeltere Trades)
+var eff=function(t){return t.net_pnl!==null?t.net_pnl:t.pnl;};
 var trades=T.filter(function(t){return t.abgeschl==='j' && t.pnl!==null;});
 var n=trades.length;
-var wins=trades.filter(function(t){return t.pnl>0;}).length;
+var wins=trades.filter(function(t){return eff(t)>0;}).length;
 var losses=n-wins;
-var totalPnl=trades.reduce(function(s,t){return s+(t.pnl||0);},0);
+var totalPnl=trades.reduce(function(s,t){return s+(eff(t)||0);},0);
 var wr=n?((wins/n)*100):0;
 var avgPnl=n?(totalPnl/n):0;
 
@@ -129,7 +131,7 @@ var coins={};
 trades.forEach(function(t){
   var c=t.coin||'';
   if(!c||c==='Versch')return;
-  coins[c]=(coins[c]||0)+(t.pnl||0);
+  coins[c]=(coins[c]||0)+(eff(t)||0);
 });
 var sorted=Object.entries(coins).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
 var maxVal=sorted.length?sorted[0][1]:1;
@@ -148,8 +150,8 @@ trades.forEach(function(t){
   var s=t.signal||'Unbekannt';
   if(!sigs[s])sigs[s]={n:0,w:0,pnl:0};
   sigs[s].n++;
-  if(t.pnl>0)sigs[s].w++;
-  sigs[s].pnl+=(t.pnl||0);
+  if(eff(t)>0)sigs[s].w++;
+  sigs[s].pnl+=(eff(t)||0);
 });
 var sigSorted=Object.entries(sigs).sort(function(a,b){return b[1].pnl-a[1].pnl;});
 var sigHtml='';
