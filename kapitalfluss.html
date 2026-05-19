@@ -14,6 +14,11 @@ h1{color:#58a6ff;text-align:center;margin-bottom:20px;font-size:1.5rem}
 .ib{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#21262d;color:#58a6ff;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid #30363d;position:relative}
 .ib:hover .tt,.ib:active .tt{display:block}
 .tt{display:none;position:absolute;top:24px;left:-10px;width:300px;background:#1c2333;color:#c9d1d9;padding:10px 12px;border-radius:8px;font-size:0.78rem;font-weight:400;line-height:1.4;border:1px solid #30363d;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.custom-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;font-size:0.82rem;color:#8b949e}
+.leg-item{display:inline-flex;align-items:center;gap:5px}
+.leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.leg-line{width:18px;height:0;border-bottom:2px;display:inline-block;border-bottom-width:2px;border-bottom-style:solid}
+.leg-bar{width:8px;height:12px;display:inline-block;border-radius:1px}
 canvas{max-height:350px}
 .day-entry{padding:16px 0}
 .day-heading{color:#58a6ff;font-size:1.1rem;font-weight:600;margin-bottom:10px}
@@ -31,7 +36,14 @@ canvas{max-height:350px}
 <div class="updated">Letzte Aktualisierung: 2026-05-19</div>
 
 <div class="chart-container">
-<div class="chart-title">Kapitalfluss Uebersicht <span class="ib">i<span class="tt"><b>BTC</b> (orange): Bitcoin Preis in $K.<br><b>Stablecoins</b> (gruen): Market Cap in Mrd $. Steigt = Kapital wartet.<br><b>OI</b> (blau): Open Interest in Mrd $. Offene Futures-Positionen.<br><b>Fear&amp;Greed</b> (gelb): 0-100. Unter 25 = Extreme Fear.<br><b>Funding</b> (balken): Positiv = Long-Bias, Negativ = Short-Bias.</span></span></div>
+<div class="chart-title">Kapitalfluss Uebersicht</div>
+<div class="custom-legend">
+  <span class="leg-item"><span class="leg-dot" style="background:#f7931a;"></span>BTC ($K) <span class="ib">i<span class="tt">Bitcoin Spot-Preis in Tausend Dollar. Dient als Referenz fuer alle anderen Metriken. Wenn BTC faellt, folgen die meisten Altcoins. Quelle: Binance.</span></span></span>
+  <span class="leg-item"><span class="leg-line" style="border-color:#26a69a;border-style:dashed;"></span>Stablecoins (Mrd $) <span class="ib">i<span class="tt">Gesamtwert aller Stablecoins (USDT, USDC etc.) in Milliarden Dollar. Steigt der Wert, parkt neues Kapital und wartet auf einen Einstieg in den Markt. Faellt er, wird Kapital abgezogen. Aktuell bei ca. $321 Mrd. Quelle: DeFiLlama.</span></span></span>
+  <span class="leg-item"><span class="leg-dot" style="background:#2196F3;"></span>Open Interest (Mrd $) <span class="ib">i<span class="tt">Gesamtwert aller offenen Futures-Positionen (Longs + Shorts zusammen) in Milliarden Dollar. Steigt OI und der Preis steigt = starker Trend mit neuem Geld. Steigt OI und der Preis faellt = neue Short-Positionen werden eroeffnet. Faellt OI = Positionen werden geschlossen, Kapital fliesst ab. Quelle: Binance Futures.</span></span></span>
+  <span class="leg-item"><span class="leg-line" style="border-color:#ff9800;border-style:dotted;"></span>Fear &amp; Greed (0-100) <span class="ib">i<span class="tt">Stimmungsindex fuer den gesamten Kryptomarkt. 0-25 = Extreme Fear (Markt hat Panik, historisch guter Kaufzeitpunkt). 25-45 = Fear. 45-55 = Neutral. 55-75 = Greed. 75-100 = Extreme Greed (Markt ist euphorisch, Korrektur wahrscheinlich). Quelle: alternative.me</span></span></span>
+  <span class="leg-item"><span class="leg-bar" style="background:#22c55e;"></span><span class="leg-bar" style="background:#ef4444;"></span>Funding Rate (%) <span class="ib">i<span class="tt">Zahlungen die alle 8 Stunden zwischen Long- und Short-Haltern fliessen. Gruener Balken = positiv, Longs zahlen an Shorts. Das bedeutet mehr Trader sind long positioniert (bullishes Sentiment). Roter Balken = negativ, Shorts zahlen an Longs, also mehr Short-Positionen (bearish). Nahe 0 = ausgeglichen. Quelle: Binance Futures.</span></span></span>
+</div>
 <canvas id="chartMain" height="180"></canvas>
 </div>
 
@@ -39,7 +51,7 @@ canvas{max-height:350px}
 
         <div class="day-entry">
             <h3 class="day-heading">2026-05-19</h3>
-            <div class="day-text">BTC: $76,481<br>Stablecoin Market Cap: $321.18B — USDT $189.56B (59%), USDC $77.0B. Steigend = Kapital wartet auf Einstieg.<br>Open Interest: $8.11B (106,075 BTC auf Binance Futures). Hohes OI bei fallenden Preisen = Liquidationsgefahr.<br>Funding Rate: 0.0048% — Neutral.<br>Fear & Greed Index: 25 (Extreme Fear). Markt hat Angst — historisch guter Kaufzeitpunkt bei Werten unter 25.<br>Quellen: <a href='https://farside.co.uk/btc/' target='_blank'>Farside (ETF Flows)</a> · <a href='https://defillama.com/stablecoins' target='_blank'>DeFiLlama (Stablecoins)</a> · <a href='https://www.coinglass.com/FundingRate' target='_blank'>CoinGlass (Funding/OI)</a> · <a href='https://alternative.me/crypto/fear-and-greed-index/' target='_blank'>Fear & Greed</a></div>
+            <div class="day-text">BTC: $76,512<br>Stablecoin Market Cap: $321.19B — USDT $189.56B (59%), USDC $77.0B. Steigend = Kapital wartet auf Einstieg.<br>Open Interest: $8.1B (105,834 BTC auf Binance Futures). Hohes OI bei fallenden Preisen = Liquidationsgefahr.<br>Funding Rate: 0.0056% — Neutral.<br>Fear & Greed Index: 25 (Extreme Fear). Markt hat Angst — historisch guter Kaufzeitpunkt bei Werten unter 25.<br>Quellen: <a href='https://farside.co.uk/btc/' target='_blank'>Farside (ETF Flows)</a> · <a href='https://defillama.com/stablecoins' target='_blank'>DeFiLlama (Stablecoins)</a> · <a href='https://www.coinglass.com/FundingRate' target='_blank'>CoinGlass (Funding/OI)</a> · <a href='https://alternative.me/crypto/fear-and-greed-index/' target='_blank'>Fear & Greed</a></div>
         </div>
         <hr class="day-divider">
 </div>
@@ -48,11 +60,11 @@ canvas{max-height:350px}
 
 <script>
 const dates=["2026-05-19"];
-const btcData=[76480.97];
-const stableData=[321.18];
-const oiData=[8.11];
+const btcData=[76511.87];
+const stableData=[321.19];
+const oiData=[8.1];
 const fngData=[25];
-const fundingData=[0.0048];
+const fundingData=[0.0056];
 
 // BTC in $K fuer bessere Skalierung
 const btcK=btcData.map(v=>v/1000);
@@ -62,7 +74,7 @@ new Chart(document.getElementById('chartMain'),{
   data:{
     labels:dates,
     datasets:[
-      {label:'BTC ($K)',data:btcK,borderColor:'#f7931a',backgroundColor:'rgba(247,147,26,0.08)',fill:false,tension:0.3,borderWidth:2,yAxisID:'y',pointRadius:3},
+      {label:'BTC ($K)',data:btcK,borderColor:'#f7931a',fill:false,tension:0.3,borderWidth:2,yAxisID:'y',pointRadius:3},
       {label:'Stablecoins (Mrd $)',data:stableData,borderColor:'#26a69a',fill:false,tension:0.3,borderWidth:2,yAxisID:'y2',pointRadius:3,borderDash:[5,3]},
       {label:'Open Interest (Mrd $)',data:oiData,borderColor:'#2196F3',fill:false,tension:0.3,borderWidth:2,yAxisID:'y2',pointRadius:3},
       {label:'Fear & Greed (0-100)',data:fngData,borderColor:'#ff9800',fill:false,tension:0.3,borderWidth:2,yAxisID:'y3',pointRadius:3,borderDash:[2,2]},
@@ -72,7 +84,7 @@ new Chart(document.getElementById('chartMain'),{
   options:{
     responsive:true,
     interaction:{mode:'index',intersect:false},
-    plugins:{legend:{labels:{color:'#8b949e',usePointStyle:true,padding:12},position:'top'},tooltip:{mode:'index',intersect:false}},
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
     scales:{
       x:{ticks:{color:'#484f58',maxRotation:45}},
       y:{type:'linear',position:'left',title:{display:true,text:'BTC ($K)',color:'#f7931a'},ticks:{color:'#f7931a'},grid:{color:'rgba(247,147,26,0.1)'}},
