@@ -10,14 +10,20 @@
 body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:20px}
 h1{color:#58a6ff;text-align:center;margin-bottom:20px;font-size:1.5rem}
 .chart-container{background:#161b22;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #21262d}
-.chart-title{color:#58a6ff;font-size:1rem;margin-bottom:10px}
+.chart-title{color:#58a6ff;font-size:1rem;margin-bottom:10px;display:inline-flex;align-items:center;gap:8px}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#21262d;color:#58a6ff;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid #30363d;position:relative}
+.ib:hover .tt,.ib:active .tt{display:block}
+.tt{display:none;position:absolute;top:24px;left:-10px;width:300px;background:#1c2333;color:#c9d1d9;padding:10px 12px;border-radius:8px;font-size:0.78rem;font-weight:400;line-height:1.4;border:1px solid #30363d;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
 canvas{max-height:300px}
 .day-blocks{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
 .day-block{background:#161b22;border-radius:8px;padding:14px;border:1px solid #21262d}
 .day-date{color:#58a6ff;font-weight:700;margin-bottom:8px;font-size:0.95rem}
-.day-row{display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem}
-.label{color:#8b949e}
+.day-row{display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem;align-items:center}
+.label{color:#8b949e;display:inline-flex;align-items:center;gap:4px}
 .val{color:#c9d1d9;font-weight:600}
+.mi{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#21262d;color:#58a6ff;font-size:0.55rem;font-weight:700;cursor:pointer;border:1px solid #30363d;position:relative}
+.mi:hover .tt,.mi:active .tt{display:block}
+.mi .tt{width:240px;top:20px}
 .footer{text-align:center;margin-top:30px;color:#484f58;font-size:0.75rem}
 .footer a{color:#484f58;text-decoration:none}
 .updated{text-align:center;color:#484f58;font-size:0.8rem;margin-bottom:15px}
@@ -28,22 +34,22 @@ canvas{max-height:300px}
 <div class="updated">Letzte Aktualisierung: 2026-05-19</div>
 
 <div class="chart-container">
-<div class="chart-title">BTC Preis</div>
+<div class="chart-title">BTC Preis <span class="ib">i<span class="tt">Bitcoin Spot-Preis in USD. Dient als Referenz fuer alle anderen Metriken. Quelle: Binance.</span></span></div>
 <canvas id="chartBtc"></canvas>
 </div>
 
 <div class="chart-container">
-<div class="chart-title">Stablecoin Market Cap (Mrd $)</div>
+<div class="chart-title">Stablecoin Market Cap (Mrd $) <span class="ib">i<span class="tt">Gesamtwert aller Stablecoins (USDT, USDC etc.). Steigt = neues Kapital parkt fuer Einstieg. Faellt = Kapital wird abgezogen. Quelle: DeFiLlama.</span></span></div>
 <canvas id="chartStable"></canvas>
 </div>
 
 <div class="chart-container">
-<div class="chart-title">Open Interest (Mrd $) & Fear/Greed Index</div>
+<div class="chart-title">Open Interest (Mrd $) & Fear/Greed <span class="ib">i<span class="tt"><b>Open Interest:</b> Gesamtwert aller offenen Futures-Positionen. Steigt + Preis steigt = starker Trend. Steigt + Preis faellt = neue Shorts. Faellt = Positionen werden geschlossen.<br><br><b>Fear &amp; Greed:</b> 0-25 Extreme Fear, 25-45 Fear, 45-55 Neutral, 55-75 Greed, 75-100 Extreme Greed. Quelle: alternative.me</span></span></div>
 <canvas id="chartOiFng"></canvas>
 </div>
 
 <div class="chart-container">
-<div class="chart-title">Funding Rate (%)</div>
+<div class="chart-title">Funding Rate (%) <span class="ib">i<span class="tt">Zahlungen zwischen Long- und Short-Haltern alle 8h. Positiv = Longs zahlen Shorts (bullishes Sentiment). Negativ = Shorts zahlen Longs (bearish). Nahe 0 = neutral. Quelle: Binance Futures.</span></span></div>
 <canvas id="chartFunding"></canvas>
 </div>
 
@@ -52,11 +58,11 @@ canvas{max-height:300px}
 
         <div class="day-block">
             <div class="day-date">2026-05-19</div>
-            <div class="day-row"><span class="label">BTC:</span> <span class="val">$76,587</span></div>
-            <div class="day-row"><span class="label">Stablecoins:</span> <span class="val">$321.18B</span></div>
-            <div class="day-row"><span class="label">Open Interest:</span> <span class="val">$8.13B</span></div>
-            <div class="day-row"><span class="label">Funding Rate:</span> <span class="val">0.0048%</span></div>
-            <div class="day-row"><span class="label">Fear & Greed:</span> <span class="val">25 (Extreme Fear)</span></div>
+            <div class="day-row"><span class="label">BTC <span class="mi">i<span class="tt">Bitcoin Spot-Preis (Binance)</span></span></span> <span class="val">$76,512</span></div>
+            <div class="day-row"><span class="label">Stablecoins <span class="mi">i<span class="tt">USDT + USDC + andere. Steigend = Kapital wartet auf Einstieg.</span></span></span> <span class="val">$321.18B</span></div>
+            <div class="day-row"><span class="label">Open Interest <span class="mi">i<span class="tt">Offene Futures-Positionen. Hoch + Preis faellt = Liquidationsgefahr.</span></span></span> <span class="val">$8.11B</span></div>
+            <div class="day-row"><span class="label">Funding <span class="mi">i<span class="tt">Positiv = mehr Longs. Negativ = mehr Shorts. Nahe 0 = neutral.</span></span></span> <span class="val">0.0048%</span></div>
+            <div class="day-row"><span class="label">Fear &amp; Greed <span class="mi">i<span class="tt">0-25 Extreme Fear, 25-45 Fear, 45-55 Neutral, 55-75 Greed, 75-100 Extreme Greed.</span></span></span> <span class="val">25 (Extreme Fear)</span></div>
         </div>
 </div>
 
@@ -64,9 +70,9 @@ canvas{max-height:300px}
 
 <script>
 const dates=["2026-05-19"];
-const btcData=[76587.42];
+const btcData=[76512.12];
 const stableData=[321.18];
-const oiData=[8.13];
+const oiData=[8.11];
 const fngData=[25];
 const fundingData=[0.0048];
 
