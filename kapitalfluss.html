@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kapitalfluss</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:20px}
+h1{color:#58a6ff;text-align:center;margin-bottom:20px;font-size:1.5rem}
+.chart-container{background:#161b22;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #21262d}
+.chart-title{color:#58a6ff;font-size:1rem;margin-bottom:10px}
+canvas{max-height:300px}
+.day-blocks{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.day-block{background:#161b22;border-radius:8px;padding:14px;border:1px solid #21262d}
+.day-date{color:#58a6ff;font-weight:700;margin-bottom:8px;font-size:0.95rem}
+.day-row{display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem}
+.label{color:#8b949e}
+.val{color:#c9d1d9;font-weight:600}
+.footer{text-align:center;margin-top:30px;color:#484f58;font-size:0.75rem}
+.footer a{color:#484f58;text-decoration:none}
+.updated{text-align:center;color:#484f58;font-size:0.8rem;margin-bottom:15px}
+</style>
+</head>
+<body>
+<h1>Kapitalfluss-Analyse</h1>
+<div class="updated">Letzte Aktualisierung: 2026-05-19</div>
+
+<div class="chart-container">
+<div class="chart-title">BTC Preis</div>
+<canvas id="chartBtc"></canvas>
+</div>
+
+<div class="chart-container">
+<div class="chart-title">Stablecoin Market Cap (Mrd $)</div>
+<canvas id="chartStable"></canvas>
+</div>
+
+<div class="chart-container">
+<div class="chart-title">Open Interest (Mrd $) & Fear/Greed Index</div>
+<canvas id="chartOiFng"></canvas>
+</div>
+
+<div class="chart-container">
+<div class="chart-title">Funding Rate (%)</div>
+<canvas id="chartFunding"></canvas>
+</div>
+
+<h2 style="color:#58a6ff;margin:20px 0 10px;">Tagesdetails</h2>
+<div class="day-blocks">
+
+        <div class="day-block">
+            <div class="day-date">2026-05-19</div>
+            <div class="day-row"><span class="label">BTC:</span> <span class="val">$76,587</span></div>
+            <div class="day-row"><span class="label">Stablecoins:</span> <span class="val">$321.18B</span></div>
+            <div class="day-row"><span class="label">Open Interest:</span> <span class="val">$8.13B</span></div>
+            <div class="day-row"><span class="label">Funding Rate:</span> <span class="val">0.0048%</span></div>
+            <div class="day-row"><span class="label">Fear & Greed:</span> <span class="val">25 (Extreme Fear)</span></div>
+        </div>
+</div>
+
+<div class="footer"><a href="index.html">← Dashboard</a></div>
+
+<script>
+const dates=["2026-05-19"];
+const btcData=[76587.42];
+const stableData=[321.18];
+const oiData=[8.13];
+const fngData=[25];
+const fundingData=[0.0048];
+
+const opts={responsive:true,plugins:{legend:{labels:{color:'#8b949e'}}},scales:{x:{ticks:{color:'#484f58'}},y:{ticks:{color:'#8b949e'}}}};
+
+new Chart(document.getElementById('chartBtc'),{type:'line',data:{labels:dates,datasets:[{label:'BTC ($)',data:btcData,borderColor:'#f7931a',backgroundColor:'rgba(247,147,26,0.1)',fill:true,tension:0.3}]},options:opts});
+
+new Chart(document.getElementById('chartStable'),{type:'line',data:{labels:dates,datasets:[{label:'Total Stablecoins (Mrd)',data:stableData,borderColor:'#26a69a',backgroundColor:'rgba(38,166,154,0.1)',fill:true,tension:0.3}]},options:opts});
+
+new Chart(document.getElementById('chartOiFng'),{type:'line',data:{labels:dates,datasets:[{label:'Open Interest (Mrd $)',data:oiData,borderColor:'#2196F3',tension:0.3,yAxisID:'y'},{label:'Fear & Greed',data:fngData,borderColor:'#ff9800',tension:0.3,yAxisID:'y1'}]},options:{...opts,scales:{...opts.scales,y:{type:'linear',position:'left',ticks:{color:'#2196F3'}},y1:{type:'linear',position:'right',min:0,max:100,ticks:{color:'#ff9800'}}}}});
+
+new Chart(document.getElementById('chartFunding'),{type:'bar',data:{labels:dates,datasets:[{label:'Funding Rate (%)',data:fundingData,backgroundColor:fundingData.map(v=>v>=0?'rgba(34,197,94,0.6)':'rgba(239,68,68,0.6)'),borderColor:fundingData.map(v=>v>=0?'#22c55e':'#ef4444'),borderWidth:1}]},options:opts});
+</script>
+</body>
+</html>
