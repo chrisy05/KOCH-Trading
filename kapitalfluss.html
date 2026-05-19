@@ -42,6 +42,7 @@ canvas{max-height:350px}
   <span class="leg-item"><span class="leg-line" style="border-color:#26a69a;border-style:dashed;"></span>Stablecoins (Mrd $) <span class="ib">i<span class="tt">Gesamtwert aller Stablecoins (USDT, USDC etc.) in Milliarden Dollar. Steigt der Wert, parkt neues Kapital und wartet auf einen Einstieg in den Markt. Faellt er, wird Kapital abgezogen. Aktuell bei ca. $321 Mrd. Quelle: DeFiLlama.</span></span></span>
   <span class="leg-item"><span class="leg-dot" style="background:#2196F3;"></span>Open Interest (Mrd $) <span class="ib">i<span class="tt">Gesamtwert aller offenen Futures-Positionen (Longs + Shorts zusammen) in Milliarden Dollar. Steigt OI und der Preis steigt = starker Trend mit neuem Geld. Steigt OI und der Preis faellt = neue Short-Positionen werden eroeffnet. Faellt OI = Positionen werden geschlossen, Kapital fliesst ab. Quelle: Binance Futures.</span></span></span>
   <span class="leg-item"><span class="leg-line" style="border-color:#ff9800;border-style:dotted;"></span>Fear &amp; Greed (0-100) <span class="ib">i<span class="tt">Stimmungsindex fuer den gesamten Kryptomarkt. 0-25 = Extreme Fear (Markt hat Panik, historisch guter Kaufzeitpunkt). 25-45 = Fear. 45-55 = Neutral. 55-75 = Greed. 75-100 = Extreme Greed (Markt ist euphorisch, Korrektur wahrscheinlich). Quelle: alternative.me</span></span></span>
+  <span class="leg-item"><span class="leg-line" style="border-color:#e040fb;"></span>BTC Dominance (%) <span class="ib">i<span class="tt">Anteil von Bitcoin an der gesamten Crypto Market Cap. Steigt die Dominance, fliesst Kapital aus Altcoins zurueck in BTC (Risk-Off). Faellt sie unter 55%, laeuft eine Altcoin Season. Aktuell um die 57-60%. Quelle: CoinMarketCap.</span></span></span>
   <span class="leg-item"><span class="leg-bar" style="background:#22c55e;"></span><span class="leg-bar" style="background:#ef4444;"></span>Funding Rate (%) <span class="ib">i<span class="tt">Zahlungen die alle 8 Stunden zwischen Long- und Short-Haltern fliessen. Gruener Balken = positiv, Longs zahlen an Shorts. Das bedeutet mehr Trader sind long positioniert (bullishes Sentiment). Roter Balken = negativ, Shorts zahlen an Longs, also mehr Short-Positionen (bearish). Nahe 0 = ausgeglichen. Quelle: Binance Futures.</span></span></span>
 </div>
 <canvas id="chartMain" height="180"></canvas>
@@ -51,7 +52,7 @@ canvas{max-height:350px}
 
         <div class="day-entry">
             <h3 class="day-heading">2026-05-19</h3>
-            <div class="day-text">BTC: $76,512<br>Stablecoin Market Cap: $321.19B — USDT $189.56B (59%), USDC $77.0B. Steigend = Kapital wartet auf Einstieg.<br>Open Interest: $8.1B (105,834 BTC auf Binance Futures). Hohes OI bei fallenden Preisen = Liquidationsgefahr.<br>Funding Rate: 0.0056% — Neutral.<br>Fear & Greed Index: 25 (Extreme Fear). Markt hat Angst — historisch guter Kaufzeitpunkt bei Werten unter 25.<br>Quellen: <a href='https://farside.co.uk/btc/' target='_blank'>Farside (ETF Flows)</a> · <a href='https://defillama.com/stablecoins' target='_blank'>DeFiLlama (Stablecoins)</a> · <a href='https://www.coinglass.com/FundingRate' target='_blank'>CoinGlass (Funding/OI)</a> · <a href='https://alternative.me/crypto/fear-and-greed-index/' target='_blank'>Fear & Greed</a></div>
+            <div class="day-text">BTC: $76,967<br>Stablecoin Market Cap: $321.17B — USDT $189.56B (59%), USDC $77.0B. Steigend = Kapital wartet auf Einstieg.<br>Open Interest: $8.06B (104,782 BTC auf Binance Futures). Hohes OI bei fallenden Preisen = Liquidationsgefahr.<br>Funding Rate: 0.0056% — Neutral.<br>Fear & Greed Index: 25 (Extreme Fear). Markt hat Angst — historisch guter Kaufzeitpunkt bei Werten unter 25.<br>Total Crypto Market Cap: $2559.0B — BTC Dominance 60.2%, ETH Dominance 10.0%. 24h Volume: $78.3B. BTC Dominance steigt = Risk-Off, Kapital fliesst in BTC zurueck.<br>Quellen: <a href='https://farside.co.uk/btc/' target='_blank'>Farside (ETF Flows)</a> · <a href='https://defillama.com/stablecoins' target='_blank'>DeFiLlama (Stablecoins)</a> · <a href='https://www.coinglass.com/FundingRate' target='_blank'>CoinGlass (Funding/OI)</a> · <a href='https://alternative.me/crypto/fear-and-greed-index/' target='_blank'>Fear & Greed</a></div>
         </div>
         <hr class="day-divider">
 </div>
@@ -60,12 +61,13 @@ canvas{max-height:350px}
 
 <script>
 const dates=["2026-05-19"];
-const btcData=[76511.87];
-const stableData=[321.19];
-const oiData=[8.1];
+const btcData=[76967.49];
+const stableData=[321.17];
+const oiData=[8.06];
 const fngData=[25];
 const fundingData=[0.0056];
 
+const btcDomData=[60.2];
 // BTC in $K fuer bessere Skalierung
 const btcK=btcData.map(v=>v/1000);
 
@@ -78,6 +80,7 @@ new Chart(document.getElementById('chartMain'),{
       {label:'Stablecoins (Mrd $)',data:stableData,borderColor:'#26a69a',fill:false,tension:0.3,borderWidth:2,yAxisID:'y2',pointRadius:3,borderDash:[5,3]},
       {label:'Open Interest (Mrd $)',data:oiData,borderColor:'#2196F3',fill:false,tension:0.3,borderWidth:2,yAxisID:'y2',pointRadius:3},
       {label:'Fear & Greed (0-100)',data:fngData,borderColor:'#ff9800',fill:false,tension:0.3,borderWidth:2,yAxisID:'y3',pointRadius:3,borderDash:[2,2]},
+      {label:'BTC Dominance (%)',data:btcDomData,borderColor:'#e040fb',fill:false,tension:0.3,borderWidth:2,yAxisID:'y3',pointRadius:3},
       {label:'Funding (%)',data:fundingData,type:'bar',backgroundColor:fundingData.map(v=>v>=0?'rgba(34,197,94,0.4)':'rgba(239,68,68,0.4)'),borderColor:fundingData.map(v=>v>=0?'#22c55e':'#ef4444'),borderWidth:1,yAxisID:'y4',barPercentage:0.4}
     ]
   },
