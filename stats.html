@@ -285,8 +285,8 @@ function render() {
         }
       }},
       scales: {
-        x: { type: 'time', time: { unit: 'month', tooltipFormat: 'dd.MM.yyyy', displayFormats: { month: 'MMM yy', week: 'dd.MM', day: 'dd.MM' } },
-             grid: GRID, ticks: { color: '#8b949e', font: { size: 11 }, maxTicksLimit: 6, source: 'auto', autoSkip: true }, adapters: { date: {} } },
+        x: { type: 'time', time: { unit: 'month', tooltipFormat: 'dd.MM.yyyy', displayFormats: { month: 'MMM yyyy', week: 'dd MMM', day: 'dd.MM' } },
+             grid: GRID, ticks: { color: '#8b949e', font: { size: 11 }, maxTicksLimit: 6 } },
         y: { grid: GRID, ticks: { ...TICK, callback: v => fmt(v, 0) },
              title: { display: true, text: 'USDT', color: '#4a7a9b', font: { size: 11 } } }
       }
