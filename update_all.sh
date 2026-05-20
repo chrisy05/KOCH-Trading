@@ -8,6 +8,7 @@
 # ═══════════════════════════════════════════════════════
 
 cd "$(dirname "$0")"
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 BACKUP="../docs/dashboard_backup"
 
 echo "═══ KOCH Dashboard Update ═══"
