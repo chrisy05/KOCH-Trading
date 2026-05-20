@@ -299,7 +299,7 @@ function render() {
         }
       }},
       scales: {
-        x: { grid: GRID, ticks: { color: '#8b949e', font: { size: 11 }, maxTicksLimit: 6, autoSkip: true, callback: function(val, idx) { var l = this.getLabelForValue(val); if (!l) return ''; var p = l.split('-'); if (p.length >= 2) return p[2] ? p[2]+'.'+p[1] : p[1]+'/'+p[0].slice(2); return l; } } },
+        x: { display: true, grid: GRID, ticks: { display: true, color: '#8b949e', font: { size: 10 }, maxTicksLimit: 6, autoSkip: true, callback: function(val) { var l = pnlLabels[val] || ''; if (!l) return ''; return l.slice(8,10) + '.' + l.slice(5,7) + '.' + l.slice(2,4); } } },
         y: { grid: GRID, ticks: { ...TICK, callback: v => fmt(v, 0) },
              title: { display: true, text: 'USDT', color: '#4a7a9b', font: { size: 11 } } }
       }
