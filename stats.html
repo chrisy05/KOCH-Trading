@@ -248,13 +248,27 @@ function render() {
   const finalPositive = pnlPoints.length === 0 || pnlPoints[pnlPoints.length-1].y >= 0;
   const pnlAbovePay = pnlPoints.length === 0 || pnlPoints[pnlPoints.length-1].y >= cumPay;
 
+  // Labels fuer X-Achse (Datum aus PnL-Punkten)
+  const pnlLabels = pnlPoints.map(p => p.x);
+  const pnlValues = pnlPoints.map(p => p.y);
+
+  // Auszahlungen auf gleiche Labels mappen
+  const payValues = pnlLabels.map(label => {
+    let val = 0;
+    for (let i = payPoints.length - 1; i >= 0; i--) {
+      if (payPoints[i].x <= label) { val = payPoints[i].y; break; }
+    }
+    return val;
+  });
+
   if (chartPnl) chartPnl.destroy();
   chartPnl = makeChart('chartPnl', {
     type: 'line',
     data: {
+      labels: pnlLabels,
       datasets: [{
         label: 'Kumulativer PNL (USDT)',
-        data: pnlPoints,
+        data: pnlValues,
         borderColor: finalPositive ? '#22c55e' : '#ef4444',
         backgroundColor: finalPositive ? '#22c55e18' : '#ef444418',
         fill: true,
@@ -264,7 +278,7 @@ function render() {
         borderWidth: 2,
       }, {
         label: 'Kumulative Auszahlungen (USDT)',
-        data: payPoints,
+        data: payValues,
         borderColor: '#ff9800',
         backgroundColor: 'rgba(239,68,68,0.0)',
         fill: false,
@@ -285,7 +299,7 @@ function render() {
         }
       }},
       scales: {
-        x: { grid: GRID, ticks: { color: '#8b949e', font: { size: 11 }, maxTicksLimit: 8, callback: function(val, idx) { var l = this.getLabelForValue(val); if (!l) return ''; var p = l.split('-'); return p[1] + '/' + p[0].slice(2); } } },
+        x: { grid: GRID, ticks: { color: '#8b949e', font: { size: 11 }, maxTicksLimit: 6, autoSkip: true, callback: function(val, idx) { var l = this.getLabelForValue(val); if (!l) return ''; var p = l.split('-'); if (p.length >= 2) return p[2] ? p[2]+'.'+p[1] : p[1]+'/'+p[0].slice(2); return l; } } },
         y: { grid: GRID, ticks: { ...TICK, callback: v => fmt(v, 0) },
              title: { display: true, text: 'USDT', color: '#4a7a9b', font: { size: 11 } } }
       }
