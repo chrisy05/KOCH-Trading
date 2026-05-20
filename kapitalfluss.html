@@ -33,7 +33,7 @@ canvas{max-height:350px}
 <body>
 <h1>Kapitalfluss-Analyse</h1>
 <div style="text-align:center;margin-bottom:10px;font-size:0.85rem;"><a href="mtf_scan.html" style="color:#58a6ff;text-decoration:none;">MTF Scan →</a> | <a href="index.html" style="color:#484f58;text-decoration:none;">Dashboard</a></div>
-<div class="updated">Letzte Aktualisierung: 2026-05-19</div>
+<div class="updated">Letzte Aktualisierung: 2026-05-20</div>
 
 <div class="chart-container">
 <div class="chart-title">Kapitalfluss Uebersicht</div>
@@ -51,6 +51,11 @@ canvas{max-height:350px}
 <div style="max-width:800px;margin:20px auto 0;">
 
         <div class="day-entry">
+            <h3 class="day-heading">2026-05-20</h3>
+            <div class="day-text">BTC: $77,458<br>Stablecoin Market Cap: $321.11B — USDT $189.53B (59%), USDC $76.99B. Steigend = Kapital wartet auf Einstieg.<br>Open Interest: $8.01B (103,448 BTC auf Binance Futures). Hohes OI bei fallenden Preisen = Liquidationsgefahr.<br>Funding Rate: 0.008% — Neutral.<br>Fear & Greed Index: 27 (Fear). Moderate Angst.<br>Total Crypto Market Cap: $2571.7B — BTC Dominance 60.3%, ETH Dominance 10.0%. 24h Volume: $70.7B. BTC Dominance steigt = Risk-Off, Kapital fliesst in BTC zurueck.<br>Quellen: <a href='https://farside.co.uk/btc/' target='_blank'>Farside (ETF Flows)</a> · <a href='https://defillama.com/stablecoins' target='_blank'>DeFiLlama (Stablecoins)</a> · <a href='https://www.coinglass.com/FundingRate' target='_blank'>CoinGlass (Funding/OI)</a> · <a href='https://alternative.me/crypto/fear-and-greed-index/' target='_blank'>Fear & Greed</a></div>
+        </div>
+        <hr class="day-divider">
+        <div class="day-entry">
             <h3 class="day-heading">2026-05-19</h3>
             <div class="day-text">BTC: $76,967<br>Stablecoin Market Cap: $321.17B — USDT $189.56B (59%), USDC $77.0B. Steigend = Kapital wartet auf Einstieg.<br>Open Interest: $8.06B (104,782 BTC auf Binance Futures). Hohes OI bei fallenden Preisen = Liquidationsgefahr.<br>Funding Rate: 0.0056% — Neutral.<br>Fear & Greed Index: 25 (Extreme Fear). Markt hat Angst — historisch guter Kaufzeitpunkt bei Werten unter 25.<br>Total Crypto Market Cap: $2559.0B — BTC Dominance 60.2%, ETH Dominance 10.0%. 24h Volume: $78.3B. BTC Dominance steigt = Risk-Off, Kapital fliesst in BTC zurueck.<br>Quellen: <a href='https://farside.co.uk/btc/' target='_blank'>Farside (ETF Flows)</a> · <a href='https://defillama.com/stablecoins' target='_blank'>DeFiLlama (Stablecoins)</a> · <a href='https://www.coinglass.com/FundingRate' target='_blank'>CoinGlass (Funding/OI)</a> · <a href='https://alternative.me/crypto/fear-and-greed-index/' target='_blank'>Fear & Greed</a></div>
         </div>
@@ -60,14 +65,14 @@ canvas{max-height:350px}
 <div class="footer"><a href="index.html">← Dashboard</a></div>
 
 <script>
-const dates=["2026-05-19"];
-const btcData=[76967.49];
-const stableData=[321.17];
-const oiData=[8.06];
-const fngData=[25];
-const fundingData=[0.0056];
+const dates=["2026-05-19", "2026-05-20"];
+const btcData=[76967.49, 77458.04];
+const stableData=[321.17, 321.11];
+const oiData=[8.06, 8.01];
+const fngData=[25, 27];
+const fundingData=[0.0056, 0.008];
 
-const btcDomData=[60.2];
+const btcDomData=[60.2, 60.3];
 // BTC in $K fuer bessere Skalierung
 const btcK=btcData.map(v=>v/1000);
 
