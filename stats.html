@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KOCH Trading — Statistik</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0a0e1a;color:#e0e6f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
@@ -239,7 +240,6 @@ function render() {
   let cumPay = 0;
   const payPoints = [{ x: pnlPoints.length ? pnlPoints[0].x : '2026-02-17', y: 0 }];
   payouts.forEach(p => {
-    payPoints.push({ x: p.date, y: cumPay });
     cumPay += p.amount;
     payPoints.push({ x: p.date, y: cumPay });
   });
@@ -268,7 +268,8 @@ function render() {
         borderColor: '#ff9800',
         backgroundColor: 'rgba(239,68,68,0.0)',
         fill: false,
-        tension: 0.3,
+        stepped: true,
+        tension: 0,
         pointRadius: 4,
         pointBackgroundColor: '#ff9800',
         borderWidth: 2,
