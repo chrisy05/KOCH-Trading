@@ -222,15 +222,31 @@ function render() {
   document.getElementById('filterInfo').textContent =
     `${filtered.length} Trades gefiltert${sig ? ' · ' + sig : ''}`;
 
-  // ── Chart 1: Kumulative PNL ────────────────────────────────────────────────
+  // ── Chart 1: Kumulative PNL + Auszahlungen ─────────────────────────────────
   const sorted = [...filtered].filter(t => t._date && t.pnl !== null).sort((a, b) => a._date - b._date);
   let cum = 0;
   const pnlPoints = sorted.map(t => { cum += eff(t); return { x: dateStr(t._date), y: +cum.toFixed(2) }; });
-  // Add start point
   if (pnlPoints.length && fromDate) pnlPoints.unshift({ x: from, y: 0 });
 
-  const gradColors = pnlPoints.map(p => p.y >= 0 ? '#22c55e' : '#ef4444');
+  // Auszahlungen (kumulative Linie)
+  const payouts = [
+    { date: '2026-03-31', amount: 1090 },
+    { date: '2026-04-07', amount: 866 },
+    { date: '2026-04-09', amount: 426 },
+    { date: '2026-04-26', amount: 2250 },
+    { date: '2026-05-12', amount: 2983 },
+  ];
+  let cumPay = 0;
+  const payPoints = [{ x: pnlPoints.length ? pnlPoints[0].x : '2026-02-17', y: 0 }];
+  payouts.forEach(p => {
+    cumPay += p.amount;
+    payPoints.push({ x: p.date, y: cumPay });
+  });
+  // Extend to last PnL date
+  if (pnlPoints.length) payPoints.push({ x: pnlPoints[pnlPoints.length-1].x, y: cumPay });
+
   const finalPositive = pnlPoints.length === 0 || pnlPoints[pnlPoints.length-1].y >= 0;
+  const pnlAbovePay = pnlPoints.length === 0 || pnlPoints[pnlPoints.length-1].y >= cumPay;
 
   if (chartPnl) chartPnl.destroy();
   chartPnl = makeChart('chartPnl', {
@@ -246,14 +262,25 @@ function render() {
         pointRadius: pnlPoints.length < 30 ? 4 : 2,
         pointBackgroundColor: finalPositive ? '#22c55e' : '#ef4444',
         borderWidth: 2,
+      }, {
+        label: 'Kumulative Auszahlungen (USDT)',
+        data: payPoints,
+        borderColor: '#ff9800',
+        backgroundColor: pnlAbovePay ? 'rgba(255,152,0,0.08)' : 'rgba(239,68,68,0.15)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#ff9800',
+        borderWidth: 2,
+        borderDash: [6, 3],
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: {
+      plugins: { legend: { display: true, labels: { color: '#8b949e', usePointStyle: true, padding: 12 } }, tooltip: {
         backgroundColor: '#0d1b2e', borderColor: '#1e3a5f', borderWidth: 1,
         callbacks: {
-          label: ctx => ' ' + fmt(ctx.parsed.y) + ' USDT'
+          label: ctx => ' ' + ctx.dataset.label.split(' (')[0] + ': ' + fmt(ctx.parsed.y) + ' USDT'
         }
       }},
       scales: {
