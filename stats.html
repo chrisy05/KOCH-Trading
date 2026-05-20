@@ -266,8 +266,8 @@ function render() {
         label: 'Kumulative Auszahlungen (USDT)',
         data: payPoints,
         borderColor: '#ff9800',
-        backgroundColor: 'rgba(239,68,68,0.18)',
-        fill: '-1',
+        backgroundColor: 'rgba(239,68,68,0.0)',
+        fill: false,
         tension: 0.3,
         pointRadius: 4,
         pointBackgroundColor: '#ff9800',
@@ -284,8 +284,8 @@ function render() {
         }
       }},
       scales: {
-        x: { type: 'time', time: { unit: 'month', displayFormats: { month: 'MM/yy', week: 'dd.MM' } },
-             grid: GRID, ticks: { ...TICK, maxTicksLimit: 8 }, adapters: { date: {} } },
+        x: { type: 'time', time: { unit: 'month', tooltipFormat: 'dd.MM.yy', displayFormats: { month: 'MM/yy', week: 'dd.MM', day: 'dd.MM' } },
+             grid: GRID, ticks: { ...TICK, maxTicksLimit: 6, source: 'auto' }, adapters: { date: {} } },
         y: { grid: GRID, ticks: { ...TICK, callback: v => fmt(v, 0) },
              title: { display: true, text: 'USDT', color: '#4a7a9b', font: { size: 11 } } }
       }
