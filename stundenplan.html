@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trading Stundenplan</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:10px}
+h1{color:#58a6ff;text-align:center;margin-bottom:5px;font-size:1.3rem}
+.nav{display:flex;justify-content:space-between;padding:0 10px;margin-bottom:10px}
+.nav a{color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px}
+.sub{text-align:center;color:#484f58;font-size:0.75rem;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:0.7rem}
+th{background:#161b22;color:#58a6ff;padding:6px 3px;text-align:center;position:sticky;top:0;z-index:2;border-bottom:2px solid #21262d;font-size:0.75rem}
+th:first-child{text-align:right;min-width:50px}
+td{padding:4px 3px;text-align:center;border:1px solid #0d1117;font-size:0.68rem;line-height:1.3}
+.s-short{background:#3d1a1a;color:#ef4444;font-weight:600}
+.s-long{background:#1a3d1a;color:#22c55e;font-weight:600}
+.s-neutral{background:#1a1a2e;color:#8b949e}
+.s-meiden{background:#1a1010;color:#666;font-style:italic}
+.s-star{font-weight:700}
+.s-eu{border-left:2px solid #2196F3}
+.s-us{border-left:2px solid #ff9800}
+.s-asia{border-left:2px solid #9c27b0}
+.s-dead{border-left:2px solid #333}
+tr:hover td{opacity:0.85}
+.now-marker{outline:2px solid #58a6ff;outline-offset:-1px}
+.legend{display:flex;gap:10px;justify-content:center;margin:8px 0;font-size:0.7rem;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:3px}
+.leg-box{width:12px;height:12px;border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+<h1>Trading Stundenplan</h1>
+<div class="nav"><a href="mtf_scan.html">← MTF Scan</a><a href="kapitalfluss.html">Kapitalfluss →</a></div>
+<div class="sub">BTC Session-Bias (Santo Domingo Zeit) · Basiert auf 2-Jahres Daten</div>
+
+<div class="legend">
+  <span><div class="leg-box" style="background:#3d1a1a;"></div> SHORT Bias</span>
+  <span><div class="leg-box" style="background:#1a3d1a;"></div> LONG Bias</span>
+  <span><div class="leg-box" style="background:#1a1a2e;"></div> Neutral</span>
+  <span><div class="leg-box" style="background:#1a1010;"></div> Meiden</span>
+  <span>⭐ = Staerkstes Signal</span>
+</div>
+
+<table id="schedule">
+<thead>
+<tr>
+<th>Zeit</th>
+<th>Mo</th>
+<th>Di</th>
+<th>Mi</th>
+<th>Do</th>
+<th>Fr</th>
+<th>Sa</th>
+<th>So</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+
+<div class="sub" style="margin-top:10px;">Aktuelle Zeit wird blau markiert · Zeiten = Santo Domingo (UTC-4)</div>
+
+<script>
+const data = {
+  // [class, session-border, text]
+  // Hours 0-4: Asia (from previous day)
+  0: {mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-short','s-asia','SHORT'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  1: {mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-short','s-asia','SHORT'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  2: {mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-short','s-asia','dünn'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  3: {mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-short','s-asia','dünn'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  4: {mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-short','s-asia','dünn'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  // 5-7: Europa
+  5: {mo:['s-neutral','s-eu','EU ruhig'],di:['s-neutral','s-eu','EU ruhig'],mi:['s-neutral','s-eu','EU ruhig'],
+      do:['s-neutral','s-eu','EU ruhig'],fr:['s-neutral','s-eu','EU ruhig'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  6: {mo:['s-neutral','s-eu','EU ruhig'],di:['s-neutral','s-eu','EU ruhig'],mi:['s-neutral','s-eu','EU ruhig'],
+      do:['s-neutral','s-eu','EU ruhig'],fr:['s-neutral','s-eu','EU ruhig'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  7: {mo:['s-neutral','s-eu','EU ruhig'],di:['s-neutral','s-eu','EU ruhig'],mi:['s-neutral','s-eu','EU ruhig'],
+      do:['s-neutral','s-eu','EU ruhig'],fr:['s-neutral','s-eu','EU ruhig'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  // 8: US Pre + EU
+  8: {mo:['s-neutral','s-us','US Pre+EU<br>Aufbau'],di:['s-neutral','s-us','US Pre+EU<br>Aufbau'],mi:['s-neutral','s-us','US Pre+EU<br>Aufbau'],
+      do:['s-neutral','s-us','US Pre+EU<br>Aufbau'],fr:['s-neutral','s-us','US Pre+EU<br>Aufbau'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  // 9-10: US Open + EU = SHORT
+  9: {mo:['s-short s-star','s-us','SHORT ⭐<br>US Open'],di:['s-short','s-us','SHORT<br>US Open'],mi:['s-short','s-us','SHORT<br>US Open'],
+      do:['s-short','s-us','SHORT↓<br>US Open'],fr:['s-short','s-us','SHORT↓<br>US Open'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  10:{mo:['s-short s-star','s-us','SHORT ⭐'],di:['s-short','s-us','SHORT'],mi:['s-short','s-us','SHORT'],
+      do:['s-short','s-us','SHORT↓'],fr:['s-short','s-us','SHORT↓'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  // 11-16: US Solo
+  11:{mo:['s-neutral','s-us','Trend folgt'],di:['s-neutral','s-us','Trend folgt'],mi:['s-neutral','s-us','Trend folgt'],
+      do:['s-neutral','s-us','REVERSAL?'],fr:['s-neutral','s-us','WE Posit.'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  12:{mo:['s-neutral','s-us','Trend folgt'],di:['s-neutral','s-us','Trend folgt'],mi:['s-neutral','s-us','Trend folgt'],
+      do:['s-neutral','s-us','REVERSAL?'],fr:['s-neutral','s-us','WE Posit.'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  13:{mo:['s-neutral','s-us','Trend folgt'],di:['s-neutral','s-us','Trend folgt'],mi:['s-neutral','s-us','Trend folgt'],
+      do:['s-neutral','s-us','REVERSAL?'],fr:['s-neutral','s-us','WE Posit.'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  14:{mo:['s-neutral','s-us','Trend folgt'],di:['s-neutral','s-us','Trend folgt'],mi:['s-neutral','s-us','Trend folgt'],
+      do:['s-neutral','s-us','REVERSAL?'],fr:['s-neutral','s-us','WE Posit.'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  15:{mo:['s-neutral','s-us','Trend folgt'],di:['s-neutral','s-us','Trend folgt'],mi:['s-neutral','s-us','Trend folgt'],
+      do:['s-neutral','s-us','REVERSAL?'],fr:['s-neutral','s-us','WE Posit.'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  16:{mo:['s-neutral','s-us','Trend folgt'],di:['s-neutral','s-us','Trend folgt'],mi:['s-neutral','s-us','Trend folgt'],
+      do:['s-neutral','s-us','REVERSAL?'],fr:['s-neutral','s-us','WE Posit.'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  // 17: US Close = LONG
+  17:{mo:['s-long s-star','s-us','LONG ⭐<br>US Close'],di:['s-long','s-us','LONG<br>US Close'],mi:['s-long','s-us','LONG<br>US Close'],
+      do:['s-long','s-us','LONG<br>US Close'],fr:['s-long','s-us','LONG↓<br>US Close'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  // 18-19: Tote Zone
+  18:{mo:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],di:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],mi:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],
+      do:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],fr:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  19:{mo:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],di:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],mi:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],
+      do:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],fr:['s-meiden','s-dead','Tote Zone<br>MEIDEN'],sa:['s-meiden','s-dead','dünn'],so:['s-meiden','s-dead','dünn']},
+  // 20-23: Asia
+  20:{mo:['s-short','s-asia','ASIA<br>SHORT'],di:['s-short','s-asia','ASIA<br>SHORT'],mi:['s-short','s-asia','ASIA<br>SHORT'],
+      do:['s-short','s-asia','ASIA<br>SHORT'],fr:['s-meiden','s-dead','dünn'],sa:['s-meiden','s-dead','dünn'],so:['s-short','s-asia','ASIA Start<br>1. Move']},
+  21:{mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-meiden','s-dead','dünn'],sa:['s-meiden','s-dead','dünn'],so:['s-short','s-asia','SHORT']},
+  22:{mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-meiden','s-dead','dünn'],sa:['s-meiden','s-dead','dünn'],so:['s-short','s-asia','SHORT']},
+  23:{mo:['s-short','s-asia','SHORT'],di:['s-short','s-asia','SHORT'],mi:['s-short','s-asia','SHORT'],
+      do:['s-short','s-asia','SHORT'],fr:['s-meiden','s-dead','dünn'],sa:['s-meiden','s-dead','dünn'],so:['s-short','s-asia','SHORT']},
+};
+
+const days = ['mo','di','mi','do','fr','sa','so'];
+const tbody = document.querySelector('#schedule tbody');
+
+// Current hour for highlighting
+const now = new Date();
+const curHour = now.getHours();
+const curDay = now.getDay(); // 0=Sun
+const dayMap = {0:'so',1:'mo',2:'di',3:'mi',4:'do',5:'fr',6:'sa'};
+const curDayKey = dayMap[curDay];
+
+for(let h=0; h<24; h++) {
+    const tr = document.createElement('tr');
+    const th = document.createElement('td');
+    th.style.fontWeight='600';
+    th.style.color='#8b949e';
+    th.style.textAlign='right';
+    th.style.paddingRight='6px';
+    th.style.background='#0d1117';
+    th.textContent = String(h).padStart(2,'0')+':00';
+    tr.appendChild(th);
+
+    days.forEach(day => {
+        const td = document.createElement('td');
+        const d = data[h]?.[day] || ['s-neutral','',''];
+        td.className = d[0] + ' ' + d[1];
+        td.innerHTML = d[2];
+
+        // Highlight current cell
+        if(h === curHour && day === curDayKey) {
+            td.classList.add('now-marker');
+        }
+        tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+}
+</script>
+</body>
+</html>
