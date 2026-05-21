@@ -40,8 +40,38 @@ if [ $? -ne 0 ]; then
 fi
 echo ""
 
-# 4. Git
-echo "4. Git commit + push..."
+# 4. Code Backup (letzte 5 Versionen als Word)
+echo "4. Code Backup..."
+BACKUP_DIR="../docs/dashboard_code_versions"
+mkdir -p "$BACKUP_DIR"
+TIMESTAMP=$(date '+%Y%m%d_%H%M')
+python3 -c "
+from docx import Document
+from docx.shared import Pt
+import os, glob
+
+doc = Document()
+doc.styles['Normal'].font.name = 'Consolas'
+doc.styles['Normal'].font.size = Pt(8)
+doc.add_heading('Dashboard Code — $TIMESTAMP', level=0)
+for f in ['index.html','stats.html','trades.html','auszahlung.html','build_data.py','update_all.sh','validate_dashboard.py','extra_trades.json']:
+    try:
+        with open(f,'r') as fh: code = fh.read()
+        doc.add_heading(f, level=1)
+        doc.add_paragraph(code[:50000])
+    except: pass
+doc.save('$BACKUP_DIR/dashboard_code_$TIMESTAMP.docx')
+
+# Nur letzte 5 behalten
+files = sorted(glob.glob('$BACKUP_DIR/dashboard_code_*.docx'))
+for old in files[:-5]:
+    os.remove(old)
+print(f'  Backup: dashboard_code_$TIMESTAMP.docx ({len(files)} Versionen, max 5)')
+" 2>/dev/null || echo "  Backup-Warnung: docx nicht erstellt"
+echo ""
+
+# 5. Git
+echo "5. Git commit + push..."
 git add -A
 CHANGES=$(git diff --cached --stat)
 if [ -z "$CHANGES" ]; then
