@@ -31,8 +31,17 @@ done
 echo "   Backup → $BACKUP/"
 echo ""
 
-# 3. Git
-echo "3. Git commit + push..."
+# 3. Validierung
+echo "3. Validiere Dashboard..."
+python3 validate_dashboard.py
+if [ $? -ne 0 ]; then
+    echo "⛔ VALIDIERUNG FEHLGESCHLAGEN — Push abgebrochen!"
+    exit 1
+fi
+echo ""
+
+# 4. Git
+echo "4. Git commit + push..."
 git add -A
 CHANGES=$(git diff --cached --stat)
 if [ -z "$CHANGES" ]; then
