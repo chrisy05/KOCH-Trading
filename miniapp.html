@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>KOCH Trading</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--card:#161b22;--border:#21262d;--text:#c9d1d9;--dim:#8b949e;--blue:#58a6ff;--green:#22c55e;--red:#ef4444;--orange:#ff9800}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,sans-serif;padding:8px;padding-bottom:80px;font-size:14px}
+.header{text-align:center;padding:12px 0 8px;border-bottom:1px solid var(--border);margin-bottom:10px}
+.header h1{font-size:18px;color:var(--blue)}
+.header .sub{font-size:11px;color:var(--dim);margin-top:2px}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.kpi{background:var(--card);border-radius:8px;padding:10px 6px;text-align:center;border:1px solid var(--border)}
+.kpi .label{font-size:10px;color:var(--dim);text-transform:uppercase}
+.kpi .value{font-size:18px;font-weight:700;margin-top:2px}
+.kpi .value.green{color:var(--green)}
+.kpi .value.red{color:var(--red)}
+.section{background:var(--card);border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid var(--border)}
+.section-title{font-size:12px;color:var(--blue);font-weight:600;margin-bottom:6px}
+.pos{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.pos:last-child{border:none}
+.pos-coin{font-weight:700;font-size:14px}
+.pos-dir{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600}
+.pos-dir.long{background:rgba(34,197,94,0.2);color:var(--green)}
+.pos-dir.short{background:rgba(239,68,68,0.2);color:var(--red)}
+.pos-pnl{font-weight:700;font-size:14px}
+.pos-detail{font-size:10px;color:var(--dim)}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 12px;z-index:10}
+.nav a{color:var(--dim);text-decoration:none;font-size:10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav a.active{color:var(--blue)}
+.nav-icon{font-size:18px}
+.fng{display:flex;align-items:center;gap:8px}
+.fng-val{font-size:28px;font-weight:700}
+.fng-label{font-size:11px;color:var(--dim)}
+.market-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}
+.badge{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600}
+.badge-s{background:rgba(239,68,68,0.2);color:var(--red)}
+.badge-l{background:rgba(34,197,94,0.2);color:var(--green)}
+.badge-n{background:rgba(100,100,100,0.2);color:var(--dim)}
+.heatmap-mini{display:grid;grid-template-columns:auto repeat(6,1fr);gap:1px;font-size:9px;margin-top:6px}
+.hm-header{color:var(--dim);text-align:center;padding:2px}
+.hm-coin{color:var(--text);font-weight:600;padding:2px 4px}
+.hm-cell{text-align:center;padding:3px 2px;border-radius:2px;font-weight:700}
+.hm-l{background:rgba(34,197,94,0.25);color:var(--green)}
+.hm-s{background:rgba(239,68,68,0.25);color:var(--red)}
+.hm-n{background:rgba(50,50,50,0.3);color:#555}
+.refresh-btn{display:block;width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;margin-top:10px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>KOCH Trading</h1>
+  <div class="sub" id="lastUpdate">Laden...</div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="label">Trades</div><div class="value" id="kTrades">—</div></div>
+  <div class="kpi"><div class="label">Win Rate</div><div class="value green" id="kWR">—</div></div>
+  <div class="kpi"><div class="label">PnL</div><div class="value green" id="kPnl">—</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">📊 Markt</div>
+  <div class="market-row"><span>BTC</span><span id="mBTC">—</span></div>
+  <div class="market-row"><span>Fear & Greed</span><span id="mFNG">—</span></div>
+  <div class="market-row"><span>Funding Rate</span><span id="mFund">—</span></div>
+</div>
+
+<div class="section">
+  <div class="section-title">📈 Offene Positionen</div>
+  <div id="positions">
+    <div class="pos">
+      <div><div class="pos-coin">SEI <span class="pos-dir long">LONG 10x</span></div><div class="pos-detail">Entry $0.06441</div></div>
+      <div style="text-align:right"><div class="pos-pnl" id="pSEI">—</div><div class="pos-detail">Liq $0.05562</div></div>
+    </div>
+    <div class="pos">
+      <div><div class="pos-coin">LTC <span class="pos-dir long">LONG 10x</span></div><div class="pos-detail">Entry $57.69</div></div>
+      <div style="text-align:right"><div class="pos-pnl" id="pLTC">—</div><div class="pos-detail">Liq $50.79</div></div>
+    </div>
+    <div class="pos">
+      <div><div class="pos-coin">XLM <span class="pos-dir long">LONG 9x</span></div><div class="pos-detail">Entry $0.17340</div></div>
+      <div style="text-align:right"><div class="pos-pnl" id="pXLM">—</div><div class="pos-detail">Liq $0.13522</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">🔥 Top Mover (Heatmap)</div>
+  <div class="heatmap-mini" id="heatmapMini">
+    <div class="hm-header"></div>
+    <div class="hm-header">2m</div><div class="hm-header">5m</div><div class="hm-header">15m</div><div class="hm-header">30m</div><div class="hm-header">1H</div><div class="hm-header">4H</div>
+  </div>
+</div>
+
+<button class="refresh-btn" onclick="loadData()">🔄 Aktualisieren</button>
+
+<div class="nav">
+  <a href="#" class="active"><span class="nav-icon">📊</span>Dashboard</a>
+  <a href="kapitalfluss.html"><span class="nav-icon">💰</span>Kapitalfluss</a>
+  <a href="mtf_scan.html"><span class="nav-icon">🔍</span>MTF Scan</a>
+</div>
+
+<script>
+// Init Telegram WebApp
+if (window.Telegram && Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+
+async function fetchJSON(url) {
+  try {
+    const r = await fetch(url + '?t=' + Date.now());
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+async function loadData() {
+  document.getElementById('lastUpdate').textContent = 'Aktualisiere...';
+
+  // KPIs from trades_data
+  // (In production, this would fetch from an API)
+  document.getElementById('kTrades').textContent = '94';
+  document.getElementById('kWR').textContent = '67%';
+  document.getElementById('kPnl').textContent = '$6,186';
+
+  // Market data
+  try {
+    const btc = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+    const btcData = await btc.json();
+    document.getElementById('mBTC').textContent = '$' + parseFloat(btcData.price).toLocaleString('en', {maximumFractionDigits:0});
+
+    // Positions
+    const sei = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=SEIUSDT');
+    const seiData = await sei.json();
+    const seiPnl = ((parseFloat(seiData.price) - 0.06441) * 145664).toFixed(0);
+    document.getElementById('pSEI').textContent = (seiPnl >= 0 ? '+$' : '-$') + Math.abs(seiPnl);
+    document.getElementById('pSEI').style.color = seiPnl >= 0 ? '#22c55e' : '#ef4444';
+
+    const ltc = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=LTCUSDT');
+    const ltcData = await ltc.json();
+    const ltcPnl = ((parseFloat(ltcData.price) - 57.69) * 241.5).toFixed(0);
+    document.getElementById('pLTC').textContent = (ltcPnl >= 0 ? '+$' : '-$') + Math.abs(ltcPnl);
+    document.getElementById('pLTC').style.color = ltcPnl >= 0 ? '#22c55e' : '#ef4444';
+
+    const xlm = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=XLMUSDT');
+    const xlmData = await xlm.json();
+    const xlmSize = 6124.78 / 0.17340;
+    const xlmPnl = ((parseFloat(xlmData.price) - 0.17340) * xlmSize).toFixed(0);
+    document.getElementById('pXLM').textContent = (xlmPnl >= 0 ? '+$' : '-$') + Math.abs(xlmPnl);
+    document.getElementById('pXLM').style.color = xlmPnl >= 0 ? '#22c55e' : '#ef4444';
+  } catch(e) {}
+
+  // Fear & Greed
+  try {
+    const fng = await fetch('https://api.alternative.me/fng/?limit=1');
+    const fngData = await fng.json();
+    const val = fngData.data[0].value;
+    document.getElementById('mFNG').innerHTML = '<span style="font-weight:700;color:' + (val <= 25 ? '#ef4444' : val <= 45 ? '#ff9800' : '#22c55e') + '">' + val + '</span> ' + fngData.data[0].value_classification;
+  } catch(e) {}
+
+  document.getElementById('mFund').textContent = 'Bitget';
+
+  // Mini heatmap - top coins
+  const coins = ['BTC','ETH','SOL','SEI','AVAX','DOGE','TON','ADA'];
+  const hm = document.getElementById('heatmapMini');
+  // Keep headers
+  const tfs = ['2m','5m','15m','30m','1h','4h'];
+  coins.forEach(coin => {
+    hm.innerHTML += '<div class="hm-coin">' + coin + '</div>';
+    tfs.forEach(() => {
+      const r = Math.random();
+      const cls = r > 0.6 ? 'hm-l' : r < 0.3 ? 'hm-s' : 'hm-n';
+      const lbl = r > 0.6 ? 'L' : r < 0.3 ? 'S' : '·';
+      hm.innerHTML += '<div class="hm-cell ' + cls + '">' + lbl + '</div>';
+    });
+  });
+
+  const now = new Date();
+  document.getElementById('lastUpdate').textContent = 'Stand: ' + now.toLocaleTimeString('de');
+}
+
+loadData();
+// Auto-refresh every 60s
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
