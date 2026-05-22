@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Technisches Nachschlagewerk</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:10px}
+h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
+.nav{display:flex;justify-content:space-between;padding:0 10px;margin-bottom:10px}
+.nav a{color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px}
+.topic{background:#161b22;border-radius:10px;margin-bottom:10px;border:1px solid #21262d;overflow:hidden}
+.topic-header{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.topic-header:hover{background:#1c2333}
+.topic-title{color:#58a6ff;font-weight:600;font-size:0.95rem}
+.topic-arrow{color:#484f58;font-size:1.2rem;transition:transform 0.2s}
+.topic-body{padding:0 14px 14px;display:none;font-size:0.85rem;line-height:1.7}
+.topic.open .topic-body{display:block}
+.topic.open .topic-arrow{transform:rotate(90deg)}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:0.8rem}
+th{background:#0d1117;color:#8b949e;padding:6px;text-align:left;border-bottom:1px solid #21262d}
+td{padding:6px;border-bottom:1px solid #161f30}
+.green{color:#22c55e}
+.red{color:#ef4444}
+.formula{background:#0d1117;padding:8px 12px;border-radius:6px;font-family:monospace;margin:6px 0;font-size:0.85rem}
+.example{background:#0d1117;border-left:3px solid #58a6ff;padding:8px 12px;margin:6px 0;border-radius:0 6px 6px 0}
+</style>
+</head>
+<body>
+<h1>Technisches Nachschlagewerk</h1>
+<div class="nav"><a href="cockpit.html">← Cockpit</a><a href="kalkulator.html">Kalkulator →</a></div>
+
+<div class="topic open" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">Risk-Reward Verhaeltnis (R:R)</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Was ist R:R?</b><br>Wieviel kann ich gewinnen im Verhaeltnis zu dem was ich riskiere.</p>
+<div class="formula">R:R = Moeglicher Gewinn / Moeglicher Verlust<br>LONG: (TP - Entry) / (Entry - SL)<br>SHORT: (Entry - TP) / (SL - Entry)</div>
+<div class="example"><b>Beispiel LONG:</b><br>Entry $100 | TP $110 | SL $95<br>R:R = $10 / $5 = <span class="green">2:1</span><br>Fuer $1 Risiko → $2 Chance</div>
+<table>
+<tr><th>R:R</th><th>Bewertung</th><th>Min. WR</th></tr>
+<tr><td><span class="green">3:1+</span></td><td>Ausgezeichnet</td><td>25%</td></tr>
+<tr><td><span class="green">2:1</span></td><td>Gut</td><td>33%</td></tr>
+<tr><td>1.5:1</td><td>Akzeptabel</td><td>40%</td></tr>
+<tr><td><span class="red">1:1 oder weniger</span></td><td>Schlecht</td><td>50%+</td></tr>
+</table>
+<p><b>Regel:</b> Nie R:R unter 1.5:1 auf den Haupt-TP. Ausnahme: Scalps mit >70% WR.</p>
+<p style="font-size:0.75rem;color:#484f58;margin-top:8px;">Ausfuehrliches Dokument: docs/Risk_Reward_Erklaerung.docx</p>
+</div>
+</div>
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">SMA 20 / 50 / 200</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Simple Moving Average</b> — Durchschnittspreis der letzten X Kerzen.</p>
+<p><b>Anordnung = Trendstaerke:</b></p>
+<p><span class="green">SMA20 > SMA50 > SMA200</span> = Starker Uptrend</p>
+<p><span class="red">SMA20 < SMA50 < SMA200</span> = Starker Downtrend</p>
+<p>Durcheinander = Kein klarer Trend</p>
+<p><b>Preis relativ zu SMAs:</b></p>
+<p>Ueber allen 3 = Bullish | Unter allen 3 = Bearish | Dazwischen = Entscheidungszone</p>
+<p><b>Golden Cross:</b> SMA50 kreuzt SMA200 nach oben = Bullish Signal</p>
+<p><b>Death Cross:</b> SMA50 kreuzt SMA200 nach unten = Bearish Signal</p>
+</div>
+</div>
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">EE Momentum Shift (TMO)</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Equilibrium Momentum</b> — Misst ob der aktuelle Preis hoeher oder tiefer als vergangene Eroeffnungen ist.</p>
+<p><b>Parameter:</b> L=15, C=3, S=5, Sig=3</p>
+<p><b>Signal:</b> Main kreuzt Signal-Linie</p>
+<p>Main > Signal = Bullish Momentum</p>
+<p>Main < Signal = Bearish Momentum</p>
+<p><b>Zone wichtig:</b></p>
+<p>Cross in Extremzone (>7 / <-7) = Starkes Signal</p>
+<p>Cross in der Mitte = Schwaches Signal</p>
+<p><b>Bei Crypto:</b> OB/OS = Staerke, nicht Warnung!</p>
+</div>
+</div>
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">RSI (Relative Strength Index)</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Misst Geschwindigkeit und Staerke von Preisbewegungen (0-100).</b></p>
+<p>>70 = Overbought | <30 = Oversold</p>
+<p><b>WICHTIG bei Crypto:</b> OB/OS ist KEIN Verkaufs-/Kaufsignal! Crypto performt hauptsaechlich im OB oder OS Bereich. RSI 76 = Staerke, nicht Warnung.</p>
+<p><b>RSI Divergenz:</b> Preis macht neues Hoch aber RSI nicht = Schwaeche. Signal fuer naechsten TMO Crossover. Nach Ausspielung verbraucht.</p>
+</div>
+</div>
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">VRVP (Volume Profile)</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Visible Range Volume Profile</b> — Zeigt Volume horizontal pro Preisniveau.</p>
+<p><b>POC (Point of Control):</b> Preis mit meistem Volume = Fair Value. Preis wird magnetisch angezogen.</p>
+<p><b>Value Area:</b> Zone mit 70% des Volumes. VAH = Widerstand, VAL = Support.</p>
+<p><b>Fuer 30min Trading:</b> 100-150 Kerzen sichtbar (2-3 Tage).</p>
+<p><b>Duenne Zonen:</b> Preis bewegt sich SCHNELL durch.</p>
+<p><b>Dicke Zonen:</b> Preis haengt fest.</p>
+</div>
+</div>
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">Gewichtung der Indikatoren</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Trendbestimmung (50%):</b></p>
+<p>SMA 20/50/200 Anordnung (30%) + Preis relativ zu SMAs (20%)</p>
+<p><b>Timing (30%):</b></p>
+<p>ER1 Hybrid Signallinie (15%) + TMO (15%)</p>
+<p><b>Bestaetigung (20%):</b></p>
+<p>RSI (10%) + Volume (10%)</p>
+<p><b>Meta-Indikator:</b> Verlauf ueber Timeframes = eigener Indikator. 2m dreht zuerst, dann 5m, 15m folgen. Wenn 30m+1H auch drehen = Trend bestaetigt.</p>
+</div>
+</div>
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">Bitget Hebel-Aenderung</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Bei offener Isolated Position:</b></p>
+<p>1. Hebel erhoehen (z.B. 5x → 10x) — Positionsgroesse bleibt GLEICH</p>
+<p>2. Margin wird NICHT automatisch freigegeben</p>
+<p>3. Manuell "Marge verringern" klicken → Ueberschuss rausnehmen</p>
+<p>4. Freigewordenes Geld fuer Nachkauf oder andere Trades nutzen</p>
+<p>5. Liq verschiebt sich erst NACH dem manuellen Rausnehmen</p>
+<p style="font-size:0.75rem;color:#484f58;">Quelle: Bitget Tutorial 2024, ab Min 14:40</p>
+</div>
+</div>
+
+<div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
+</body>
+</html>
