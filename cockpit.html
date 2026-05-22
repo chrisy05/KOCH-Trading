@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<title>KOCH Trading Cockpit</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
+.sub{color:#484f58;font-size:0.85rem;margin-bottom:30px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;max-width:900px;width:100%}
+.card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;text-decoration:none;color:#c9d1d9;transition:all 0.2s;display:flex;flex-direction:column;gap:8px}
+.card:hover{border-color:#58a6ff;transform:translateY(-2px);box-shadow:0 4px 20px rgba(88,166,255,0.1)}
+.card-icon{font-size:2rem}
+.card-title{font-size:1.1rem;font-weight:700;color:#58a6ff}
+.card-desc{font-size:0.8rem;color:#8b949e;line-height:1.4}
+.card-badge{font-size:0.65rem;padding:2px 8px;border-radius:10px;display:inline-block;width:fit-content}
+.badge-live{background:rgba(34,197,94,0.15);color:#22c55e}
+.badge-new{background:rgba(255,152,0,0.15);color:#ff9800}
+.badge-tool{background:rgba(88,166,255,0.15);color:#58a6ff}
+.footer{margin-top:30px;text-align:center;color:#484f58;font-size:0.7rem}
+.footer a{color:#484f58;text-decoration:none}
+</style>
+</head>
+<body>
+
+<h1>KOCH Trading Cockpit</h1>
+<div class="sub">Alle Tools auf einen Blick</div>
+
+<div class="grid">
+
+<a href="kapitalfluss.html" class="card">
+  <div class="card-icon">💰</div>
+  <div class="card-title">Kapitalfluss-Analyse</div>
+  <div class="card-desc">BTC, Stablecoins, Open Interest, Fear & Greed, Funding Rate, BTC Dominance. Taeglich aktualisiert.</div>
+  <div class="card-badge badge-live">● LIVE</div>
+</a>
+
+<a href="mtf_scan.html" class="card">
+  <div class="card-icon">🔍</div>
+  <div class="card-title">MTF Scan</div>
+  <div class="card-desc">Multi-Timeframe Heatmap (69 Coins, 6 TFs), Trading Stundenplan, Fear & Greed Index. Alle 30min.</div>
+  <div class="card-badge badge-live">● LIVE</div>
+</a>
+
+<a href="tracker.html" class="card">
+  <div class="card-icon">📈</div>
+  <div class="card-title">Laufende Trades</div>
+  <div class="card-desc">Echtzeit PnL, Liquidations-Abstand, Positionen ueberblicken und managen.</div>
+  <div class="card-badge badge-new">NEU</div>
+</a>
+
+<a href="kalkulator.html" class="card">
+  <div class="card-icon">🧮</div>
+  <div class="card-title">Trade Kalkulator</div>
+  <div class="card-desc">Setup berechnen: Margin, Hebel, TP/SL, PnL, ROI, Liquidation, Split-TP, Hebel-Aenderung.</div>
+  <div class="card-badge badge-new">NEU</div>
+</a>
+
+<a href="technik.html" class="card">
+  <div class="card-icon">📚</div>
+  <div class="card-title">Technisches Nachschlagewerk</div>
+  <div class="card-desc">Indikator-Erklaerungen, Gewichtung, Begriffe, Session-Zeiten, Bewertungskriterien.</div>
+  <div class="card-badge badge-tool">REFERENZ</div>
+</a>
+
+<a href="index.html" class="card">
+  <div class="card-icon">📊</div>
+  <div class="card-title">Dashboard</div>
+  <div class="card-desc">KPIs, Trade-Uebersicht, Top Coins, Signalgeber-Performance.</div>
+  <div class="card-badge badge-live">● LIVE</div>
+</a>
+
+</div>
+
+<div class="footer"><a href="index.html">← Dashboard</a></div>
+
+</body>
+</html>
