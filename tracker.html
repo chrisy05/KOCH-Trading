@@ -107,8 +107,6 @@ async function loadAll() {
     html += '<div class="trade-item"><div class="label">Liq</div><div class="val orange">$' + p.liq.toFixed(decimals) + '</div></div>';
     html += '<div class="trade-item"><div class="label">vs Entry</div><div class="val ' + (entryDist>=0?'green':'red') + '">' + (entryDist>=0?'+':'') + entryDist.toFixed(1) + '%</div></div>';
     html += '</div>';
-    html += '<div class="liq-bar"><div class="liq-fill" style="width:' + liqW + '%;background:' + liqC + ';"></div></div>';
-    html += '<div class="liq-label"><span>Liq: ' + liqDist.toFixed(1) + '% entfernt</span><span style="color:' + liqC + ';">' + (liqDist>10?'sicher':liqDist>5?'Achtung':'GEFAHR') + '</span></div>';
     html += '</div>';
   }
 
