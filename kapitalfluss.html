@@ -136,7 +136,24 @@ new Chart(document.getElementById('chartMain'),{
     responsive:true,
     interaction:{mode:'index',intersect:false},
     onClick:function(){this.tooltip.opacity=0;this.update();},
-    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
+      label:function(ctx){
+        const ds=ctx.dataset;
+        const val=ctx.parsed.y;
+        const idx=ctx.dataIndex;
+        let line=ds.label+': '+val;
+        if(idx>0){
+          const prev=ds.data[idx-1];
+          if(prev!==null&&prev!==undefined&&!isNaN(prev)){
+            const diff=val-prev;
+            const pct=prev!==0?((diff/Math.abs(prev))*100):0;
+            const sign=diff>=0?'+':'';
+            line+='  ('+sign+diff.toFixed(ds.label.includes('Funding')?4:2)+' / '+sign+pct.toFixed(2)+'%)';
+          }
+        }
+        return line;
+      }
+    }}},
     scales:{
       x:{ticks:{color:'#484f58',maxRotation:45}},
       y:{type:'linear',position:'left',title:{display:true,text:'BTC ($K)',color:'#f7931a'},ticks:{color:'#f7931a'},grid:{color:'rgba(247,147,26,0.1)'}},
