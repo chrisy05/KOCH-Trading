@@ -191,9 +191,9 @@ if kpi_match:
     except:
         kpi_val = None
 
-    expected = round(current_pnl_after_mt)
-    # Toleranz 200: tatsaechliche MT-Zahlungen weichen von theoretischen 50% ab
-    if kpi_val is not None and abs(kpi_val - expected) > 200:
+    # KPI Offen = raw PnL (MT-Abzug ist nur informativ, nicht in Verteilung)
+    expected = round(current_pnl)
+    if kpi_val is not None and abs(kpi_val - expected) > 50:
         error(f"KPI 'Offen' zeigt {kpi_match.group(1)} aber sollte ~{expected} sein")
     else:
         ok(f"KPI 'Offen': {kpi_match.group(1)} (erwartet ~{expected})")
