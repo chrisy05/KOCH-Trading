@@ -228,7 +228,7 @@ except FileNotFoundError:
 print("\n8. Pruefe Dateien...")
 required = ['index.html', 'stats.html', 'trades.html', 'auszahlung.html',
             'trades_data.js', 'build_data.py', 'extra_trades.json',
-            'kapitalfluss.html', 'mtf_scan.html', 'cockpit.html']
+            'kapitalfluss.html', 'mtf_scan.html', 'cockpit.html', 'kalender.html']
 for f in required:
     if os.path.exists(f):
         ok(f"{f} vorhanden")
