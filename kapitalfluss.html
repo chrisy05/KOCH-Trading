@@ -138,17 +138,36 @@ new Chart(document.getElementById('chartMain'),{
     onClick:function(){this.tooltip.opacity=0;this.update();},
     plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
       label:function(ctx){
-        const ds=ctx.dataset;
+        const lbl=ctx.dataset.label;
         const val=ctx.parsed.y;
         const idx=ctx.dataIndex;
-        let line=ds.label+': '+val;
+        const isBTC=lbl.includes('BTC ($K)');
+        const isStable=lbl.includes('Stablecoins');
+        const isOI=lbl.includes('Open Interest');
+        const isFNG=lbl.includes('Fear');
+        const isDom=lbl.includes('Dominance');
+        const isFund=lbl.includes('Funding');
+        let vStr;
+        if(isBTC) vStr=val.toFixed(2);
+        else if(isFNG) vStr=Math.round(val);
+        else if(isDom) vStr=val.toFixed(1);
+        else if(isFund) vStr=val.toFixed(4);
+        else vStr=val.toFixed(2);
+        let line=lbl+': '+vStr;
         if(idx>0){
-          const prev=ds.data[idx-1];
-          if(prev!==null&&prev!==undefined&&!isNaN(prev)){
+          const prev=ctx.dataset.data[idx-1];
+          if(prev!=null&&!isNaN(prev)){
             const diff=val-prev;
             const pct=prev!==0?((diff/Math.abs(prev))*100):0;
-            const sign=diff>=0?'+':'';
-            line+='  ('+sign+diff.toFixed(ds.label.includes('Funding')?4:2)+' / '+sign+pct.toFixed(2)+'%)';
+            const s=diff>=0?'+':'';
+            let dStr;
+            if(isBTC) dStr=s+(diff*1000).toFixed(0)+' $';
+            else if(isStable||isOI) dStr=s+diff.toFixed(2)+' Mrd';
+            else if(isFNG) dStr=s+Math.round(diff);
+            else if(isDom) dStr=s+diff.toFixed(1)+'%';
+            else if(isFund) dStr=s+diff.toFixed(4)+'%';
+            else dStr=s+diff.toFixed(2);
+            line+='  ('+dStr+' / '+s+pct.toFixed(2)+'%)';
           }
         }
         return line;
