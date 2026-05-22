@@ -50,6 +50,27 @@ h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
 
 <div id="trades"></div>
 
+<div class="total-section">
+<div style="font-size:0.85rem;font-weight:600;color:#58a6ff;margin-bottom:8px;">Abgeschlossen (seit Auszahlung #5, 12.05.)</div>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+<tr style="color:#8b949e;border-bottom:1px solid #21262d;">
+  <th style="text-align:left;padding:4px;">#</th>
+  <th style="text-align:left;padding:4px;">Coin</th>
+  <th style="text-align:center;padding:4px;">L/S</th>
+  <th style="text-align:right;padding:4px;">PnL</th>
+  <th style="text-align:left;padding:4px;">Signal</th>
+</tr>
+<tbody id="closedTrades"></tbody>
+<tr style="border-top:2px solid #21262d;">
+  <td colspan="3" style="padding:6px;font-weight:700;">SUMME</td>
+  <td style="text-align:right;padding:6px;font-weight:700;" id="closedSum">—</td>
+  <td></td>
+</tr>
+</table>
+</div>
+</div>
+
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 
 <script>
@@ -118,6 +139,42 @@ async function loadAll() {
 
 loadAll();
 setInterval(loadAll, 30000);
+
+// Load closed trades since last payout (#82+)
+async function loadClosed() {
+  try {
+    const r = await fetch('trades_data.js?t=' + Date.now());
+    const text = await r.text();
+    const s = text.indexOf('{');
+    let bc = 0, end = s;
+    for (let i = s; i < text.length; i++) {
+      if (text[i] === '{') bc++;
+      else if (text[i] === '}') bc--;
+      if (bc === 0) { end = i + 1; break; }
+    }
+    const data = JSON.parse(text.substring(s, end));
+    const trades = data.trades.filter(t => t.abgeschl === 'j' && t.nr >= 82 && t.pnl !== null);
+
+    let html = '';
+    let sum = 0;
+    trades.forEach(t => {
+      const pnl = t.net_pnl !== null ? t.net_pnl : t.pnl;
+      const p = typeof pnl === 'string' ? parseFloat(pnl.replace(',','.')) : pnl;
+      sum += p;
+      const cls = p >= 0 ? 'green' : 'red';
+      html += '<tr><td style="padding:3px 4px;">' + t.nr + '</td>';
+      html += '<td style="padding:3px 4px;">' + t.coin + '</td>';
+      html += '<td style="text-align:center;padding:3px 4px;">' + (t.richtung||'').toUpperCase() + '</td>';
+      html += '<td style="text-align:right;padding:3px 4px;" class="' + cls + '">' + (p>=0?'+':'') + '$' + p.toFixed(0) + '</td>';
+      html += '<td style="padding:3px 4px;color:#8b949e;">' + (t.signal||'') + '</td></tr>';
+    });
+
+    document.getElementById('closedTrades').innerHTML = html;
+    const sumCls = sum >= 0 ? 'green' : 'red';
+    document.getElementById('closedSum').innerHTML = '<span class="' + sumCls + '">' + (sum>=0?'+':'') + '$' + sum.toFixed(0) + '</span>';
+  } catch(e) {}
+}
+loadClosed();
 </script>
 </body>
 </html>
