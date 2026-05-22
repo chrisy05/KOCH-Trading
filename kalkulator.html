@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trade Kalkulator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:10px}
+h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
+.nav{display:flex;justify-content:space-between;padding:0 10px;margin-bottom:10px}
+.nav a{color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px}
+.section{background:#161b22;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #21262d}
+.section-title{color:#58a6ff;font-size:0.95rem;font-weight:600;margin-bottom:10px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+label{font-size:0.75rem;color:#8b949e;display:block;margin-bottom:2px}
+input,select{width:100%;padding:8px;background:#0d1117;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:0.9rem}
+input:focus{border-color:#58a6ff;outline:none}
+.btn{width:100%;padding:10px;background:#58a6ff;color:#fff;border:none;border-radius:6px;font-size:0.9rem;font-weight:600;cursor:pointer;margin-top:8px}
+.btn:hover{background:#4a90e0}
+.result{background:#0d1117;border-radius:8px;padding:10px;margin-top:10px;font-size:0.85rem;line-height:1.8}
+.result .val{font-weight:700}
+.green{color:#22c55e}
+.red{color:#ef4444}
+.orange{color:#ff9800}
+.divider{border:none;border-top:1px solid #21262d;margin:8px 0}
+</style>
+</head>
+<body>
+<h1>Trade Kalkulator</h1>
+<div class="nav"><a href="cockpit.html">← Cockpit</a><a href="tracker.html">Trades →</a></div>
+
+<div class="section">
+<div class="section-title">Setup</div>
+<div class="row">
+  <div><label>Richtung</label><select id="dir"><option value="L">LONG</option><option value="S">SHORT</option></select></div>
+  <div><label>Exchange</label><select id="exch"><option>Bitget</option><option>BingX</option><option>Phemex</option></select></div>
+</div>
+<div class="row3">
+  <div><label>Margin ($)</label><input type="number" id="margin" value="300" step="10"></div>
+  <div><label>Hebel</label><input type="number" id="lev" value="10" step="1"></div>
+  <div><label>Entry ($)</label><input type="number" id="entry" value="0.06" step="0.0001"></div>
+</div>
+<div class="row3">
+  <div><label>TP1 ($)</label><input type="number" id="tp1" step="0.0001"></div>
+  <div><label>TP2 ($)</label><input type="number" id="tp2" step="0.0001"></div>
+  <div><label>TP3 ($)</label><input type="number" id="tp3" step="0.0001"></div>
+</div>
+<div class="row">
+  <div><label>TP4 ($)</label><input type="number" id="tp4" step="0.0001"></div>
+  <div><label>SL ($)</label><input type="number" id="sl" step="0.0001"></div>
+</div>
+<div class="row">
+  <div><label>TP Split (%)</label><input type="text" id="split" value="25,25,25,25" placeholder="25,25,25,25"></div>
+  <div><label>Fee (%)</label><input type="number" id="fee" value="0.03" step="0.01"></div>
+</div>
+<button class="btn" onclick="calc()">Berechnen</button>
+</div>
+
+<div class="section" id="resultSection" style="display:none">
+<div class="section-title">Ergebnis</div>
+<div class="result" id="result"></div>
+</div>
+
+<div class="section">
+<div class="section-title">Hebel-Aenderung Simulator</div>
+<div class="row3">
+  <div><label>Aktuelle Margin ($)</label><input type="number" id="hm" value="1338" step="10"></div>
+  <div><label>Position Value ($)</label><input type="number" id="hpv" value="9383" step="100"></div>
+  <div><label>Neuer Hebel</label><input type="number" id="hnew" value="15" step="1"></div>
+</div>
+<button class="btn" onclick="calcHebel()">Berechnen</button>
+<div class="result" id="hebelResult" style="margin-top:8px"></div>
+</div>
+
+<div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
+
+<script>
+function calc() {
+  const dir = document.getElementById('dir').value;
+  const margin = +document.getElementById('margin').value;
+  const lev = +document.getElementById('lev').value;
+  const entry = +document.getElementById('entry').value;
+  const sl = +document.getElementById('sl').value;
+  const fee = +document.getElementById('fee').value / 100;
+  const tps = [document.getElementById('tp1').value, document.getElementById('tp2').value, document.getElementById('tp3').value, document.getElementById('tp4').value].filter(v=>v).map(Number);
+  const splits = document.getElementById('split').value.split(',').map(Number);
+
+  const posVal = margin * lev;
+  const size = posVal / entry;
+  const feeOpen = posVal * fee;
+
+  // Liquidation
+  const mmr = 0.005;
+  const maint = posVal * mmr;
+  const liq = dir === 'L' ? entry - (margin - maint) / size : entry + (margin - maint) / size;
+  const liqDist = Math.abs(entry - liq) / entry * 100;
+
+  let html = '<b>Position:</b> $' + posVal.toLocaleString() + ' | ' + size.toFixed(2) + ' Einheiten<br>';
+  html += '<b>Fee Open:</b> $' + feeOpen.toFixed(2) + '<br>';
+  html += '<b>Liq:</b> <span class="orange">$' + liq.toFixed(6) + '</span> (' + liqDist.toFixed(1) + '% vom Entry)<br>';
+  html += '<hr class="divider">';
+
+  // SL
+  if (sl) {
+    const slPnl = dir === 'L' ? (sl - entry) * size : (entry - sl) * size;
+    const slFee = Math.abs(sl * size * fee);
+    const slNet = slPnl - feeOpen - slFee;
+    const slRoi = slNet / margin * 100;
+    html += '<b>SL $' + sl + ':</b> <span class="red">$' + slNet.toFixed(0) + ' (' + slRoi.toFixed(1) + '% ROI)</span><br>';
+    html += '<hr class="divider">';
+  }
+
+  // TPs
+  let totalPnl = 0;
+  tps.forEach((tp, i) => {
+    const pct = (splits[i] || 25) / 100;
+    const tpPnl = dir === 'L' ? (tp - entry) * size : (entry - tp) * size;
+    const tpFee = Math.abs(tp * size * fee);
+    const tpNet = tpPnl - feeOpen - tpFee;
+    const tpRoi = tpNet / margin * 100;
+    const pricePct = dir === 'L' ? (tp - entry) / entry * 100 : (entry - tp) / entry * 100;
+    const splitPnl = tpNet * pct;
+    totalPnl += splitPnl;
+    const cls = tpNet >= 0 ? 'green' : 'red';
+    html += '<b>TP' + (i+1) + ' $' + tp + '</b> (+' + pricePct.toFixed(1) + '%): <span class="' + cls + '">$' + tpNet.toFixed(0) + ' (' + tpRoi.toFixed(1) + '% ROI)</span> | ' + (splits[i]||25) + '% = $' + splitPnl.toFixed(0) + '<br>';
+  });
+
+  if (tps.length > 1) {
+    html += '<hr class="divider">';
+    html += '<b>Split Total:</b> <span class="green">$' + totalPnl.toFixed(0) + ' (' + (totalPnl/margin*100).toFixed(1) + '% ROI)</span><br>';
+  }
+
+  // R:R
+  if (sl && tps.length) {
+    const risk = Math.abs(dir === 'L' ? (sl - entry) * size : (entry - sl) * size);
+    const reward = Math.abs(dir === 'L' ? (tps[0] - entry) * size : (entry - tps[0]) * size);
+    html += '<b>R:R (TP1):</b> ' + (reward/risk).toFixed(2) + ':1';
+  }
+
+  document.getElementById('result').innerHTML = html;
+  document.getElementById('resultSection').style.display = '';
+}
+
+function calcHebel() {
+  const curMargin = +document.getElementById('hm').value;
+  const posVal = +document.getElementById('hpv').value;
+  const newLev = +document.getElementById('hnew').value;
+  const newMargin = posVal / newLev;
+  const freed = curMargin - newMargin;
+  const curLev = posVal / curMargin;
+
+  let html = 'Aktuell: ' + curLev.toFixed(1) + 'x (Margin $' + curMargin.toLocaleString() + ')<br>';
+  html += 'Neu: ' + newLev + 'x (Margin $' + newMargin.toFixed(0) + ')<br>';
+  if (freed > 0) {
+    html += '<span class="green">$' + freed.toFixed(0) + ' zum Rausnehmen</span> (manuell "Marge verringern")<br>';
+  } else {
+    html += '<span class="red">$' + Math.abs(freed).toFixed(0) + ' zusaetzlich noetig</span><br>';
+  }
+  document.getElementById('hebelResult').innerHTML = html;
+}
+</script>
+</body>
+</html>

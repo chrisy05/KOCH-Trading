@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<title>Laufende Trades</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:10px}
+h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
+.nav{display:flex;justify-content:space-between;padding:0 10px;margin-bottom:10px}
+.nav a{color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px}
+.sub{text-align:center;color:#484f58;font-size:0.75rem;margin-bottom:10px}
+.trade-card{background:#161b22;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #21262d}
+.trade-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.trade-coin{font-size:1.3rem;font-weight:700;color:#58a6ff}
+.trade-dir{font-size:0.8rem;padding:3px 10px;border-radius:4px;font-weight:600}
+.dir-long{background:rgba(34,197,94,0.2);color:#22c55e}
+.dir-short{background:rgba(239,68,68,0.2);color:#ef4444}
+.trade-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.trade-item{text-align:center;padding:6px;background:#0d1117;border-radius:6px}
+.trade-item .label{font-size:0.65rem;color:#8b949e;text-transform:uppercase}
+.trade-item .val{font-size:0.95rem;font-weight:700;margin-top:2px}
+.green{color:#22c55e}
+.red{color:#ef4444}
+.orange{color:#ff9800}
+.liq-bar{height:6px;background:#21262d;border-radius:3px;margin-top:8px;overflow:hidden;position:relative}
+.liq-fill{height:100%;border-radius:3px;transition:width 0.3s}
+.liq-label{font-size:0.65rem;color:#8b949e;margin-top:3px;display:flex;justify-content:space-between}
+.total-section{background:#161b22;border-radius:10px;padding:14px;border:1px solid #21262d;margin-bottom:10px}
+.total-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center}
+.total-val{font-size:1.5rem;font-weight:700}
+.btn-refresh{width:100%;padding:10px;background:#161b22;color:#58a6ff;border:1px solid #21262d;border-radius:6px;font-size:0.85rem;cursor:pointer;margin-bottom:10px}
+</style>
+</head>
+<body>
+<h1>Laufende Trades</h1>
+<div class="nav"><a href="cockpit.html">← Cockpit</a><a href="kalkulator.html">Kalkulator →</a></div>
+<div class="sub" id="lastUpdate">Laden...</div>
+
+<button class="btn-refresh" onclick="loadAll()">Aktualisieren</button>
+
+<div class="total-section">
+<div class="total-grid">
+  <div><div class="label" style="font-size:0.7rem;color:#8b949e;">GESAMT PNL</div><div class="total-val" id="totalPnl">—</div></div>
+  <div><div class="label" style="font-size:0.7rem;color:#8b949e;">POSITIONEN</div><div class="total-val" id="totalPos">—</div></div>
+</div>
+</div>
+
+<div id="trades"></div>
+
+<div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
+
+<script>
+const positions = [
+  {coin:'SEI', sym:'SEIUSDT', dir:'LONG', lev:10, entry:0.06441, size:145664, liq:0.05562, exchange:'Bitget'},
+  {coin:'LTC', sym:'LTCUSDT', dir:'LONG', lev:10, entry:57.69, size:241.5, liq:50.79, exchange:'Bitget'},
+  {coin:'XLM', sym:'XLMUSDT', dir:'LONG', lev:9, entry:0.17340, size:35325, liq:0.13522, exchange:'Phemex'},
+];
+
+async function getPrice(sym) {
+  try {
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + sym);
+    const d = await r.json();
+    return parseFloat(d.price);
+  } catch(e) { return null; }
+}
+
+function liqColor(pct) {
+  if (pct > 10) return '#22c55e';
+  if (pct > 5) return '#ff9800';
+  return '#ef4444';
+}
+
+async function loadAll() {
+  document.getElementById('lastUpdate').textContent = 'Aktualisiere...';
+  let html = '';
+  let totalPnl = 0;
+  let count = 0;
+
+  for (const p of positions) {
+    const price = await getPrice(p.sym);
+    if (!price) continue;
+    count++;
+
+    const pnl = p.dir === 'LONG' ? (price - p.entry) * p.size : (p.entry - price) * p.size;
+    const roi = pnl / (p.size * p.entry / p.lev) * 100;
+    const liqDist = p.dir === 'LONG' ? (price - p.liq) / price * 100 : (p.liq - price) / price * 100;
+    const entryDist = ((price - p.entry) / p.entry * 100);
+    totalPnl += pnl;
+
+    const pnlCls = pnl >= 0 ? 'green' : 'red';
+    const dirCls = p.dir === 'LONG' ? 'dir-long' : 'dir-short';
+    const liqW = Math.min(100, Math.max(5, 100 - liqDist * 5));
+    const liqC = liqColor(liqDist);
+
+    const decimals = p.entry < 1 ? 5 : 2;
+
+    html += '<div class="trade-card">';
+    html += '<div class="trade-header"><div class="trade-coin">' + p.coin + '</div><span class="trade-dir ' + dirCls + '">' + p.dir + ' ' + p.lev + 'x · ' + p.exchange + '</span></div>';
+    html += '<div class="trade-grid">';
+    html += '<div class="trade-item"><div class="label">PnL</div><div class="val ' + pnlCls + '">' + (pnl>=0?'+':'') + '$' + pnl.toFixed(0) + '</div></div>';
+    html += '<div class="trade-item"><div class="label">ROI</div><div class="val ' + pnlCls + '">' + (roi>=0?'+':'') + roi.toFixed(1) + '%</div></div>';
+    html += '<div class="trade-item"><div class="label">Preis</div><div class="val">$' + price.toFixed(decimals) + '</div></div>';
+    html += '<div class="trade-item"><div class="label">Entry</div><div class="val">$' + p.entry.toFixed(decimals) + '</div></div>';
+    html += '<div class="trade-item"><div class="label">Liq</div><div class="val orange">$' + p.liq.toFixed(decimals) + '</div></div>';
+    html += '<div class="trade-item"><div class="label">vs Entry</div><div class="val ' + (entryDist>=0?'green':'red') + '">' + (entryDist>=0?'+':'') + entryDist.toFixed(1) + '%</div></div>';
+    html += '</div>';
+    html += '<div class="liq-bar"><div class="liq-fill" style="width:' + liqW + '%;background:' + liqC + ';"></div></div>';
+    html += '<div class="liq-label"><span>Liq: ' + liqDist.toFixed(1) + '% entfernt</span><span style="color:' + liqC + ';">' + (liqDist>10?'sicher':liqDist>5?'Achtung':'GEFAHR') + '</span></div>';
+    html += '</div>';
+  }
+
+  document.getElementById('trades').innerHTML = html;
+  document.getElementById('totalPnl').innerHTML = '<span class="' + (totalPnl>=0?'green':'red') + '">' + (totalPnl>=0?'+':'') + '$' + totalPnl.toFixed(0) + '</span>';
+  document.getElementById('totalPos').textContent = count;
+  document.getElementById('lastUpdate').textContent = 'Stand: ' + new Date().toLocaleTimeString('de');
+}
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>
