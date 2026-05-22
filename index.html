@@ -92,7 +92,7 @@
 
 <footer>KOCH Trading Dashboard 2026 · <a href="cockpit.html" style="color:#2a3a50;text-decoration:none;">Chris Ko</a> · Powered by Claude Code · <span id="ft-date"></span></footer>
 
-<script src="trades_data.js"></script>
+<script>document.write('<scr'+'ipt src="trades_data.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>
 const T=TRADE_DATA.trades.map(t=>({nr:t.nr,signal:t.signal,datum:t.datum,account:t.account,coin:t.coin,richtung:t.richtung,einsatz:t.einsatz,hebel:t.hebel,entry:t.entry,tp1:t.tp1,sl:t.sl,ausstieg_dat:t.ausstieg_dat,ausstieg:t.ausstieg,dauer:t.dauer,roi:t.roi,pnl:t.pnl,net_pnl:t.net_pnl,abgeschl:t.abgeschl,notiz:t.notiz}));
 

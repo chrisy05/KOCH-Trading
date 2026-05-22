@@ -59,7 +59,7 @@ footer{text-align:center;padding:20px;color:#2a3a50;font-size:.75rem;border-top:
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <label>Bis</label>
-    <input type="date" id="fTo" " id="fToPlaceholder">
+    <input type="date" id="fTo">
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <label>Signalgeber</label>
@@ -116,7 +116,7 @@ footer{text-align:center;padding:20px;color:#2a3a50;font-size:.75rem;border-top:
 <footer>KOCH Trading Dashboard 2026 · Chris Ko · Powered by Claude Code · <span id="stand-date"></span></footer>
 <script>document.getElementById("stand-date").textContent="Stand: "+new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});</script>
 
-<script src="trades_data.js"></script>
+<script>document.write('<scr'+'ipt src="trades_data.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>
 const ALL_TRADES=TRADE_DATA.trades;
 

@@ -110,7 +110,7 @@
   <div class="cards" id="cardBox"></div>
   <div class="empty" id="empty" style="display:none">Keine Trades gefunden</div>
 </div>
-<script src="trades_data.js"></script>
+<script>document.write('<scr'+'ipt src="trades_data.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>
 const T=TRADE_DATA.trades;
 let sk='nr',sd=-1;
