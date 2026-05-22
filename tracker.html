@@ -42,8 +42,9 @@ h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
 <button class="btn-refresh" onclick="loadAll()">Aktualisieren</button>
 
 <div class="total-section">
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
-  <div><div class="label" style="font-size:0.7rem;color:#8b949e;">GESAMT PNL</div><div class="total-val" id="totalPnl">—</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;text-align:center">
+  <div><div class="label" style="font-size:0.7rem;color:#8b949e;">GESAMT PNL (OPEN)</div><div class="total-val" id="totalPnlOpen">—</div></div>
+  <div><div class="label" style="font-size:0.7rem;color:#8b949e;">GESAMT PNL (REALIZED)</div><div class="total-val" id="totalPnlRealized">—</div></div>
   <div><div class="label" style="font-size:0.7rem;color:#8b949e;">MARGIN IN TRADES</div><div class="total-val" id="totalMargin" style="color:#3b9eff">—</div></div>
   <div><div class="label" style="font-size:0.7rem;color:#8b949e;">POSITIONEN</div><div class="total-val" id="totalPos">—</div></div>
 </div>
@@ -76,8 +77,8 @@ h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
 
 <script>
 const positions = [
-  {coin:'SEI', sym:'SEIUSDT', dir:'LONG', lev:10, entry:0.06441, size:145664, liq:0.05563, exchange:'Bitget', realized:0},
-  {coin:'LTC', sym:'LTCUSDT', dir:'LONG', lev:10, entry:57.69, size:241.5, liq:50.84, exchange:'Bitget', realized:0},
+  {coin:'SEI', sym:'SEIUSDT', dir:'LONG', lev:10, entry:0.06441, size:145664, liq:0.05563, exchange:'Bitget', realized:-392},
+  {coin:'LTC', sym:'LTCUSDT', dir:'LONG', lev:10, entry:57.69, size:241.5, liq:50.84, exchange:'Bitget', realized:-810},
   {coin:'XLM', sym:'XLMUSDT', dir:'LONG', lev:9, entry:0.17340, size:35537, liq:0.13522, exchange:'Phemex', realized:-331.57},
 ];
 
@@ -98,7 +99,8 @@ function liqColor(pct) {
 async function loadAll() {
   document.getElementById('lastUpdate').textContent = 'Aktualisiere...';
   let html = '';
-  let totalPnl = 0;
+  let totalPnlOpen = 0;
+  let totalPnlRealized = 0;
   let totalMargin = 0;
   let count = 0;
 
@@ -108,12 +110,14 @@ async function loadAll() {
     count++;
 
     const unrealized = p.dir === 'LONG' ? (price - p.entry) * p.size : (p.entry - price) * p.size;
-    const pnl = unrealized + (p.realized || 0);
+    const realized = p.realized || 0;
+    const pnl = unrealized + realized;
     const margin = p.size * p.entry / p.lev;
     const roi = pnl / margin * 100;
     const liqDist = p.dir === 'LONG' ? (price - p.liq) / price * 100 : (p.liq - price) / price * 100;
     const entryDist = ((price - p.entry) / p.entry * 100);
-    totalPnl += pnl;
+    totalPnlOpen += unrealized;
+    totalPnlRealized += realized;
     totalMargin += margin;
 
     const pnlCls = pnl >= 0 ? 'green' : 'red';
@@ -126,7 +130,9 @@ async function loadAll() {
     html += '<div class="trade-card">';
     html += '<div class="trade-header"><div class="trade-coin">' + p.coin + '</div><span class="trade-dir ' + dirCls + '">' + p.dir + ' ' + p.lev + 'x · ' + p.exchange + '</span></div>';
     html += '<div class="trade-grid">';
-    html += '<div class="trade-item"><div class="label">PnL</div><div class="val ' + pnlCls + '">' + (pnl>=0?'+':'') + '$' + pnl.toFixed(0) + '</div></div>';
+    const realCls = realized >= 0 ? 'green' : 'red';
+    html += '<div class="trade-item"><div class="label">PnL (open)</div><div class="val ' + pnlCls + '">' + (unrealized>=0?'+':'') + '$' + unrealized.toFixed(0) + '</div></div>';
+    html += '<div class="trade-item"><div class="label">PnL (realized)</div><div class="val ' + realCls + '">' + (realized>=0?'+':'') + '$' + realized.toFixed(0) + '</div></div>';
     html += '<div class="trade-item"><div class="label">ROI</div><div class="val ' + pnlCls + '">' + (roi>=0?'+':'') + roi.toFixed(1) + '%</div></div>';
     html += '<div class="trade-item"><div class="label">Margin</div><div class="val" style="color:#3b9eff">$' + margin.toFixed(0) + '</div></div>';
     html += '<div class="trade-item"><div class="label">Preis</div><div class="val">$' + price.toFixed(decimals) + '</div></div>';
@@ -138,7 +144,8 @@ async function loadAll() {
   }
 
   document.getElementById('trades').innerHTML = html;
-  document.getElementById('totalPnl').innerHTML = '<span class="' + (totalPnl>=0?'green':'red') + '">' + (totalPnl>=0?'+':'') + '$' + totalPnl.toFixed(0) + '</span>';
+  document.getElementById('totalPnlOpen').innerHTML = '<span class="' + (totalPnlOpen>=0?'green':'red') + '">' + (totalPnlOpen>=0?'+':'') + '$' + totalPnlOpen.toFixed(0) + '</span>';
+  document.getElementById('totalPnlRealized').innerHTML = '<span class="' + (totalPnlRealized>=0?'green':'red') + '">' + (totalPnlRealized>=0?'+':'') + '$' + totalPnlRealized.toFixed(0) + '</span>';
   document.getElementById('totalMargin').textContent = '$' + totalMargin.toFixed(0);
   document.getElementById('totalPos').textContent = count;
   document.getElementById('lastUpdate').textContent = 'Stand: ' + new Date().toLocaleTimeString('de');
