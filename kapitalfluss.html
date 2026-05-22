@@ -148,12 +148,13 @@ new Chart(document.getElementById('chartMain'),{
         const isDom=lbl.includes('Dominance');
         const isFund=lbl.includes('Funding');
         let vStr;
-        if(isBTC) vStr=val.toFixed(2);
+        if(isBTC) vStr='$'+Math.round(val*1000).toLocaleString('en');
         else if(isFNG) vStr=Math.round(val);
-        else if(isDom) vStr=val.toFixed(1);
-        else if(isFund) vStr=val.toFixed(4);
-        else vStr=val.toFixed(2);
-        let line=lbl+': '+vStr;
+        else if(isDom) vStr=val.toFixed(1)+'%';
+        else if(isFund) vStr=val.toFixed(4)+'%';
+        else vStr=val.toFixed(2)+' Mrd $';
+        let name=isBTC?'BTC':lbl;
+        let line=name+': '+vStr;
         if(idx>0){
           const prev=ctx.dataset.data[idx-1];
           if(prev!=null&&!isNaN(prev)){
@@ -161,12 +162,13 @@ new Chart(document.getElementById('chartMain'),{
             const pct=prev!==0?((diff/Math.abs(prev))*100):0;
             const s=diff>=0?'+':'';
             let dStr;
-            if(isBTC) dStr=s+(diff*1000).toFixed(0)+' $';
+            if(isBTC) dStr=s+'$'+Math.abs(Math.round(diff*1000)).toLocaleString('en');
             else if(isStable||isOI) dStr=s+diff.toFixed(2)+' Mrd';
             else if(isFNG) dStr=s+Math.round(diff);
             else if(isDom) dStr=s+diff.toFixed(1)+'%';
             else if(isFund) dStr=s+diff.toFixed(4)+'%';
             else dStr=s+diff.toFixed(2);
+            if(isBTC&&diff<0) dStr='-$'+Math.abs(Math.round(diff*1000)).toLocaleString('en');
             line+='  ('+dStr+' / '+s+pct.toFixed(2)+'%)';
           }
         }
