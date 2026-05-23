@@ -149,6 +149,71 @@ td{padding:6px;border-bottom:1px solid #161f30}
 </div>
 </div>
 
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">Looking Glass — BTC Prediction Engine</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Was ist Looking Glass?</b></p>
+<p>Ein automatisches BTC-Vorhersagesystem das stuendlich Daten aus 5 verschiedenen Quellen sammelt, bewertet und eine Richtungsprognose (LONG/SHORT/NEUTRAL) erstellt. Ziel: 70-80% Trefferquote mit Stunden bis 1 Tag Vorsprung.</p>
+
+<p style="margin-top:12px;"><b>Zwei Versionen:</b></p>
+<table>
+<tr><th>Version</th><th>Zeitrahmen</th><th>Zweck</th></tr>
+<tr><td class="green">V1 — Stündlich</td><td>1-3 Stunden</td><td>Kurzfristige Richtung, Trading-Signale</td></tr>
+<tr><td class="red">V2 — Makro</td><td>Tage bis Wochen</td><td>Übergeordneter Trend, DCB-Erkennung, Regime</td></tr>
+</table>
+
+<p style="margin-top:12px;"><b>V1 Signale (12 Faktoren):</b></p>
+<table>
+<tr><th>Signal</th><th>Quelle</th><th>Gewicht</th><th>Logik</th></tr>
+<tr><td>Funding Rate</td><td>Binance Futures</td><td>15</td><td>Negativ = bearish Sentiment. Extrem positiv = contrarian SHORT (zu viele Longs)</td></tr>
+<tr><td>OI Change</td><td>Binance Futures</td><td>15</td><td>Steigendes OI + Preisrichtung = neue Positionen in diese Richtung</td></tr>
+<tr><td>Long/Short Ratio</td><td>Binance Futures</td><td>15</td><td>Contrarian: &gt;1.5 = zu viele Longs → SHORT. &lt;0.7 = zu viele Shorts → LONG</td></tr>
+<tr><td>Top Traders L/S</td><td>Binance Futures</td><td>10</td><td>Smart Money Positionierung. Folge den grossen Tradern</td></tr>
+<tr><td>Taker Buy/Sell</td><td>Binance Futures</td><td>15</td><td>Aggressiver Kauf/Verkauf. &gt;1.1 = Kaeufer dominieren. Staerkstes kurzfristiges Signal</td></tr>
+<tr><td>Price Momentum</td><td>Binance Futures 1H</td><td>10</td><td>4h + 24h Trend-Following</td></tr>
+<tr><td>EE Momentum</td><td>Binance Futures 1H</td><td>15</td><td>TMO-Variante (L=15). Crossover = Trendwechsel, Richtung = Momentum</td></tr>
+<tr><td>RSI</td><td>Binance Futures 1H</td><td>10</td><td>OB/OS = Staerke (nicht Warnung!). RSI &gt;70 = bullish Momentum</td></tr>
+<tr><td>Volume Trend</td><td>Binance Futures 1H</td><td>5</td><td>Steigendes Volumen bestaetigt die aktuelle Richtung</td></tr>
+<tr><td>Bybit/Binance OI</td><td>Bybit + Binance</td><td>8</td><td>Cross-Exchange Vergleich. Beide gleiche Richtung = starkes Signal</td></tr>
+<tr><td>Mempool Fees</td><td>mempool.space</td><td>5</td><td>Hohe BTC-Netzwerk-Fees = Volatilitaet kommt. Verstaerkt bestehende Richtung</td></tr>
+<tr><td>Options P/C Ratio</td><td>Deribit</td><td>12</td><td>Contrarian: Viele Puts (P/C &gt;0.7) = Hedging = LONG Signal. Wenig Puts = Sorglosigkeit</td></tr>
+</table>
+
+<p style="margin-top:12px;"><b>V2 Makro Signale (6 Faktoren):</b></p>
+<table>
+<tr><th>Signal</th><th>Quelle</th><th>Gewicht</th><th>Logik</th></tr>
+<tr><td>Daily EMA50</td><td>Binance 1D</td><td>25</td><td>Preis ueber/unter Daily EMA50 = uebergeordneter Trend</td></tr>
+<tr><td>Weekly EMA20</td><td>Binance 1W</td><td>20</td><td>Preis ueber/unter Weekly EMA20 = langfristiger Trend</td></tr>
+<tr><td>Daily EE Momentum</td><td>Binance 1D</td><td>15</td><td>Tagesbasierter Trendwechsel, Crossover auf Daily</td></tr>
+<tr><td>Daily RSI</td><td>Binance 1D</td><td>10</td><td>Tages-Momentum, OB/OS Zonen</td></tr>
+<tr><td>Dead Cat Bounce</td><td>Berechnung</td><td>20</td><td>Erkennt: Drop &gt;5% → Retracement 30-60% mit schwachem Volumen → SHORT</td></tr>
+<tr><td>Volume 3d vs 7d</td><td>Binance 1D</td><td>10</td><td>Bounce-Volumen schwaecher als Drop-Volumen = Bounce nicht nachhaltig</td></tr>
+</table>
+
+<p style="margin-top:12px;"><b>Score-Berechnung:</b></p>
+<div class="formula">Total Score = Summe aller (Signal Score × Gewicht)<br>Range: -100 (starker SHORT) bis +100 (starker LONG)<br>NEUTRAL Zone: -8 bis +8<br>Confidence = |Score|%</div>
+
+<p style="margin-top:12px;"><b>Bewertung:</b></p>
+<p>Jede Vorhersage wird nach <b>3 Stunden</b> bewertet: Ging BTC in die vorhergesagte Richtung? Ergebnis wird als ✓ (richtig), ✗ (falsch) oder — (neutral) geloggt. Die laufende Trefferquote ist auf der Seite sichtbar.</p>
+
+<p style="margin-top:12px;"><b>Datenquellen:</b></p>
+<table>
+<tr><th>Quelle</th><th>API</th><th>Kosten</th><th>Vorlauf</th></tr>
+<tr><td>Binance Futures</td><td>fapi.binance.com</td><td>Kostenlos</td><td>1-4h</td></tr>
+<tr><td>Bybit</td><td>api.bybit.com</td><td>Kostenlos</td><td>1-4h</td></tr>
+<tr><td>Deribit Options</td><td>deribit.com/api/v2</td><td>Kostenlos</td><td>1-3 Tage (vor Expiry)</td></tr>
+<tr><td>Mempool</td><td>mempool.space</td><td>Kostenlos</td><td>30min-2h</td></tr>
+<tr><td>Binance Spot</td><td>api.binance.com</td><td>Kostenlos</td><td>Echtzeit</td></tr>
+</table>
+
+<p style="margin-top:12px;"><b>Limitationen:</b></p>
+<p>• Kann keine News/Events vorhersagen (Trump-Iran, FOMC, Hacks)<br>
+• Braucht min. 48h Daten fuer sinnvolle Kalibrierung<br>
+• Funktioniert besser in Trending-Maerkten als in Seitwaerts-Phasen<br>
+• Taker Ratio schwankt stark — einzelne Stundenwerte koennen taeuschen</p>
+</div>
+</div>
+
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 </body>
 </html>
