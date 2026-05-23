@@ -138,7 +138,7 @@
         "label": "1h:-0.01% 4h:+0.03% 24h:-2.83%"
       }
     },
-    "result": "wrong"
+    "result": "correct"
   },
   {
     "timestamp": "2026-05-23T04:00:07.324212+00:00",
@@ -420,7 +420,7 @@
         "label": "1h:+0.11% 4h:-1.13% 24h:-3.34%"
       }
     },
-    "result": "correct"
+    "result": "wrong"
   },
   {
     "timestamp": "2026-05-23T10:00:05.197824+00:00",
@@ -560,8 +560,7 @@
         "score": -5,
         "label": "1h:+0.10% 4h:+0.26% 24h:-3.40%"
       }
-    },
-    "result": "neutral"
+    }
   },
   {
     "timestamp": "2026-05-23T13:00:05.523794+00:00",
@@ -607,8 +606,7 @@
         "score": -5,
         "label": "1h:-0.01% 4h:+0.12% 24h:-3.28%"
       }
-    },
-    "result": "wrong"
+    }
   },
   {
     "timestamp": "2026-05-23T13:05:34.670075+00:00",
@@ -653,6 +651,52 @@
         },
         "score": -5,
         "label": "1h:+0.20% 4h:+0.33% 24h:-3.08%"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-23T13:26:49.802174+00:00",
+    "btc_price": 74989.12,
+    "score": 0,
+    "direction": "NEUTRAL",
+    "confidence": 0,
+    "oi": 104773.131,
+    "long_liq_zone": 73288.0,
+    "short_liq_zone": 78171.0,
+    "signals": {
+      "funding": {
+        "value": 0.001,
+        "score": 0,
+        "label": "0.0010%"
+      },
+      "oi_change": {
+        "value": -0.09,
+        "score": 0,
+        "label": "-0.09%"
+      },
+      "ls_ratio": {
+        "value": 1.636,
+        "score": -12,
+        "label": "1.636"
+      },
+      "top_traders": {
+        "value": 1.134,
+        "score": 0,
+        "label": "1.134"
+      },
+      "taker_ratio": {
+        "value": 1.27,
+        "score": 15,
+        "label": "1.270"
+      },
+      "momentum": {
+        "value": {
+          "1h": 0.3,
+          "4h": 0.43,
+          "24h": -2.98
+        },
+        "score": -3,
+        "label": "1h:+0.30% 4h:+0.43% 24h:-2.98%"
       }
     }
   }
