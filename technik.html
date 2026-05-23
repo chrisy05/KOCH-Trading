@@ -127,6 +127,28 @@ td{padding:6px;border-bottom:1px solid #161f30}
 </div>
 </div>
 
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">Market Maker & Taker</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Maker</b> = stellt Liquiditaet bereit. Platziert Limit Orders ins Orderbuch und WARTET. Der Maker "macht" den Markt — ohne ihn gaebe es kein Orderbuch. Maker zahlen niedrigere Gebuehren (oft 0.02% oder weniger).</p>
+<p><b>Taker</b> = nimmt Liquiditaet. Platziert Market Orders oder Limit Orders die sofort gefuellt werden. Der Taker "nimmt" was der Maker anbietet. Taker zahlen hoehere Gebuehren (oft 0.05-0.06%).</p>
+<p style="margin-top:8px;"><b>Warum ist das wichtig fuer Trading-Signale?</b></p>
+<p>Die <span class="green">Taker Buy/Sell Ratio</span> zeigt wer AGGRESSIV handelt:</p>
+<table>
+<tr><th>Ratio</th><th>Bedeutung</th><th>Signal</th></tr>
+<tr><td>> 1.1</td><td>Mehr Taker KAUFEN aggressiv</td><td class="green">Bullish — Kaeufer sind ungeduldig, wollen sofort rein</td></tr>
+<tr><td>0.9 - 1.1</td><td>Ausgeglichen</td><td>Neutral</td></tr>
+<tr><td>< 0.9</td><td>Mehr Taker VERKAUFEN aggressiv</td><td class="red">Bearish — Verkaeufer druecken, wollen sofort raus</td></tr>
+</table>
+<div class="example">
+<b>Beispiel:</b> Taker Ratio 1.67 am 23.05. um 13:00 → starker Kaufdruck. BTC stieg danach von $75,445 auf $76,008. Der aggressive Kauf war das Signal BEVOR der Preis reagierte.
+</div>
+<p style="margin-top:8px;"><b>Market Maker im groesseren Bild:</b></p>
+<p>Grosse Market Maker (Citadel, Jump Trading, Wintermute) sehen das Orderbuch von INNEN. Sie wissen wo die Liquidationen liegen und bewegen den Preis gezielt dorthin. Wenn viele Longs bei $75,000 liquidiert werden, druecken sie den Preis dorthin, sammeln die billigen Coins ein, und lassen ihn wieder steigen.</p>
+<p>Deshalb ist die Taker Ratio so wertvoll: sie zeigt wann echtes Geld AGGRESSIV in eine Richtung fliesst — das sind oft die Vorboten einer groesseren Bewegung.</p>
+</div>
+</div>
+
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 </body>
 </html>
