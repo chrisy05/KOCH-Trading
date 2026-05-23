@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
+<title>Looking Glass — BTC Prediction</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:20px;max-width:1000px;margin:0 auto}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;font-size:0.8rem}
+.nav a{color:#58a6ff;text-decoration:none}
+.nav a:hover{text-decoration:underline}
+h1{color:#58a6ff;font-size:1.8rem;text-align:center;margin-bottom:4px}
+.sub{color:#484f58;font-size:0.8rem;text-align:center;margin-bottom:24px}
+.card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;margin-bottom:16px}
+.card-title{color:#8b949e;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.prediction-box{text-align:center;padding:20px 0}
+.prediction-dir{font-size:2.5rem;font-weight:900;color:#ef4444}
+.prediction-confidence{font-size:1.1rem;color:#8b949e;margin-top:4px}
+.score-bar-container{max-width:400px;margin:16px auto;position:relative}
+.score-bar-bg{height:8px;background:linear-gradient(to right, #ef4444, #f59e0b, #22c55e);border-radius:4px;position:relative}
+.score-bar-marker{position:absolute;top:-4px;width:16px;height:16px;background:#fff;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px rgba(255,255,255,0.5);left:35.0%}
+.score-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:0.7rem;color:#484f58}
+.stats-row{display:flex;justify-content:center;gap:30px;margin-top:16px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-val{font-size:1.3rem;font-weight:700;color:#c9d1d9}
+.stat-label{font-size:0.7rem;color:#484f58;margin-top:2px}
+.liq-row{display:flex;justify-content:center;gap:40px;margin-top:16px;flex-wrap:wrap}
+.liq-item{text-align:center;padding:8px 16px;border-radius:8px}
+.liq-long{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3)}
+.liq-short{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3)}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 12px;text-align:left;color:#484f58;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #21262d}
+tr:hover{background:rgba(88,166,255,0.03)}
+.chart-container{position:relative;height:200px;overflow:hidden}
+canvas{width:100%!important;height:100%!important}
+.accuracy-badge{display:inline-block;padding:4px 12px;border-radius:12px;font-weight:700;font-size:0.85rem;
+    background:rgba(239,68,68,0.15);
+    color:#ef4444}
+.footer{text-align:center;color:#484f58;font-size:0.65rem;margin-top:20px}
+</style>
+</head>
+<body>
+
+<div class="nav">
+    <a href="cockpit.html">&larr; Cockpit</a>
+    <span style="color:#484f58">Looking Glass</span>
+    <a href="index.html">Dashboard &rarr;</a>
+</div>
+
+<h1>🔮 Looking Glass</h1>
+<div class="sub">BTC Prediction Engine &middot; Updated 23.05.2026 01:39 UTC</div>
+
+<!-- Current Prediction -->
+<div class="card">
+    <div class="card-title">Aktuelle Vorhersage</div>
+    <div class="prediction-box">
+        <div class="prediction-dir">▼ SHORT</div>
+        <div class="prediction-confidence">30% Confidence &middot; Score -30/100</div>
+        <div class="score-bar-container">
+            <div class="score-bar-bg"><div class="score-bar-marker"></div></div>
+            <div class="score-labels"><span>SHORT -100</span><span>NEUTRAL</span><span>LONG +100</span></div>
+        </div>
+        <div class="stats-row">
+            <div class="stat"><div class="stat-val">$75,482</div><div class="stat-label">BTC Price</div></div>
+            <div class="stat"><div class="stat-val accuracy-badge">0%</div><div class="stat-label">Accuracy (0 checked)</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Liquidation Estimate -->
+<div class="card">
+    <div class="card-title">Geschaetzte Liquidations-Zonen (24h Range)</div>
+    <div class="liq-row">
+        <div class="liq-item liq-long">
+            <div style="font-size:0.7rem;color:#ef4444">Long Liquidations</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#ef4444">$74,382</div>
+        </div>
+        <div class="liq-item" style="text-align:center">
+            <div style="font-size:0.7rem;color:#8b949e">Current</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#58a6ff">$75,482</div>
+        </div>
+        <div class="liq-item liq-short">
+            <div style="font-size:0.7rem;color:#22c55e">Short Liquidations</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#22c55e">$78,666</div>
+        </div>
+    </div>
+</div>
+
+<!-- Signal Breakdown -->
+<div class="card">
+    <div class="card-title">Signal Breakdown</div>
+    <table>
+        <tr>
+            <th>Signal</th>
+            <th>Wert</th>
+            <th style="text-align:right">Score</th>
+        </tr>
+        <tr>
+                <td style="padding:8px 12px;color:#c9d1d9">Funding Rate</td>
+                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">0.0018%</td>
+                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
+            </tr><tr>
+                <td style="padding:8px 12px;color:#c9d1d9">OI Change</td>
+                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">N/A (first run)</td>
+                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
+            </tr><tr>
+                <td style="padding:8px 12px;color:#c9d1d9">Long/Short Ratio</td>
+                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1.508</td>
+                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#ef4444">-12</td>
+            </tr><tr>
+                <td style="padding:8px 12px;color:#c9d1d9">Top Traders L/S</td>
+                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1.105</td>
+                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
+            </tr><tr>
+                <td style="padding:8px 12px;color:#c9d1d9">Taker Buy/Sell</td>
+                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">0.827</td>
+                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#ef4444">-15</td>
+            </tr><tr>
+                <td style="padding:8px 12px;color:#c9d1d9">Price Momentum</td>
+                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1h:+0.16% 4h:-0.64% 24h:-2.74%</td>
+                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#ef4444">-3</td>
+            </tr>
+        <tr style="border-top:2px solid #58a6ff">
+            <td style="padding:10px 12px;color:#58a6ff;font-weight:700" colspan="2">Total Score</td>
+            <td style="padding:10px 12px;text-align:right;font-weight:900;color:#ef4444;font-size:1.1rem">-30</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Chart -->
+<div class="card">
+    <div class="card-title">Score &amp; Preis (letzte 72h)</div>
+    <div class="chart-container">
+        <canvas id="chartCanvas"></canvas>
+    </div>
+</div>
+
+<!-- Prediction History -->
+<div class="card">
+    <div class="card-title">Vorhersage-Verlauf</div>
+    <div style="overflow-x:auto">
+    <table>
+        <tr>
+            <th>Zeit</th>
+            <th style="text-align:right">Preis</th>
+            <th style="text-align:center">Signal</th>
+            <th style="text-align:center">Score</th>
+            <th style="text-align:center">Ergebnis</th>
+            <th style="text-align:center">Accuracy</th>
+        </tr>
+        <tr style="border-bottom:1px solid #21262d">
+            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">23.05. 01:39</td>
+            <td style="padding:6px 10px;text-align:right">$75,482</td>
+            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
+            <td style="padding:6px 10px;text-align:center">-30</td>
+            <td style="padding:6px 10px;text-align:center;color:#484f58;font-weight:700">–</td>
+            <td style="padding:6px 10px;text-align:center;color:#8b949e">–</td>
+        </tr>
+    </table>
+    </div>
+</div>
+
+<div class="footer">Looking Glass v1.0 &middot; Daten: Binance Futures &middot; Hourly Update</div>
+
+<script>
+// Simple canvas chart
+(function() {
+    const labels = ["23.05 01:39"];
+    const scores = [-30];
+    const prices = [75481.6];
+    const canvas = document.getElementById('chartCanvas');
+    if (!canvas || scores.length < 2) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.parentElement.offsetWidth;
+    const H = 200;
+    canvas.width = W; canvas.height = H;
+    const pad = {t:20,r:60,b:25,l:40};
+    const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+    const n = scores.length;
+    // Score axis (-100 to 100)
+    function sy(v) { return pad.t + ch - ((v+100)/200)*ch; }
+    // Price axis
+    const pMin = Math.min(...prices)*0.999, pMax = Math.max(...prices)*1.001;
+    function py(v) { return pad.t + ch - ((v-pMin)/(pMax-pMin))*ch; }
+    function sx(i) { return pad.l + (i/(n-1))*cw; }
+    // Grid
+    ctx.strokeStyle = '#21262d'; ctx.lineWidth = 1;
+    for (let v of [-50,0,50]) {
+        ctx.beginPath(); ctx.moveTo(pad.l, sy(v)); ctx.lineTo(W-pad.r, sy(v)); ctx.stroke();
+    }
+    // Zero line
+    ctx.strokeStyle = '#484f58'; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, sy(0)); ctx.lineTo(W-pad.r, sy(0)); ctx.stroke();
+    ctx.setLineDash([]);
+    // Score fill
+    ctx.beginPath(); ctx.moveTo(sx(0), sy(0));
+    for (let i=0;i<n;i++) ctx.lineTo(sx(i), sy(scores[i]));
+    ctx.lineTo(sx(n-1), sy(0)); ctx.closePath();
+    ctx.fillStyle = scores[n-1]>0 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'; ctx.fill();
+    // Score line
+    ctx.beginPath();
+    for (let i=0;i<n;i++) { i===0?ctx.moveTo(sx(i),sy(scores[i])):ctx.lineTo(sx(i),sy(scores[i])); }
+    ctx.strokeStyle = scores[n-1]>0 ? '#22c55e' : scores[n-1]<0 ? '#ef4444' : '#f59e0b';
+    ctx.lineWidth = 2; ctx.stroke();
+    // Price line
+    ctx.beginPath();
+    for (let i=0;i<n;i++) { i===0?ctx.moveTo(sx(i),py(prices[i])):ctx.lineTo(sx(i),py(prices[i])); }
+    ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Labels
+    ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('+100', pad.l-4, sy(100)+4);
+    ctx.fillText('0', pad.l-4, sy(0)+4);
+    ctx.fillText('-100', pad.l-4, sy(-100)+4);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#58a6ff';
+    ctx.fillText('$'+Math.round(pMax).toLocaleString(), W-pad.r+4, py(pMax)+4);
+    ctx.fillText('$'+Math.round(pMin).toLocaleString(), W-pad.r+4, py(pMin)+4);
+    // X labels
+    ctx.fillStyle = '#484f58'; ctx.textAlign = 'center';
+    const step = Math.max(1, Math.floor(n/6));
+    for (let i=0;i<n;i+=step) {
+        ctx.fillText(labels[i], sx(i), H-4);
+    }
+})();
+</script>
+
+</body>
+</html>
