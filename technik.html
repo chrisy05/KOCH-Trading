@@ -150,46 +150,6 @@ td{padding:6px;border-bottom:1px solid #161f30}
 </div>
 
 <div class="topic" onclick="this.classList.toggle('open')">
-<div class="topic-header"><span class="topic-title">On-Chain Daten</span><span class="topic-arrow">▶</span></div>
-<div class="topic-body">
-<p><b>Was sind On-Chain Daten?</b></p>
-<p>Daten die direkt aus der Bitcoin Blockchain kommen — nicht von Boersen, sondern vom Netzwerk selbst. Sie zeigen was WIRKLICH passiert, nicht was Trader denken.</p>
-
-<p style="margin-top:12px;"><b>Wichtigste Metriken:</b></p>
-<table>
-<tr><th>Metrik</th><th>Was es zeigt</th><th>Bullish</th><th>Bearish</th></tr>
-<tr><td><b>Exchange Inflow</b></td><td>BTC die auf Boersen geschickt werden</td><td class="green">Niedrig (Hodler halten)</td><td class="red">Hoch (Verkaufsdruck)</td></tr>
-<tr><td><b>Exchange Outflow</b></td><td>BTC die von Boersen abgezogen werden</td><td class="green">Hoch (Akkumulation)</td><td class="red">Niedrig</td></tr>
-<tr><td><b>Active Addresses</b></td><td>Wie viele Adressen taeglich aktiv sind</td><td class="green">Steigend (mehr Nutzung)</td><td class="red">Fallend (Interesse sinkt)</td></tr>
-<tr><td><b>TX Volume</b></td><td>Gesamtwert aller Transaktionen in USD</td><td class="green">Steigend (Kapital bewegt sich)</td><td class="red">Fallend</td></tr>
-<tr><td><b>MVRV Ratio</b></td><td>Marktwert vs. realisierter Wert</td><td class="green">&lt;1 (unterbewertet)</td><td class="red">&gt;3.5 (ueberbewertet)</td></tr>
-<tr><td><b>NUPL</b></td><td>Net Unrealized Profit/Loss aller Halter</td><td class="green">&lt;0 (Kapitulation)</td><td class="red">&gt;0.75 (Euphorie)</td></tr>
-<tr><td><b>Hash Rate</b></td><td>Rechenleistung der Miner</td><td class="green">Steigend (Miner investieren)</td><td class="red">Fallend (Miner kapitulieren)</td></tr>
-<tr><td><b>Mempool</b></td><td>Wartende Transaktionen</td><td>Hohe Aktivitaet</td><td>Kann Panikverkaeufe anzeigen</td></tr>
-</table>
-
-<p style="margin-top:12px;"><b>Warum sind On-Chain Daten wichtig?</b></p>
-<p>Sie zeigen das Verhalten der <b>grossen Halter (Whales)</b> BEVOR der Preis reagiert. Wenn Whales BTC auf Boersen schieben (Exchange Inflow steigt), kommt in 1-24h oft ein Abverkauf. Umgekehrt: wenn Whales BTC von Boersen abziehen (Outflow), wird akkumuliert.</p>
-
-<div class="example">
-<b>Vorlauf:</b> Exchange Inflow/Outflow: 1-24h | Active Addresses: Tage | MVRV/NUPL: Wochen
-</div>
-
-<p style="margin-top:12px;"><b>Kostenlose Quellen:</b></p>
-<table>
-<tr><th>Quelle</th><th>Daten</th><th>API</th></tr>
-<tr><td>Blockchain.info</td><td>TX Volume, Addresses, Hash Rate, Mempool</td><td>Kostenlos, kein Key</td></tr>
-<tr><td>Blockchair</td><td>24h Stats, Mempool, Difficulty</td><td>Kostenlos, kein Key</td></tr>
-<tr><td>Santiment</td><td>Active Addresses (aktuelle Daten)</td><td>Kostenlos, kein Key</td></tr>
-<tr><td>Mempool.space</td><td>Mempool, Fees, Hashrate</td><td>Kostenlos, kein Key</td></tr>
-<tr><td>CryptoQuant</td><td>Exchange Flows, MVRV, NUPL</td><td>Ab Professional ($99/Mo)</td></tr>
-</table>
-
-<p style="margin-top:8px;"><b>Status in Looking Glass:</b> TX Volume, Active Addresses und Mempool werden geloggt. Backtest zeigt aktuell keinen Vorteil auf 3-5 Tage Horizont — Daten sind zu traege fuer kurzfristige Vorhersagen. Werden weiter beobachtet.</p>
-</div>
-</div>
-
-<div class="topic" onclick="this.classList.toggle('open')">
 <div class="topic-header"><span class="topic-title">Looking Glass — BTC Prediction Engine</span><span class="topic-arrow">▶</span></div>
 <div class="topic-body">
 <p><b>Was ist Looking Glass?</b></p>
@@ -246,11 +206,32 @@ td{padding:6px;border-bottom:1px solid #161f30}
 <tr><td>Binance Spot</td><td>api.binance.com</td><td>Kostenlos</td><td>Echtzeit</td></tr>
 </table>
 
+<p style="margin-top:12px;"><b>On-Chain Daten in V2:</b></p>
+<p>Zusaetzlich zu den technischen Signalen sammelt Looking Glass On-Chain Daten direkt aus der Bitcoin Blockchain. Diese zeigen was WIRKLICH im Netzwerk passiert, nicht was Trader denken.</p>
+<table>
+<tr><th>Metrik</th><th>Quelle</th><th>Was es zeigt</th><th>Bullish / Bearish</th></tr>
+<tr><td>TX Volume Trend</td><td>Blockchain.info</td><td>Tagesvolumen vs 3-Tage Durchschnitt</td><td class="green">Steigend &gt;10%</td></tr>
+<tr><td>Active Addresses</td><td>Santiment / Blockchain.info</td><td>Taeglich aktive BTC Adressen</td><td class="green">Steigend &gt;5%</td></tr>
+<tr><td>Mempool Pressure</td><td>Blockchair</td><td>Wartende Transaktionen im Mempool</td><td>Verstaerkt bestehende Richtung</td></tr>
+<tr><td>Exchange Inflow*</td><td>CryptoQuant (bezahlt)</td><td>BTC auf Boersen geschickt = Verkaufsdruck</td><td class="red">Hoch = Abverkauf kommt</td></tr>
+<tr><td>Exchange Outflow*</td><td>CryptoQuant (bezahlt)</td><td>BTC von Boersen abgezogen = Akkumulation</td><td class="green">Hoch = Kaufdruck</td></tr>
+<tr><td>MVRV Ratio*</td><td>CryptoQuant (bezahlt)</td><td>Marktwert vs realisierter Wert</td><td class="green">&lt;1 unterbewertet</td></tr>
+</table>
+<p style="font-size:0.75rem;color:#484f58;">* = noch nicht integriert, benoetigt CryptoQuant Professional ($99/Mo)</p>
+
+<p style="margin-top:8px;"><b>Vorlaufzeiten On-Chain:</b></p>
+<p>• Exchange Inflow/Outflow: 1-24h Vorsprung<br>
+• Active Addresses: Tage (langsames Signal)<br>
+• MVRV/NUPL: Wochen (Makro-Indikator)</p>
+
+<p style="margin-top:8px;"><b>Backtest Status:</b> TX Volume + Active Addresses aktuell KEIN Vorteil auf 3-5 Tage Horizont (zu traege). Werden weiter geloggt und beobachtet. Exchange Flows waeren das staerkste On-Chain Signal — benoetigt aber bezahlten Zugang.</p>
+
 <p style="margin-top:12px;"><b>Limitationen:</b></p>
 <p>• Kann keine News/Events vorhersagen (Trump-Iran, FOMC, Hacks)<br>
 • Braucht min. 48h Daten fuer sinnvolle Kalibrierung<br>
 • Funktioniert besser in Trending-Maerkten als in Seitwaerts-Phasen<br>
-• Taker Ratio schwankt stark — einzelne Stundenwerte koennen taeuschen</p>
+• Taker Ratio schwankt stark — einzelne Stundenwerte koennen taeuschen<br>
+• On-Chain Daten aendern sich taeglich, nicht stuendlich — zu langsam fuer V1</p>
 </div>
 </div>
 
