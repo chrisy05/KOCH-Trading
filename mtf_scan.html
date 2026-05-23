@@ -424,7 +424,7 @@ function getBtcRow() {
     if(!btcScans.length) return '';
     const latest = btcScans[btcScans.length-1];
     const btcData = latest.coins['BTC'];
-    let r = '<table class="coin-hm" style="margin:4px 0 8px auto;opacity:0.7;width:75%;"><tr><th></th>';
+    let r = '<table class="coin-hm" style="margin:4px 0 8px auto;opacity:0.7;width:78%;"><tr><th></th>';
     tfs.forEach(tf => { r += '<th>'+tf+'</th>'; });
     r += '</tr><tr><td class="tf-label" style="color:#f7931a;font-weight:700;">BTC</td>';
     tfs.forEach(tf => {
