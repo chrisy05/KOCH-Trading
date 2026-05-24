@@ -77,9 +77,9 @@ h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
 
 <script>
 const positions = [
-  {coin:'SEI', sym:'SEIUSDT', dir:'LONG', lev:10, entry:0.06441, size:145664, liq:0.05563, exchange:'Bitget', realized:-392},
-  {coin:'LTC', sym:'LTCUSDT', dir:'LONG', lev:10, entry:57.69, size:241.5, liq:50.84, exchange:'Bitget', realized:-810},
-  {coin:'XLM', sym:'XLMUSDT', dir:'LONG', lev:9, entry:0.17340, size:35537, liq:0.13522, exchange:'Phemex', realized:-331.57},
+  {coin:'SEI', sym:'SEIUSDT', dir:'LONG', lev:10, entry:0.06441, size:145664, liq:0.05564, exchange:'Bitget', realized:-392.48, margin_fix:1335},
+  {coin:'LTC', sym:'LTCUSDT', dir:'LONG', lev:10, entry:57.69, size:241.5, liq:50.84, exchange:'Bitget', realized:-808.84, margin_fix:1752},
+  {coin:'XLM', sym:'XLMUSDT', dir:'LONG', lev:9, entry:0.17340, size:35537, liq:0.13522, exchange:'Phemex', realized:-331.44, margin_fix:1665},
   {coin:'SOL', sym:'SOLUSDT', dir:'SHORT', lev:70, entry:85.173, size:238.19, liq:88.024, exchange:'BingX', realized:-10.14},
 ];
 
@@ -113,7 +113,7 @@ async function loadAll() {
     const unrealized = p.dir === 'LONG' ? (price - p.entry) * p.size : (p.entry - price) * p.size;
     const realized = p.realized || 0;
     const pnl = unrealized + realized;
-    const margin = p.size * p.entry / p.lev;
+    const margin = p.margin_fix || (p.size * p.entry / p.lev);
     const roi = pnl / margin * 100;
     const liqDist = p.dir === 'LONG' ? (price - p.liq) / price * 100 : (p.liq - price) / price * 100;
     const entryDist = ((price - p.entry) / p.entry * 100);
