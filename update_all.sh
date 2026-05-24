@@ -8,7 +8,7 @@
 # ═══════════════════════════════════════════════════════
 
 cd "$(dirname "$0")"
-export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 BACKUP="../docs/dashboard_backup"
 
 echo "═══ KOCH Dashboard Update ═══"
