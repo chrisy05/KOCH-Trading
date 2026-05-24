@@ -235,6 +235,58 @@ td{padding:6px;border-bottom:1px solid #161f30}
 </div>
 </div>
 
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">TMO BTC — Bedeutung und Erkenntnis</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+
+<p><b>Datengrundlage:</b> 2 Monate BTC Futures (Binance), TMO L=14/C=5/S=3, alle TFs von 2min bis 4H. 981 Phasen, 600+ Crosses analysiert.</p>
+
+<p style="margin-top:14px;"><b>1. Cross Impact — Welcher TF hat Aussagekraft?</b></p>
+
+<p><b>2 Minuten:</b> Fast wertlos. Nur 0.06% Bewegung nach 40 Minuten. Der Preis geht zwar in die richtige Richtung (MFE/MAE 1.64 bei LONG), aber die absolute Bewegung ist zu klein. SHORT auf 2min ist sogar negativ.</p>
+
+<p><b>5 und 15 Minuten:</b> Noise. Win Rates um 50%, Bewegungen nahe null. Zu viel Zufallsrauschen im Signal.</p>
+
+<p><b>30 Minuten:</b> Erster brauchbarer TF. LONG: 56% WR nach 5 Bars (2.5h Hold). SHORT: 57% WR nach 3 Bars (1.5h). Beide Richtungen funktionieren, MFE/MAE konsistent um 1.09.</p>
+
+<p><b>1 Stunde:</b> Staerkste sofortige Reaktion. 62% WR direkt nach 1 Bar. Edge verflacht aber nach 10-20 Bars auf 53-55%. Gut fuer schnelle Bestaetigung, nicht fuer laengere Trades.</p>
+
+<p><b>4 Stunden:</b> Staerkstes Signal ueberhaupt. LONG Crosses: +0.61% avg nach 20 Bars (3.3 Tage), 58% WR, MFE/MAE 1.53. Aber nur 33 Signale in 2 Monaten — seltene Events. SHORT auf 4H schwach (bullisher Testzeitraum).</p>
+
+<div class="example"><b>Fazit Cross:</b> TMO Crosses sind auf kleinen TFs (2-15min) Noise. Ab 30min entsteht ein Edge, am staerksten auf 4H. LONG Crosses funktionieren besser als SHORT.</div>
+
+<p style="margin-top:14px;"><b>2. Phasen-Verlauf — Was passiert ZWISCHEN den Crosses?</b></p>
+
+<p><b>Dauer:</b> Typische Phase = 4-5 Bars auf allen TFs. Auf 30min = 2-2.5h, auf 1H = 4-5h, auf 4H = 16-20h. Der TMO wechselt relativ haeufig die Richtung.</p>
+
+<p><b>Frontloading:</b> Die wichtigste Erkenntnis — der Preis bewegt sich am STAERKSTEN direkt am Anfang einer Phase. Erste 30% der Phase bringen 1.2-2.4x mehr als letzte 30%. Wer beim Cross einsteigt, faengt den groessten Teil. Wer wartet bis "bestaetigt", hat den Grossteil verpasst.</p>
+
+<p><b>TMO Extremwerte:</b> TMO bei +12 oder -12 (nahe Maximum ±14) bedeutet NICHT Umkehr. In 55-60% der Faelle geht der Preis WEITER. Extreme = Staerke, nicht Erschoepfung. (Gleiche Logik wie RSI im Crypto-Markt.)</p>
+
+<p><b>Abflachung:</b> Wenn TMO-Slope abnimmt, kommt das Cross bald — aber erst 1-1.5 Bars vorher. Enges Fenster, nützlich als Bestätigung, nicht als Exit.</p>
+
+<p><b>Lange vs kurze Phasen:</b> Phasen laenger als Median (>5 Bars) produzieren 4-7x groessere Moves. Langer TMO-Trend = starkes Momentum → laufen lassen.</p>
+
+<p><b>Choppy Phasen:</b> Mehrere kurze Crosses hintereinander = Markt richtungslos. NACH choppy Sequenz: naechste Phase tendiert bullish und dauert laenger.</p>
+
+<p style="margin-top:14px;"><b>3. Multi-TF Alignment — Wie sicher ist die Richtung?</b></p>
+
+<p><b>FULL SHORT (4/4 TFs SHORT):</b> Staerkstes Richtungssignal. 60% WR auf 6h, 18 Basispunkte Edge. Wenn 15m, 30m, 1h UND 4h alle SHORT sind, faellt der Preis in 6 von 10 Faellen weiter. Keine Einstiegsempfehlung — eine Aussage: "der Markt will nach unten".</p>
+
+<p><b>FULL LONG (4/4 LONG):</b> Kurzfristig gut (55% WR auf 1.5-3h), schwächt bei 6h ab. Volle Uebereinstimmung kommt oft NACH dem groessten Teil des Moves.</p>
+
+<p><b>STRONG LONG (3/4 LONG):</b> Ueberraschend SCHLECHT — nur 40% WR, schlechter als Zufall! Der eine TF der bereits SHORT ist, ist der Fruehindikator. 3/4 LONG = oft Topping-Muster.</p>
+
+<p><b>MIXED (2/2):</b> Kein Edge, 48-52% WR. Markt richtungslos.</p>
+
+<p><b>15min fuehrt Reversals an:</b> In 82% der Faelle dreht der 15min TMO ZUERST wenn eine FULL Alignment aufbricht. Fruehwarnsystem: FULL LONG + 15min dreht SHORT = Aufloesung beginnt.</p>
+
+<p><b>Grosse TFs dominieren:</b> Bei Divergenz (kleine TFs SHORT, grosse LONG) gewinnen immer die grossen TFs. 1H/4H bestimmen die Richtung, 15m/30m zeigen kurzfristige Gegenbewegungen.</p>
+
+<div class="example"><b>Hierarchie fuer Looking Glass:</b> 4H TMO > 1H > 30M > 15M. FULL Alignment (besonders SHORT) ist das zuverlaessigste Signal fuer die Marktrichtung ueber die naechsten 6-12 Stunden.</div>
+</div>
+</div>
+
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 </body>
 </html>
