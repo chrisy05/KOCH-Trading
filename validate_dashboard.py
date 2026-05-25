@@ -237,6 +237,28 @@ for f in required:
     else:
         error(f"{f} FEHLT!")
 
+# Looking Glass Archiv Check
+archive_path = os.path.join('..', 'signals', 'looking_glass_archive.json')
+if os.path.exists(archive_path):
+    try:
+        with open(archive_path) as af:
+            archive = json.load(af)
+        ok(f"Looking Glass Archiv: {len(archive)} Eintraege")
+    except Exception:
+        warn("Looking Glass Archiv nicht lesbar")
+
+# Looking Glass Resultate nachtragen Check
+lg_data_path = 'looking_glass_data.json'
+if os.path.exists(lg_data_path):
+    with open(lg_data_path) as lf:
+        lg = json.load(lf)
+    pending = sum(1 for e in lg if e.get("direction", "NEUTRAL") != "NEUTRAL" and "result" not in e)
+    missing_r1h = sum(1 for e in lg if e.get("direction", "NEUTRAL") != "NEUTRAL" and "r1h" not in e)
+    if pending > 10:
+        warn(f"Looking Glass: {pending} Eintraege ohne Ergebnis — nachtragen!")
+    if missing_r1h > 20:
+        warn(f"Looking Glass: {missing_r1h} Eintraege ohne 1h Bewertung")
+
 # ══════════════════════════════════════════════════════════════
 # ERGEBNIS
 # ══════════════════════════════════════════════════════════════
