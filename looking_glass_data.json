@@ -7808,7 +7808,8 @@
     },
     "r1h": "\u2717",
     "r3h": "\u2717",
-    "r6h": "\u2717"
+    "r6h": "\u2717",
+    "r8h": "\u2717"
   },
   {
     "timestamp": "2026-05-25T15:15:07.275187+00:00",
@@ -9496,7 +9497,8 @@
         "label": "3,082 pending \u2014 normal"
       }
     },
-    "r1h": "\u2717"
+    "r1h": "\u2717",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T19:56:43.208882+00:00",
@@ -9588,7 +9590,8 @@
         "label": "3,595 pending \u2014 normal"
       }
     },
-    "r1h": "\u2717"
+    "r1h": "\u2717",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T20:00:11.692381+00:00",
@@ -9680,7 +9683,8 @@
         "label": "4,115 pending \u2014 normal"
       }
     },
-    "r1h": "\u2717"
+    "r1h": "\u2717",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T20:03:24.953756+00:00",
@@ -9772,7 +9776,8 @@
         "label": "978 pending \u2014 normal"
       }
     },
-    "r1h": "\u2713"
+    "r1h": "\u2713",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T20:09:48.158525+00:00",
@@ -11155,7 +11160,8 @@
         "score": 0,
         "label": "3d/7d: 0.93 Normal"
       }
-    }
+    },
+    "r1h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T22:15:07.258278+00:00",
@@ -11388,6 +11394,125 @@
       "dcb_detection": {
         "score": 0,
         "label": "UNLIKELY \u2014 Retrace 10%, Vol Ratio 0.97"
+      },
+      "volume_comparison": {
+        "score": 0,
+        "label": "3d/7d: 0.94 Normal"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-25T22:39:15.431850+00:00",
+    "btc_price": 77163.99,
+    "score": -32,
+    "direction": "SHORT",
+    "confidence": 32,
+    "oi": 99787.917,
+    "long_liq_zone": 76436.0,
+    "short_liq_zone": 78223.0,
+    "signals": {
+      "funding": {
+        "value": 0.0014,
+        "score": 0,
+        "label": "0.0014%"
+      },
+      "oi_change": {
+        "value": -0.04,
+        "score": 0,
+        "label": "-0.04%"
+      },
+      "ls_ratio": {
+        "value": 1.002,
+        "score": 0,
+        "label": "1.002"
+      },
+      "top_traders": {
+        "value": 1.109,
+        "score": 0,
+        "label": "1.109"
+      },
+      "taker_ratio": {
+        "value": 0.71,
+        "score": -25,
+        "label": "0.710"
+      },
+      "momentum": {
+        "value": {
+          "1h": -0.27,
+          "4h": -0.49,
+          "24h": 0.47
+        },
+        "score": 0,
+        "label": "1h:-0.27% 4h:-0.49% 24h:+0.47%"
+      },
+      "ee_momentum": {
+        "value": -3.44,
+        "score": -12,
+        "label": "Main:-3.4 Sig:-0.3 \u25bc"
+      },
+      "rsi": {
+        "value": 50.1,
+        "score": 0,
+        "label": "50.1"
+      },
+      "volume": {
+        "value": -36.2,
+        "score": -5,
+        "label": "-36.2%"
+      },
+      "bybit_oi_divergence": {
+        "value": -0.05,
+        "score": 0,
+        "label": "Bybit -0.05% Binance -0.04% DIVERGENT"
+      },
+      "mempool_activity": {
+        "value": 1,
+        "score": 0,
+        "label": "1 sat/vB normal"
+      },
+      "options_pcr": {
+        "value": 0.694,
+        "score": 10,
+        "label": "P/C 0.694 moderate put bias \u2192 lean LONG"
+      },
+      "onchain_tx_volume": {
+        "value": -47.1,
+        "score": -10,
+        "label": "-47.1% FALLING \u2014 declining activity"
+      },
+      "onchain_addresses": {
+        "value": 19.2,
+        "score": 10,
+        "label": "+19.2% RISING \u2014 growing adoption"
+      },
+      "onchain_mempool": {
+        "value": 1855,
+        "score": 0,
+        "label": "1,855 pending \u2014 normal"
+      }
+    },
+    "macro_score": 11,
+    "macro_direction": "LONG",
+    "macro_signals": {
+      "daily_ema50": {
+        "score": -10,
+        "label": "$78,272 (BELOW 1.4%)"
+      },
+      "weekly_ema20": {
+        "score": 8,
+        "label": "$75,663 (ABOVE 2.0%)"
+      },
+      "daily_ee_momentum": {
+        "score": 15,
+        "label": "Main:-10.1 Sig:-10.4 CROSS UP"
+      },
+      "daily_rsi": {
+        "score": -2,
+        "label": "45.6"
+      },
+      "dcb_detection": {
+        "score": 0,
+        "label": "UNLIKELY \u2014 Retrace 8%, Vol Ratio 0.97"
       },
       "volume_comparison": {
         "score": 0,
