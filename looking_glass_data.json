@@ -18541,7 +18541,8 @@
     },
     "r1h": "\u2713",
     "r3h": "\u2713",
-    "r6h": "\u2713"
+    "r6h": "\u2713",
+    "r8h": "\u2713"
   },
   {
     "timestamp": "2026-05-26T15:15:08.911492+00:00",
@@ -19295,7 +19296,8 @@
       }
     },
     "r1h": "\u2713",
-    "r3h": "\u2713"
+    "r3h": "\u2713",
+    "r6h": "\u2713"
   },
   {
     "timestamp": "2026-05-26T17:15:12.594034+00:00",
@@ -20438,7 +20440,8 @@
         "label": "3,206 pending \u2014 normal"
       }
     },
-    "r1h": "\u2717"
+    "r1h": "\u2717",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-26T20:15:08.334590+00:00",
@@ -21221,7 +21224,8 @@
         "score": -5,
         "label": "3d/7d: 0.89 Below average"
       }
-    }
+    },
+    "r1h": "\u2717"
   },
   {
     "timestamp": "2026-05-26T22:15:11.107664+00:00",
@@ -21450,6 +21454,125 @@
       "daily_rsi": {
         "score": -2,
         "label": "42.5"
+      },
+      "dcb_detection": {
+        "score": 0,
+        "label": "UNLIKELY \u2014 No pattern detected"
+      },
+      "volume_comparison": {
+        "score": -5,
+        "label": "3d/7d: 0.89 Below average"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-26T22:45:09.278094+00:00",
+    "btc_price": 75804.22,
+    "score": -36,
+    "direction": "SHORT",
+    "confidence": 36,
+    "oi": 99191.668,
+    "long_liq_zone": 75001.0,
+    "short_liq_zone": 78787.0,
+    "signals": {
+      "funding": {
+        "value": 0.0058,
+        "score": 0,
+        "label": "0.0058%"
+      },
+      "oi_change": {
+        "value": 0.01,
+        "score": 0,
+        "label": "+0.01%"
+      },
+      "ls_ratio": {
+        "value": 1.301,
+        "score": 0,
+        "label": "1.301"
+      },
+      "top_traders": {
+        "value": 1.276,
+        "score": 0,
+        "label": "1.276"
+      },
+      "taker_ratio": {
+        "value": 0.9,
+        "score": -15,
+        "label": "0.900"
+      },
+      "momentum": {
+        "value": {
+          "1h": -0.12,
+          "4h": -0.06,
+          "24h": -1.7
+        },
+        "score": 0,
+        "label": "1h:-0.12% 4h:-0.06% 24h:-1.70%"
+      },
+      "ee_momentum": {
+        "value": -11.19,
+        "score": -12,
+        "label": "Main:-11.2 Sig:-10.3 \u25bc"
+      },
+      "rsi": {
+        "value": 33.1,
+        "score": -4,
+        "label": "33.1"
+      },
+      "volume": {
+        "value": -58.5,
+        "score": -5,
+        "label": "-58.5%"
+      },
+      "bybit_oi_divergence": {
+        "value": -0.04,
+        "score": 0,
+        "label": "Bybit -0.04% Binance +0.01% DIVERGENT"
+      },
+      "mempool_activity": {
+        "value": 2,
+        "score": 0,
+        "label": "2 sat/vB normal"
+      },
+      "options_pcr": {
+        "value": 0.684,
+        "score": 10,
+        "label": "P/C 0.684 moderate put bias \u2192 lean LONG"
+      },
+      "onchain_tx_volume": {
+        "value": -10.9,
+        "score": -10,
+        "label": "-10.9% FALLING \u2014 declining activity"
+      },
+      "onchain_addresses": {
+        "value": 1.3,
+        "score": 0,
+        "label": "+1.3% stable"
+      },
+      "onchain_mempool": {
+        "value": 2893,
+        "score": 0,
+        "label": "2,893 pending \u2014 normal"
+      }
+    },
+    "macro_score": -12,
+    "macro_direction": "SHORT",
+    "macro_signals": {
+      "daily_ema50": {
+        "score": -18,
+        "label": "$77,946 (BELOW 2.7%)"
+      },
+      "weekly_ema20": {
+        "score": 8,
+        "label": "$75,450 (ABOVE 0.5%)"
+      },
+      "daily_ee_momentum": {
+        "score": 5,
+        "label": "Main:-10.1 Sig:-10.2 BULLISH"
+      },
+      "daily_rsi": {
+        "score": -2,
+        "label": "42.6"
       },
       "dcb_detection": {
         "score": 0,
