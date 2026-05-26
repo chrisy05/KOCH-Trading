@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="pragma" content="no-cache">
-<meta http-equiv="expires" content="0">
 <title>Looking Glass — BTC Prediction</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -18,11 +15,11 @@ h1{color:#58a6ff;font-size:1.8rem;text-align:center;margin-bottom:4px}
 .card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;margin-bottom:16px}
 .card-title{color:#8b949e;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
 .prediction-box{text-align:center;padding:20px 0}
-.prediction-dir{font-size:2.5rem;font-weight:900;color:#22c55e}
+.prediction-dir{font-size:2.5rem;font-weight:900}
 .prediction-confidence{font-size:1.1rem;color:#8b949e;margin-top:4px}
 .score-bar-container{max-width:400px;margin:16px auto;position:relative}
 .score-bar-bg{height:8px;background:linear-gradient(to right, #ef4444, #f59e0b, #22c55e);border-radius:4px;position:relative}
-.score-bar-marker{position:absolute;top:-4px;width:16px;height:16px;background:#fff;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px rgba(255,255,255,0.5);left:71.0%}
+.score-bar-marker{position:absolute;top:-4px;width:16px;height:16px;background:#fff;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px rgba(255,255,255,0.5)}
 .score-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:0.7rem;color:#484f58}
 .stats-row{display:flex;justify-content:center;gap:30px;margin-top:16px;flex-wrap:wrap}
 .stat{text-align:center}
@@ -37,10 +34,10 @@ th{padding:8px 12px;text-align:left;color:#484f58;font-size:0.7rem;text-transfor
 tr:hover{background:rgba(88,166,255,0.03)}
 .chart-container{position:relative;height:200px;overflow:hidden}
 canvas{width:100%!important;height:100%!important}
-.accuracy-badge{display:inline-block;padding:4px 12px;border-radius:12px;font-weight:700;font-size:0.85rem;
-    background:rgba(34,197,94,0.15);
-    color:#22c55e}
 .footer{text-align:center;color:#484f58;font-size:0.65rem;margin-top:20px}
+.loading{text-align:center;padding:40px;color:#484f58;font-size:1.1rem}
+.loading .spinner{display:inline-block;width:24px;height:24px;border:3px solid #21262d;border-top-color:#58a6ff;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:10px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -51,949 +48,187 @@ canvas{width:100%!important;height:100%!important}
     <a href="index.html">Dashboard &rarr;</a>
 </div>
 
-<h1>🔮 Looking Glass</h1>
-<div class="sub">BTC Prediction Engine &middot; Updated 26.05.2026 08:31 (UTC-4)</div>
-<div style="text-align:center;margin-bottom:12px"><button onclick="location.reload(true)" style="padding:6px 20px;background:#161b22;color:#58a6ff;border:1px solid #58a6ff;border-radius:6px;cursor:pointer;font-size:0.8rem">Aktualisieren</button></div>
+<h1>&#x1F52E; Looking Glass</h1>
+<div class="sub" id="subtitle">BTC Prediction Engine &middot; Lade Daten...</div>
+<div style="text-align:center;margin-bottom:12px"><button id="refreshBtn" onclick="fetchAndRender()" style="padding:6px 20px;background:#161b22;color:#58a6ff;border:1px solid #58a6ff;border-radius:6px;cursor:pointer;font-size:0.8rem">Aktualisieren</button></div>
 
-<!-- Current Prediction -->
-<div class="card">
-    <div class="card-title">Aktuelle Vorhersage</div>
-    <div class="prediction-box">
-        <div class="prediction-dir">▲ LONG</div>
-        <div class="prediction-confidence">42% Confidence &middot; Score +42/100</div>
-        <div class="score-bar-container">
-            <div class="score-bar-bg"><div class="score-bar-marker"></div></div>
-            <div class="score-labels"><span>SHORT -100</span><span>NEUTRAL</span><span>LONG +100</span></div>
-        </div>
-        <div class="stats-row">
-            <div class="stat"><div class="stat-val">$76,998</div><div class="stat-label">BTC Price</div></div>
-            <div class="stat"><div class="stat-val accuracy-badge">60%</div><div class="stat-label">Accuracy (89 checked)</div></div>
-        </div>
-    </div>
+<div id="content">
+    <div class="loading"><span class="spinner"></span> Daten werden geladen...</div>
 </div>
 
-<!-- Liquidation Estimate -->
-<div class="card">
-    <div class="card-title">Geschaetzte Liquidations-Zonen (24h Range)</div>
-    <div class="liq-row">
-        <div class="liq-item liq-long">
-            <div style="font-size:0.7rem;color:#ef4444">Long Liquidations</div>
-            <div style="font-size:1.2rem;font-weight:700;color:#ef4444">$75,998</div>
-        </div>
-        <div class="liq-item" style="text-align:center">
-            <div style="font-size:0.7rem;color:#8b949e">Current</div>
-            <div style="font-size:1.2rem;font-weight:700;color:#58a6ff">$76,998</div>
-        </div>
-        <div class="liq-item liq-short">
-            <div style="font-size:0.7rem;color:#22c55e">Short Liquidations</div>
-            <div style="font-size:1.2rem;font-weight:700;color:#22c55e">$78,324</div>
-        </div>
-    </div>
-</div>
-
-<!-- Chart -->
-<div class="card">
-    <div class="card-title">Score &amp; Preis (letzte 72h)</div>
-    <div class="chart-container">
-        <canvas id="chartCanvas"></canvas>
-    </div>
-</div>
-
-<!-- Signal Breakdown -->
-<div class="card">
-    <div class="card-title">Signal Breakdown</div>
-    <table>
-        <tr>
-            <th>Signal</th>
-            <th>Wert</th>
-            <th style="text-align:right">Score</th>
-        </tr>
-        <tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Funding Rate</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">0.0039%</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">OI Change</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">+0.00%</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Long/Short Ratio</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1.100</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Top Traders L/S</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1.150</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Taker Buy/Sell</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1.303</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#22c55e">+25</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Price Momentum</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1h:-0.24% 4h:+0.37% 24h:-0.46%</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Bybit/Binance OI</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">Bybit -0.29% Binance +0.00% DIVERGENT</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Mempool Fees</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">1 sat/vB normal</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Options P/C Ratio</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">P/C 0.687 moderate put bias → lean LONG</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#22c55e">+10</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">On-Chain TX Volume</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">-10.9% FALLING — declining activity</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#ef4444">-10</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Active Addresses</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">-2.3% stable</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Mempool Pressure</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">2,176 pending — normal</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr>
-        <tr style="border-top:2px solid #58a6ff">
-            <td style="padding:10px 12px;color:#58a6ff;font-weight:700" colspan="2">Total Score</td>
-            <td style="padding:10px 12px;text-align:right;font-weight:900;color:#22c55e;font-size:1.1rem">+42</td>
-        </tr>
-    </table>
-</div>
-
-<!-- Prediction History -->
-<div class="card">
-    <div class="card-title">Vorhersage-Verlauf</div>
-    <div style="overflow-x:auto">
-    <table>
-        <tr>
-            <th>Zeit</th>
-            <th style="text-align:right">Preis</th>
-            <th style="text-align:center">Signal</th>
-            <th style="text-align:center">Score</th>
-            <th style="text-align:center;font-size:0.65rem">1h</th>
-            <th style="text-align:center;font-size:0.65rem">3h</th>
-            <th style="text-align:center;font-size:0.65rem">6h</th>
-            <th style="text-align:center;font-size:0.65rem">8h</th>
-            <th style="text-align:center;font-size:0.65rem">12h</th>
-            <th style="text-align:center">Acc</th>
-        </tr>
-        <tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 08:31</td>
-            <td style="padding:6px 10px;text-align:right">$76,998</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+42</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 08:30</td>
-            <td style="padding:6px 10px;text-align:right">$77,026</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+42</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 08:15</td>
-            <td style="padding:6px 10px;text-align:right">$77,054</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+42</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 08:00</td>
-            <td style="padding:6px 10px;text-align:right">$77,192</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+0</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 07:45</td>
-            <td style="padding:6px 10px;text-align:right">$77,231</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+0</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 07:30</td>
-            <td style="padding:6px 10px;text-align:right">$77,237</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">-3</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 07:15</td>
-            <td style="padding:6px 10px;text-align:right">$77,268</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">-3</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 07:00</td>
-            <td style="padding:6px 10px;text-align:right">$77,440</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+0</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 06:45</td>
-            <td style="padding:6px 10px;text-align:right">$77,506</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">-3</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 06:30</td>
-            <td style="padding:6px 10px;text-align:right">$77,238</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+0</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 06:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,723</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-12</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 06:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,650</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-28</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 05:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,692</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-28</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 05:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,737</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-22</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 05:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,690</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-28</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 05:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,726</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-12</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 04:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,830</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+0</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 04:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,805</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+0</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 04:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,794</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+0</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 04:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,731</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+36</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 03:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,655</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+24</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 03:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,700</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+36</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 03:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,680</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+36</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 03:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,925</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+37</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 02:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,980</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+37</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 02:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,871</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+37</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 02:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,879</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+40</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 02:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,924</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+23</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 01:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,918</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+33</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 01:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,860</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+33</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 01:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,802</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+29</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 01:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,750</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-23</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 00:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,769</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-23</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 00:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,742</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-29</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 00:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,674</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-29</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">26.05. 00:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,670</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">-6</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 23:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,656</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">-6</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 23:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,597</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">-6</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 23:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,556</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">-6</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 23:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,652</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-46</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 22:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,596</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-44</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 22:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,670</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-44</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 22:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,750</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-44</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 22:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,797</td>
-            <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:700">NEUTRAL</td>
-            <td style="padding:6px 10px;text-align:center">+6</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#484f58">—</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 21:45</td>
-            <td style="padding:6px 10px;text-align:right">$76,662</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+9</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 21:30</td>
-            <td style="padding:6px 10px;text-align:right">$76,794</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+13</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 21:15</td>
-            <td style="padding:6px 10px;text-align:right">$76,835</td>
-            <td style="padding:6px 10px;text-align:center;color:#22c55e;font-weight:700">LONG</td>
-            <td style="padding:6px 10px;text-align:center">+13</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-        </tr><tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">25.05. 21:00</td>
-            <td style="padding:6px 10px;text-align:right">$76,726</td>
-            <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:700">SHORT</td>
-            <td style="padding:6px 10px;text-align:center">-16</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">✓</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">✗</td>
-            <td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">0%</td>
-        </tr>
-    </table>
-    </div>
-</div>
-
-
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- MACRO ANALYSIS V2 -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-
-<div style="margin-top:40px;border-top:2px solid #58a6ff;padding-top:8px">
-    <h2 style="color:#58a6ff;text-align:center;font-size:1.5rem;margin-bottom:4px">LOOKING GLASS V2 — MAKRO ANALYSE</h2>
-    <div style="color:#484f58;font-size:0.75rem;text-align:center;margin-bottom:20px">Daily &amp; Weekly Timeframe &middot; Structural Bias</div>
-</div>
-
-<!-- Macro Prediction -->
-<div class="card">
-    <div class="card-title">Makro Richtung</div>
-    <div class="prediction-box">
-        <div class="prediction-dir" style="color:#f59e0b">◆ NEUTRAL</div>
-        <div class="prediction-confidence">Macro Score -4/100</div>
-        <div class="score-bar-container">
-            <div class="score-bar-bg"><div class="score-bar-marker" style="left:48.0%"></div></div>
-            <div class="score-labels"><span>SHORT -100</span><span>NEUTRAL</span><span>LONG +100</span></div>
-        </div>
-    </div>
-</div>
-
-<!-- Key Macro Levels -->
-<div class="card">
-    <div class="card-title">Makro Key Levels</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0">
-        <div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">
-            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Daily EMA 50</div>
-            <div style="font-size:1.3rem;font-weight:700;color:#ef4444">$78,024</div>
-            <div style="font-size:0.7rem;color:#484f58;margin-top:2px">BELOW (-1.3%)</div>
-        </div>
-        <div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">
-            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Weekly EMA 20</div>
-            <div style="font-size:1.3rem;font-weight:700;color:#22c55e">$75,637</div>
-            <div style="font-size:0.7rem;color:#484f58;margin-top:2px">ABOVE (+1.8%)</div>
-        </div>
-        <div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">
-            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Daily RSI 14</div>
-            <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">47.2</div>
-        </div>
-        <div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">
-            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Dead Cat Bounce</div>
-            <div style="font-size:1.3rem;font-weight:700;color:#22c55e">UNLIKELY</div>
-            <div style="font-size:0.65rem;color:#484f58;margin-top:2px">UNLIKELY — Retrace 4%, Vol Ratio 0.90</div>
-        </div>
-    </div>
-</div>
-
-<!-- Macro Signal Breakdown -->
-<div class="card">
-    <div class="card-title">Makro Signal Breakdown</div>
-    <table>
-        <tr>
-            <th>Signal</th>
-            <th>Wert</th>
-            <th style="text-align:right">Score</th>
-        </tr>
-        <tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Daily EMA 50</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">$78,024 (BELOW 1.3%)</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#ef4444">-10</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Weekly EMA 20</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">$75,637 (ABOVE 1.8%)</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#22c55e">+8</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Daily EE Momentum</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">Main:-9.1 Sig:-9.7 BULLISH</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#22c55e">+10</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Daily RSI 14</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">47.2</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#ef4444">-2</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Dead Cat Bounce</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">UNLIKELY — Retrace 4%, Vol Ratio 0.90</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#8b949e">+0</td>
-            </tr><tr>
-                <td style="padding:8px 12px;color:#c9d1d9">Volume Comparison</td>
-                <td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">3d/7d: 0.61 WEAK bounce volume</td>
-                <td style="padding:8px 12px;text-align:right;font-weight:700;color:#ef4444">-10</td>
-            </tr>
-        <tr style="border-top:2px solid #58a6ff">
-            <td style="padding:10px 12px;color:#58a6ff;font-weight:700" colspan="2">Macro Total Score</td>
-            <td style="padding:10px 12px;text-align:right;font-weight:900;color:#f59e0b;font-size:1.1rem">-4</td>
-        </tr>
-    </table>
-</div>
-
-<div class="card">
-    <div class="card-title">Makro Verlauf</div>
-    <div style="overflow-x:auto">
-    <table>
-        <tr>
-            <th>Zeit</th>
-            <th style="text-align:right">Preis</th>
-            <th style="text-align:center">Signal</th>
-            <th style="text-align:center">Score</th>
-            <th style="text-align:center;font-size:0.65rem">1D</th>
-            <th style="text-align:center;font-size:0.65rem">3D</th>
-            <th style="text-align:center;font-size:0.65rem">5D</th>
-            <th style="text-align:center;font-size:0.65rem">1W</th>
-            <th style="text-align:center">Acc</th>
-        </tr>
-        <tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 08:31</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,998</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-4</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 08:30</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,026</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-4</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 08:15</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,054</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-4</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 08:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,192</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">+2</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 02:45</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,980</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-4</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 02:30</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,871</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-4</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 02:15</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,879</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-4</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 02:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,924</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-4</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">26.05. 01:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,750</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-9</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">25.05. 18:45</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,186</td>
-                    <td style="padding:4px 8px;text-align:center;color:#22c55e;font-weight:700;font-size:0.8rem">LONG</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">+17</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">25.05. 18:39</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,164</td>
-                    <td style="padding:4px 8px;text-align:center;color:#22c55e;font-weight:700;font-size:0.8rem">LONG</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">+11</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">25.05. 18:30</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,266</td>
-                    <td style="padding:4px 8px;text-align:center;color:#22c55e;font-weight:700;font-size:0.8rem">LONG</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">+17</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">25.05. 18:15</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,408</td>
-                    <td style="padding:4px 8px;text-align:center;color:#22c55e;font-weight:700;font-size:0.8rem">LONG</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">+17</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">25.05. 18:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,370</td>
-                    <td style="padding:4px 8px;text-align:center;color:#22c55e;font-weight:700;font-size:0.8rem">LONG</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">+17</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">25.05. 16:28</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,451</td>
-                    <td style="padding:4px 8px;text-align:center;color:#22c55e;font-weight:700;font-size:0.8rem">LONG</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">+17</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">24.05. 18:45</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,783</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-8</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">24.05. 18:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,240</td>
-                    <td style="padding:4px 8px;text-align:center;color:#ef4444;font-weight:700;font-size:0.8rem">SHORT</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-16</td>
-                    <td style="padding:3px 6px;text-align:center;color:#ef4444;font-weight:700">✗</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">24.05. 08:30</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,100</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-8</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">24.05. 08:21</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,077</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-8</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">24.05. 08:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$77,324</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-8</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">24.05. 02:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,813</td>
-                    <td style="padding:4px 8px;text-align:center;color:#ef4444;font-weight:700;font-size:0.8rem">SHORT</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-13</td>
-                    <td style="padding:3px 6px;text-align:center;color:#ef4444;font-weight:700">✗</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">23.05. 18:42</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,544</td>
-                    <td style="padding:4px 8px;text-align:center;color:#ef4444;font-weight:700;font-size:0.8rem">SHORT</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-16</td>
-                    <td style="padding:3px 6px;text-align:center;color:#ef4444;font-weight:700">✗</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td><td style="padding:3px 6px;text-align:center;color:#484f58;font-size:0.7rem">...</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr><tr style="border-bottom:1px solid #21262d">
-                    <td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">23.05. 18:00</td>
-                    <td style="padding:4px 8px;text-align:right;font-size:0.8rem">$76,820</td>
-                    <td style="padding:4px 8px;text-align:center;color:#f59e0b;font-weight:700;font-size:0.8rem">NEUTRAL</td>
-                    <td style="padding:4px 8px;text-align:center;font-size:0.8rem">-8</td>
-                    <td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td><td style="padding:3px 6px;text-align:center;color:#484f58">—</td>
-                    <td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">–</td>
-                </tr>
-    </table>
-    </div>
-</div>
-
-
-<div class="footer">Looking Glass v2.0 &middot; Daten: Binance Futures &middot; Hourly Update</div>
+<div class="footer">Looking Glass v2.1 &middot; Daten: Binance Futures &middot; Auto-Refresh 60s</div>
 
 <script>
-// Simple canvas chart
-(function() {
-    const labels = ["25.05 16:24", "25.05 16:27", "25.05 16:28", "25.05 16:30", "25.05 16:33", "25.05 16:45", "25.05 17:00", "25.05 17:15", "25.05 17:30", "25.05 17:45", "25.05 17:45", "25.05 18:00", "25.05 18:15", "25.05 18:30", "25.05 18:39", "25.05 18:45", "25.05 19:00", "25.05 19:15", "25.05 19:30", "25.05 19:45", "25.05 20:00", "25.05 20:15", "25.05 20:30", "25.05 20:45", "25.05 21:00", "25.05 21:15", "25.05 21:30", "25.05 21:45", "25.05 22:00", "25.05 22:15", "25.05 22:30", "25.05 22:45", "25.05 23:00", "25.05 23:15", "25.05 23:30", "25.05 23:45", "26.05 00:00", "26.05 00:15", "26.05 00:30", "26.05 00:45", "26.05 01:00", "26.05 01:15", "26.05 01:30", "26.05 01:45", "26.05 02:00", "26.05 02:15", "26.05 02:30", "26.05 02:45", "26.05 03:00", "26.05 03:15", "26.05 03:30", "26.05 03:45", "26.05 04:00", "26.05 04:15", "26.05 04:30", "26.05 04:45", "26.05 05:00", "26.05 05:15", "26.05 05:30", "26.05 05:45", "26.05 06:00", "26.05 06:15", "26.05 06:30", "26.05 06:45", "26.05 07:00", "26.05 07:15", "26.05 07:30", "26.05 07:45", "26.05 08:00", "26.05 08:15", "26.05 08:30", "26.05 08:31"];
-    const scores = [-4, -4, -4, -7, -2, -16, 0, -15, -15, -15, -15, -22, -22, -22, -32, -32, -32, 8, 8, 8, 18, -7, -17, -19, -16, 13, 13, 9, 6, -44, -44, -44, -46, -6, -6, -6, -6, -29, -29, -23, -23, 29, 33, 33, 23, 40, 37, 37, 37, 36, 36, 24, 36, 0, 0, 0, -12, -28, -22, -28, -28, -12, 0, -3, 0, -3, -3, 0, 0, 42, 42, 42];
-    const prices = [77464.13, 77457.15, 77450.62, 77440.02, 77464.15, 77266.32, 77277.93, 77362.01, 77353.59, 77298.0, 77290.64, 77370.0, 77408.1, 77265.68, 77163.99, 77186.24, 77095.84, 77286.0, 77276.0, 77337.74, 77328.13, 77231.99, 77120.0, 76876.0, 76725.68, 76835.06, 76794.41, 76662.0, 76797.34, 76750.0, 76669.5, 76596.01, 76652.0, 76555.61, 76597.07, 76655.57, 76669.99, 76673.65, 76741.99, 76768.93, 76749.51, 76802.36, 76860.01, 76918.25, 76924.01, 76878.67, 76871.17, 76980.01, 76924.54, 76680.07, 76700.0, 76654.57, 76730.83, 76794.11, 76804.94, 76830.02, 76726.37, 76690.42, 76737.44, 76691.56, 76650.01, 76722.74, 77237.91, 77506.0, 77439.51, 77267.73, 77236.92, 77231.39, 77192.0, 77053.56, 77026.0, 76998.01];
+// ── Looking Glass — Client-side Renderer ──────────────────────────────────
+const TZ_OFFSET = -4; // UTC-4 Santo Domingo
+
+function toLocal(isoStr) {
+    const d = new Date(isoStr);
+    const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+    return new Date(utc + TZ_OFFSET * 3600000);
+}
+
+function fmtTime(isoStr) {
+    const d = toLocal(isoStr);
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mi = String(d.getMinutes()).padStart(2,'0');
+    return dd+'.'+mm+'. '+hh+':'+mi;
+}
+
+function fmtDateTime(isoStr) {
+    const d = toLocal(isoStr);
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mi = String(d.getMinutes()).padStart(2,'0');
+    return dd+'.'+mm+'.'+yy+' '+hh+':'+mi;
+}
+
+function fmtPrice(v) {
+    return '$' + Math.round(v).toLocaleString();
+}
+
+function dirColor(d) {
+    return d==='LONG'?'#22c55e':d==='SHORT'?'#ef4444':'#f59e0b';
+}
+function dirIcon(d) {
+    return d==='LONG'?'\u25B2':d==='SHORT'?'\u25BC':'\u25C6';
+}
+function scoreColor(s) {
+    return s>0?'#22c55e':s<0?'#ef4444':'#8b949e';
+}
+
+function hCell(v) {
+    if (v==='\u2713') return '<td style="padding:4px;text-align:center;color:#22c55e;font-weight:700">\u2713</td>';
+    if (v==='\u2717') return '<td style="padding:4px;text-align:center;color:#ef4444;font-weight:700">\u2717</td>';
+    if (v==='\u2014'||v==='\u2013') return '<td style="padding:4px;text-align:center;color:#484f58">\u2014</td>';
+    return '<td style="padding:4px;text-align:center;color:#484f58;font-size:0.7rem">...</td>';
+}
+
+function accBadge(acc, total) {
+    const bg = acc>=55?'rgba(34,197,94,0.15)':acc<45?'rgba(239,68,68,0.15)':'rgba(245,158,11,0.15)';
+    const c = acc>=55?'#22c55e':acc<45?'#ef4444':'#f59e0b';
+    return '<span style="display:inline-block;padding:4px 12px;border-radius:12px;font-weight:700;font-size:0.85rem;background:'+bg+';color:'+c+'">'+Math.round(acc)+'%</span>';
+}
+
+// ── Signal label mapping ──────────────────────────────────────────────────
+const SIGNAL_LABELS = {
+    funding: 'Funding Rate',
+    oi_change: 'OI Change',
+    ls_ratio: 'Long/Short Ratio',
+    top_traders: 'Top Traders L/S',
+    taker_ratio: 'Taker Buy/Sell',
+    momentum: 'Price Momentum',
+    ee_momentum: 'EE Momentum',
+    rsi: 'RSI',
+    volume: 'Volume Trend',
+    bybit_oi_divergence: 'Bybit/Binance OI',
+    mempool_activity: 'Mempool Fees',
+    options_pcr: 'Options P/C Ratio',
+    onchain_tx_volume: 'On-Chain TX Volume',
+    onchain_addresses: 'Active Addresses',
+    onchain_mempool: 'Mempool Pressure'
+};
+
+const MACRO_SIGNAL_LABELS = {
+    daily_ema50: 'Daily EMA 50',
+    weekly_ema20: 'Weekly EMA 20',
+    daily_ee_momentum: 'Daily EE Momentum',
+    daily_rsi: 'Daily RSI 14',
+    dcb_detection: 'Dead Cat Bounce',
+    volume_comparison: 'Volume Comparison'
+};
+
+// ── Render Functions ──────────────────────────────────────────────────────
+
+function renderPrediction(entry, accuracy, totalChecked) {
+    const d = entry.direction, s = entry.score, c = entry.confidence;
+    const bp = entry.btc_price;
+    const scorePct = (s + 100) / 2;
+    return '<div class="card"><div class="card-title">Aktuelle Vorhersage</div><div class="prediction-box">' +
+        '<div class="prediction-dir" style="color:'+dirColor(d)+'">'+dirIcon(d)+' '+d+'</div>' +
+        '<div class="prediction-confidence">'+c+'% Confidence &middot; Score '+(s>=0?'+':'')+s+'/100</div>' +
+        '<div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-marker" style="left:'+scorePct+'%"></div></div>' +
+        '<div class="score-labels"><span>SHORT -100</span><span>NEUTRAL</span><span>LONG +100</span></div></div>' +
+        '<div class="stats-row"><div class="stat"><div class="stat-val">'+fmtPrice(bp)+'</div><div class="stat-label">BTC Price</div></div>' +
+        '<div class="stat"><div class="stat-val">'+accBadge(accuracy, totalChecked)+'</div><div class="stat-label">Accuracy ('+totalChecked+' checked)</div></div></div>' +
+        '</div></div>';
+}
+
+function renderLiquidation(entry) {
+    const ll = entry.long_liq_zone||0, sl = entry.short_liq_zone||0, bp = entry.btc_price;
+    return '<div class="card"><div class="card-title">Geschaetzte Liquidations-Zonen (24h Range)</div><div class="liq-row">' +
+        '<div class="liq-item liq-long"><div style="font-size:0.7rem;color:#ef4444">Long Liquidations</div><div style="font-size:1.2rem;font-weight:700;color:#ef4444">'+fmtPrice(ll)+'</div></div>' +
+        '<div class="liq-item" style="text-align:center"><div style="font-size:0.7rem;color:#8b949e">Current</div><div style="font-size:1.2rem;font-weight:700;color:#58a6ff">'+fmtPrice(bp)+'</div></div>' +
+        '<div class="liq-item liq-short"><div style="font-size:0.7rem;color:#22c55e">Short Liquidations</div><div style="font-size:1.2rem;font-weight:700;color:#22c55e">'+fmtPrice(sl)+'</div></div>' +
+        '</div></div>';
+}
+
+function renderSignalTable(signals, score, direction) {
+    let rows = '';
+    const order = ['funding','oi_change','ls_ratio','top_traders','taker_ratio','momentum','ee_momentum','rsi','volume','bybit_oi_divergence','mempool_activity','options_pcr','onchain_tx_volume','onchain_addresses','onchain_mempool'];
+    for (const key of order) {
+        if (!signals[key]) continue;
+        const sig = signals[key];
+        const s = sig.score;
+        const sc = scoreColor(s);
+        const label = SIGNAL_LABELS[key]||key;
+        rows += '<tr><td style="padding:8px 12px;color:#c9d1d9">'+label+'</td>' +
+            '<td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">'+sig.label+'</td>' +
+            '<td style="padding:8px 12px;text-align:right;font-weight:700;color:'+sc+'">'+(s>=0?'+':'')+s+'</td></tr>';
+    }
+    return '<div class="card"><div class="card-title">Signal Breakdown</div><table>' +
+        '<tr><th>Signal</th><th>Wert</th><th style="text-align:right">Score</th></tr>' +
+        rows +
+        '<tr style="border-top:2px solid #58a6ff"><td style="padding:10px 12px;color:#58a6ff;font-weight:700" colspan="2">Total Score</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:900;color:'+dirColor(direction)+';font-size:1.1rem">'+(score>=0?'+':'')+score+'</td></tr>' +
+        '</table></div>';
+}
+
+function renderHistory(data) {
+    const slice = data.slice(-48);
+    let rows = '';
+    let runCorrect = 0, runTotal = 0;
+    for (let i = slice.length - 1; i >= 0; i--) {
+        const e = slice[i];
+        const r = e.result || 'pending';
+        if (r === 'correct') { runCorrect++; runTotal++; }
+        else if (r === 'wrong') { runTotal++; }
+        const runAcc = runTotal > 0 ? Math.round(runCorrect/runTotal*100)+'%' : '\u2013';
+        const dc = dirColor(e.direction||'NEUTRAL');
+        rows += '<tr style="border-bottom:1px solid #21262d">' +
+            '<td style="padding:6px 10px;color:#8b949e;font-size:0.8rem">'+fmtTime(e.timestamp)+'</td>' +
+            '<td style="padding:6px 10px;text-align:right">'+fmtPrice(e.btc_price)+'</td>' +
+            '<td style="padding:6px 10px;text-align:center;color:'+dc+';font-weight:700">'+(e.direction||'?')+'</td>' +
+            '<td style="padding:6px 10px;text-align:center">'+(e.score>=0?'+':'')+e.score+'</td>' +
+            hCell(e.r1h||'') + hCell(e.r3h||'') + hCell(e.r6h||'') + hCell(e.r8h||'') + hCell(e.r12h||'') +
+            '<td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">'+runAcc+'</td></tr>';
+    }
+    return '<div class="card"><div class="card-title">Vorhersage-Verlauf</div><div style="overflow-x:auto"><table>' +
+        '<tr><th>Zeit</th><th style="text-align:right">Preis</th><th style="text-align:center">Signal</th><th style="text-align:center">Score</th>' +
+        '<th style="text-align:center;font-size:0.65rem">1h</th><th style="text-align:center;font-size:0.65rem">3h</th>' +
+        '<th style="text-align:center;font-size:0.65rem">6h</th><th style="text-align:center;font-size:0.65rem">8h</th>' +
+        '<th style="text-align:center;font-size:0.65rem">12h</th><th style="text-align:center">Acc</th></tr>' +
+        rows + '</table></div></div>';
+}
+
+function renderChart(data) {
+    // Return the card HTML — actual drawing happens after DOM insert
+    return '<div class="card"><div class="card-title">Score &amp; Preis (letzte 72h)</div>' +
+        '<div class="chart-container"><canvas id="chartCanvas"></canvas></div></div>';
+}
+
+function drawChart(data) {
+    const slice = data.slice(-72);
+    const labels = [], scores = [], prices = [];
+    for (const e of slice) {
+        labels.push(fmtTime(e.timestamp));
+        scores.push(e.score);
+        prices.push(e.btc_price);
+    }
     const canvas = document.getElementById('chartCanvas');
     if (!canvas || scores.length < 2) return;
     const ctx = canvas.getContext('2d');
@@ -1003,9 +238,7 @@ canvas{width:100%!important;height:100%!important}
     const pad = {t:20,r:60,b:25,l:40};
     const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
     const n = scores.length;
-    // Score axis (-100 to 100)
     function sy(v) { return pad.t + ch - ((v+100)/200)*ch; }
-    // Price axis
     const pMin = Math.min(...prices)*0.999, pMax = Math.max(...prices)*1.001;
     function py(v) { return pad.t + ch - ((v-pMin)/(pMax-pMin))*ch; }
     function sx(i) { return pad.l + (i/(n-1))*cw; }
@@ -1018,7 +251,7 @@ canvas{width:100%!important;height:100%!important}
     ctx.strokeStyle = '#484f58'; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(pad.l, sy(0)); ctx.lineTo(W-pad.r, sy(0)); ctx.stroke();
     ctx.setLineDash([]);
-    // Score fill — gruen/rot segmentiert per Abschnitt
+    // Score fill
     for (let i=0;i<n-1;i++) {
         ctx.beginPath();
         ctx.moveTo(sx(i), sy(0));
@@ -1030,7 +263,7 @@ canvas{width:100%!important;height:100%!important}
         ctx.fillStyle = avg>=0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
         ctx.fill();
     }
-    // Score line — gruen wenn positiv, rot wenn negativ, pro Segment
+    // Score line
     for (let i=0;i<n-1;i++) {
         ctx.beginPath();
         ctx.moveTo(sx(i), sy(scores[i]));
@@ -1039,7 +272,7 @@ canvas{width:100%!important;height:100%!important}
         ctx.strokeStyle = avg>=0 ? '#22c55e' : '#ef4444';
         ctx.lineWidth = 2; ctx.stroke();
     }
-    // Price line — duenner, blau
+    // Price line
     ctx.beginPath();
     for (let i=0;i<n;i++) { i===0?ctx.moveTo(sx(i),py(prices[i])):ctx.lineTo(sx(i),py(prices[i])); }
     ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 1; ctx.stroke();
@@ -1059,7 +292,7 @@ canvas{width:100%!important;height:100%!important}
     for (let i=0;i<n;i+=step) {
         ctx.fillText(labels[i], sx(i), H-4);
     }
-    // Tooltip on mousemove
+    // Tooltip
     const tooltip = document.createElement('div');
     tooltip.style.cssText = 'position:absolute;background:#161b22;border:1px solid #58a6ff;border-radius:6px;padding:4px 8px;font-size:0.72rem;color:#c9d1d9;pointer-events:none;display:none;z-index:10;white-space:nowrap';
     canvas.parentElement.style.position='relative';
@@ -1070,14 +303,199 @@ canvas{width:100%!important;height:100%!important}
         const idx = Math.round((mx - pad.l) / cw * (n-1));
         if (idx >= 0 && idx < n) {
             tooltip.style.display = 'block';
-            tooltip.innerHTML = '<div style="color:#fff;font-size:0.55rem;margin-bottom:2px">'+labels[idx]+'</div><span style="color:#58a6ff">$'+prices[idx].toLocaleString()+'</span> · <span style="color:'+(scores[idx]>=0?'#22c55e':'#ef4444')+'">Score '+scores[idx]+'</span>';
+            tooltip.innerHTML = '<div style="color:#fff;font-size:0.55rem;margin-bottom:2px">'+labels[idx]+'</div><span style="color:#58a6ff">$'+prices[idx].toLocaleString()+'</span> &middot; <span style="color:'+(scores[idx]>=0?'#22c55e':'#ef4444')+'">Score '+scores[idx]+'</span>';
             const tx = Math.min(mx + 10, W - 140);
             tooltip.style.left = tx + 'px';
             tooltip.style.top = (e.clientY - rect.top - 30) + 'px';
         }
     });
     canvas.addEventListener('mouseleave', function() { tooltip.style.display = 'none'; });
-})();
+}
+
+// ── Macro Section ─────────────────────────────────────────────────────────
+
+function renderMacro(data) {
+    // Find last entry with macro_score
+    let macroEntry = null;
+    for (let i = data.length - 1; i >= 0; i--) {
+        if (data[i].macro_score !== undefined && data[i].macro_score !== null) {
+            macroEntry = data[i];
+            break;
+        }
+    }
+    if (!macroEntry) return '';
+
+    const ms = macroEntry.macro_score;
+    const md = macroEntry.macro_direction || 'NEUTRAL';
+    const mSigs = macroEntry.macro_signals || {};
+    const mc = dirColor(md);
+    const mi = dirIcon(md);
+    const mPct = (ms + 100) / 2;
+
+    // Key levels
+    const ema50 = mSigs.daily_ema50 || {};
+    const ema20w = mSigs.weekly_ema20 || {};
+    const rsiSig = mSigs.daily_rsi || {};
+    const dcbSig = mSigs.dcb_detection || {};
+
+    const ema50Label = ema50.label || 'N/A';
+    const ema50Above = ema50Label.includes('ABOVE');
+    const ema50DistMatch = ema50Label.match(/([\+\-]?\d+\.?\d*)%/);
+    const ema50Dist = ema50DistMatch ? ema50DistMatch[1] : '0';
+    const ema50ValMatch = ema50Label.match(/\$[\d,]+/);
+    const ema50Val = ema50ValMatch ? ema50ValMatch[0] : 'N/A';
+
+    const ema20wLabel = ema20w.label || 'N/A';
+    const ema20wAbove = ema20wLabel.includes('ABOVE');
+    const ema20wDistMatch = ema20wLabel.match(/([\+\-]?\d+\.?\d*)%/);
+    const ema20wDist = ema20wDistMatch ? ema20wDistMatch[1] : '0';
+    const ema20wValMatch = ema20wLabel.match(/\$[\d,]+/);
+    const ema20wVal = ema20wValMatch ? ema20wValMatch[0] : 'N/A';
+
+    const rsiVal = rsiSig.label || 'N/A';
+    const rsiNum = parseFloat(rsiVal) || 50;
+    const rsiColor = rsiNum > 55 ? '#22c55e' : rsiNum < 45 ? '#ef4444' : '#f59e0b';
+
+    const dcbLabel = dcbSig.label || 'N/A';
+    const dcbLikely = dcbLabel.startsWith('LIKELY');
+    const dcbColor = dcbLikely ? '#ef4444' : '#22c55e';
+    const dcbText = dcbLikely ? 'LIKELY' : 'UNLIKELY';
+
+    // Signal breakdown rows
+    let macroRows = '';
+    const macroOrder = ['daily_ema50','weekly_ema20','daily_ee_momentum','daily_rsi','dcb_detection','volume_comparison'];
+    for (const key of macroOrder) {
+        if (!mSigs[key]) continue;
+        const sig = mSigs[key];
+        const s = sig.score || 0;
+        const sc = scoreColor(s);
+        const label = MACRO_SIGNAL_LABELS[key] || key;
+        macroRows += '<tr><td style="padding:8px 12px;color:#c9d1d9">'+label+'</td>' +
+            '<td style="padding:8px 12px;color:#8b949e;font-size:0.8rem">'+(sig.label||'N/A')+'</td>' +
+            '<td style="padding:8px 12px;text-align:right;font-weight:700;color:'+sc+'">'+(s>=0?'+':'')+s+'</td></tr>';
+    }
+
+    let html = '<div style="margin-top:40px;border-top:2px solid #58a6ff;padding-top:8px">' +
+        '<h2 style="color:#58a6ff;text-align:center;font-size:1.5rem;margin-bottom:4px">LOOKING GLASS V2 &mdash; MAKRO ANALYSE</h2>' +
+        '<div style="color:#484f58;font-size:0.75rem;text-align:center;margin-bottom:20px">Daily &amp; Weekly Timeframe &middot; Structural Bias</div></div>';
+
+    // Macro prediction
+    html += '<div class="card"><div class="card-title">Makro Richtung</div><div class="prediction-box">' +
+        '<div class="prediction-dir" style="color:'+mc+'">'+mi+' '+md+'</div>' +
+        '<div class="prediction-confidence">Macro Score '+(ms>=0?'+':'')+ms+'/100</div>' +
+        '<div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-marker" style="left:'+mPct+'%"></div></div>' +
+        '<div class="score-labels"><span>SHORT -100</span><span>NEUTRAL</span><span>LONG +100</span></div></div></div></div>';
+
+    // Key Macro Levels
+    html += '<div class="card"><div class="card-title">Makro Key Levels</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0">' +
+        '<div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">' +
+        '<div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Daily EMA 50</div>' +
+        '<div style="font-size:1.3rem;font-weight:700;color:'+(ema50Above?'#22c55e':'#ef4444')+'">'+ema50Val+'</div>' +
+        '<div style="font-size:0.7rem;color:#484f58;margin-top:2px">'+(ema50Above?'ABOVE':'BELOW')+' ('+ema50Dist+'%)</div></div>' +
+        '<div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">' +
+        '<div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Weekly EMA 20</div>' +
+        '<div style="font-size:1.3rem;font-weight:700;color:'+(ema20wAbove?'#22c55e':'#ef4444')+'">'+ema20wVal+'</div>' +
+        '<div style="font-size:0.7rem;color:#484f58;margin-top:2px">'+(ema20wAbove?'ABOVE':'BELOW')+' ('+ema20wDist+'%)</div></div>' +
+        '<div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">' +
+        '<div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Daily RSI 14</div>' +
+        '<div style="font-size:1.3rem;font-weight:700;color:'+rsiColor+'">'+rsiVal+'</div></div>' +
+        '<div style="background:#21262d;border-radius:8px;padding:12px;text-align:center">' +
+        '<div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Dead Cat Bounce</div>' +
+        '<div style="font-size:1.3rem;font-weight:700;color:'+dcbColor+'">'+dcbText+'</div>' +
+        '<div style="font-size:0.65rem;color:#484f58;margin-top:2px">'+dcbLabel+'</div></div></div></div>';
+
+    // Macro Signal Breakdown
+    html += '<div class="card"><div class="card-title">Makro Signal Breakdown</div><table>' +
+        '<tr><th>Signal</th><th>Wert</th><th style="text-align:right">Score</th></tr>' +
+        macroRows +
+        '<tr style="border-top:2px solid #58a6ff"><td style="padding:10px 12px;color:#58a6ff;font-weight:700" colspan="2">Macro Total Score</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:900;color:'+mc+';font-size:1.1rem">'+(ms>=0?'+':'')+ms+'</td></tr></table></div>';
+
+    // Macro History
+    const macroEntries = data.filter(e => e.macro_score !== undefined && e.macro_score !== null).slice(-48);
+    if (macroEntries.length > 0) {
+        let mRows = '';
+        let mRunCorrect = 0, mRunTotal = 0;
+        for (let i = macroEntries.length - 1; i >= 0; i--) {
+            const e = macroEntries[i];
+            const mdr = e.m3d || '';
+            if (mdr === '\u2713') { mRunCorrect++; mRunTotal++; }
+            else if (mdr === '\u2717') { mRunTotal++; }
+            const mAcc = mRunTotal > 0 ? Math.round(mRunCorrect/mRunTotal*100)+'%' : '\u2013';
+            const mdc = dirColor(e.macro_direction||'NEUTRAL');
+            mRows += '<tr style="border-bottom:1px solid #21262d">' +
+                '<td style="padding:4px 8px;color:#8b949e;font-size:0.75rem">'+fmtTime(e.timestamp)+'</td>' +
+                '<td style="padding:4px 8px;text-align:right;font-size:0.8rem">'+fmtPrice(e.btc_price)+'</td>' +
+                '<td style="padding:4px 8px;text-align:center;color:'+mdc+';font-weight:700;font-size:0.8rem">'+(e.macro_direction||'?')+'</td>' +
+                '<td style="padding:4px 8px;text-align:center;font-size:0.8rem">'+(e.macro_score>=0?'+':'')+e.macro_score+'</td>' +
+                hCell(e.m1d||'') + hCell(e.m3d||'') + hCell(e.m5d||'') + hCell(e.m1w||'') +
+                '<td style="padding:3px 6px;text-align:center;color:#8b949e;font-size:0.75rem">'+mAcc+'</td></tr>';
+        }
+        html += '<div class="card"><div class="card-title">Makro Verlauf</div><div style="overflow-x:auto"><table>' +
+            '<tr><th>Zeit</th><th style="text-align:right">Preis</th><th style="text-align:center">Signal</th><th style="text-align:center">Score</th>' +
+            '<th style="text-align:center;font-size:0.65rem">1D</th><th style="text-align:center;font-size:0.65rem">3D</th>' +
+            '<th style="text-align:center;font-size:0.65rem">5D</th><th style="text-align:center;font-size:0.65rem">1W</th>' +
+            '<th style="text-align:center">Acc</th></tr>' +
+            mRows + '</table></div></div>';
+    }
+
+    return html;
+}
+
+// ── Main fetch & render ───────────────────────────────────────────────────
+
+async function fetchAndRender() {
+    const btn = document.getElementById('refreshBtn');
+    btn.textContent = 'Lade...';
+    btn.disabled = true;
+    try {
+        const resp = await fetch('looking_glass_data.json?v=' + Date.now());
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (!data || data.length === 0) {
+            document.getElementById('content').innerHTML = '<div class="loading">Keine Daten vorhanden.</div>';
+            return;
+        }
+
+        const last = data[data.length - 1];
+
+        // Calculate accuracy
+        const results = data.filter(e => e.result === 'correct' || e.result === 'wrong');
+        const correct = results.filter(e => e.result === 'correct').length;
+        const totalChecked = results.length;
+        const accuracy = totalChecked > 0 ? (correct / totalChecked * 100) : 0;
+
+        // Update subtitle
+        document.getElementById('subtitle').innerHTML = 'BTC Prediction Engine &middot; Updated ' + fmtDateTime(last.timestamp) + ' (UTC-4)';
+
+        // Build all sections
+        let html = '';
+        html += renderPrediction(last, accuracy, totalChecked);
+        html += renderLiquidation(last);
+        html += renderChart(data);
+        html += renderSignalTable(last.signals || {}, last.score, last.direction);
+        html += renderHistory(data);
+        html += renderMacro(data);
+
+        document.getElementById('content').innerHTML = html;
+
+        // Draw canvas chart after DOM update
+        requestAnimationFrame(function() { drawChart(data); });
+    } catch(err) {
+        document.getElementById('content').innerHTML = '<div class="loading" style="color:#ef4444">Fehler beim Laden: ' + err.message + '</div>';
+        console.error('Looking Glass fetch error:', err);
+    } finally {
+        btn.textContent = 'Aktualisieren';
+        btn.disabled = false;
+    }
+}
+
+// Initial load
+fetchAndRender();
+
+// Auto-refresh every 60 seconds
+setInterval(fetchAndRender, 60000);
 </script>
 
 </body>
