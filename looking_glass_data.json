@@ -8099,7 +8099,9 @@
     },
     "r3h": "\u2717",
     "r6h": "\u2717",
-    "r8h": "\u2717"
+    "r8h": "\u2717",
+    "r12h": "\u2717",
+    "result": "wrong"
   },
   {
     "timestamp": "2026-05-25T16:00:10.207407+00:00",
@@ -9149,7 +9151,8 @@
     },
     "r1h": "\u2717",
     "r3h": "\u2717",
-    "r6h": "\u2713"
+    "r6h": "\u2713",
+    "r8h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T19:43:20.239629+00:00",
@@ -9243,7 +9246,8 @@
     },
     "r1h": "\u2717",
     "r3h": "\u2717",
-    "r6h": "\u2713"
+    "r6h": "\u2713",
+    "r8h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T19:45:10.385673+00:00",
@@ -9337,7 +9341,8 @@
     },
     "r1h": "\u2717",
     "r3h": "\u2717",
-    "r6h": "\u2713"
+    "r6h": "\u2713",
+    "r8h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T19:47:06.102376+00:00",
@@ -9431,7 +9436,8 @@
     },
     "r1h": "\u2717",
     "r3h": "\u2713",
-    "r6h": "\u2713"
+    "r6h": "\u2713",
+    "r8h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T19:53:27.347306+00:00",
@@ -10986,7 +10992,8 @@
       }
     },
     "r1h": "\u2717",
-    "r3h": "\u2713"
+    "r3h": "\u2713",
+    "r6h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T21:45:39.615374+00:00",
@@ -11079,7 +11086,8 @@
       }
     },
     "r1h": "\u2717",
-    "r3h": "\u2713"
+    "r3h": "\u2713",
+    "r6h": "\u2713"
   },
   {
     "timestamp": "2026-05-25T22:00:11.331614+00:00",
@@ -12431,7 +12439,8 @@
         "label": "3,819 pending \u2014 normal"
       }
     },
-    "r1h": "\u2713"
+    "r1h": "\u2713",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-26T01:00:14.450350+00:00",
@@ -13171,7 +13180,8 @@
         "score": 0,
         "label": "2,942 pending \u2014 normal"
       }
-    }
+    },
+    "r1h": "\u2713"
   },
   {
     "timestamp": "2026-05-26T03:00:08.770177+00:00",
@@ -13352,6 +13362,103 @@
         "value": 2420,
         "score": 0,
         "label": "2,420 pending \u2014 normal"
+      }
+    },
+    "result": "neutral",
+    "r1h": "\u2014",
+    "r3h": "\u2014",
+    "r6h": "\u2014",
+    "r8h": "\u2014",
+    "r12h": "\u2014"
+  },
+  {
+    "timestamp": "2026-05-26T03:30:08.063233+00:00",
+    "btc_price": 76597.07,
+    "score": -6,
+    "direction": "NEUTRAL",
+    "confidence": 6,
+    "oi": 99816.863,
+    "long_liq_zone": 75998.0,
+    "short_liq_zone": 78324.0,
+    "signals": {
+      "funding": {
+        "value": 0.0081,
+        "score": 0,
+        "label": "0.0081%"
+      },
+      "oi_change": {
+        "value": 0.08,
+        "score": 0,
+        "label": "+0.08%"
+      },
+      "ls_ratio": {
+        "value": 1.042,
+        "score": 0,
+        "label": "1.042"
+      },
+      "top_traders": {
+        "value": 1.12,
+        "score": 0,
+        "label": "1.120"
+      },
+      "taker_ratio": {
+        "value": 1.099,
+        "score": 15,
+        "label": "1.099"
+      },
+      "momentum": {
+        "value": {
+          "1h": -0.1,
+          "4h": -0.94,
+          "24h": -0.57
+        },
+        "score": 0,
+        "label": "1h:-0.10% 4h:-0.94% 24h:-0.57%"
+      },
+      "ee_momentum": {
+        "value": -12.09,
+        "score": -12,
+        "label": "Main:-12.1 Sig:-10.9 \u25bc"
+      },
+      "rsi": {
+        "value": 37.4,
+        "score": -4,
+        "label": "37.4"
+      },
+      "volume": {
+        "value": 68.3,
+        "score": -5,
+        "label": "+68.3%"
+      },
+      "bybit_oi_divergence": {
+        "value": -0.41,
+        "score": 0,
+        "label": "Bybit -0.41% Binance +0.08% DIVERGENT"
+      },
+      "mempool_activity": {
+        "value": 1,
+        "score": 0,
+        "label": "1 sat/vB normal"
+      },
+      "options_pcr": {
+        "value": 0.693,
+        "score": 10,
+        "label": "P/C 0.693 moderate put bias \u2192 lean LONG"
+      },
+      "onchain_tx_volume": {
+        "value": -10.9,
+        "score": -10,
+        "label": "-10.9% FALLING \u2014 declining activity"
+      },
+      "onchain_addresses": {
+        "value": -0.9,
+        "score": 0,
+        "label": "-0.9% stable"
+      },
+      "onchain_mempool": {
+        "value": 2019,
+        "score": 0,
+        "label": "2,019 pending \u2014 normal"
       }
     }
   }
