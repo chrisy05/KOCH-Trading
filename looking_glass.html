@@ -189,7 +189,7 @@ function renderSignalTable(signals, score, direction) {
 }
 
 function renderHistory(data) {
-    const slice = data.slice(-48);
+    const slice = data.slice(-192);
     let rows = '';
     let runCorrect = 0, runTotal = 0;
     for (let i = slice.length - 1; i >= 0; i--) {
@@ -222,7 +222,7 @@ function renderChart(data) {
 }
 
 function drawChart(data) {
-    const slice = data.slice(-72);
+    const slice = data.slice(-192);
     const labels = [], scores = [], prices = [];
     for (const e of slice) {
         labels.push(fmtTime(e.timestamp));
