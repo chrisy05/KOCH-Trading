@@ -685,5 +685,53 @@ async function updateBtcLiveRows() {
 updateBtcLiveRows();
 setInterval(updateBtcLiveRows, 60000);
 </script>
+<script>
+// === LIQUIDATION LIVE INDICATORS ===
+(function() {
+    function fetchLiqData() {
+        fetch('liquidations_live.json?v=' + Date.now())
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) {
+                if (!data || !data.coins) return;
+                // Remove old indicators
+                document.querySelectorAll('.liq-badge').forEach(function(el) { el.remove(); });
+                // For each coin section, check liquidation data
+                document.querySelectorAll('.coin-section').forEach(function(el) {
+                    var coin = el.dataset.coin;
+                    if (!coin) return;
+                    var coinData = data.coins[coin];
+                    if (!coinData || !coinData.recent_15m) return;
+                    var r = coinData.recent_15m;
+                    if (r.long_count === 0 && r.short_count === 0) return;
+                    var nameEl = el.querySelector('.coin-name');
+                    if (!nameEl) return;
+                    var badge = document.createElement('span');
+                    badge.className = 'liq-badge';
+                    badge.style.cssText = 'font-size:0.8rem;margin-left:8px;font-weight:600;';
+                    // More short liqs = bullish (green up), more long liqs = bearish (red down)
+                    if (r.short_count > r.long_count) {
+                        var vol = r.short_vol >= 1000000 ? (r.short_vol/1000000).toFixed(1)+'M' : Math.round(r.short_vol/1000)+'K';
+                        badge.innerHTML = '<span style="color:#22c55e;">&#x25B2; $' + vol + '</span>';
+                        badge.title = r.short_count + ' short liqs ($' + vol + ') in 15min — bullish';
+                    } else if (r.long_count > r.short_count) {
+                        var vol = r.long_vol >= 1000000 ? (r.long_vol/1000000).toFixed(1)+'M' : Math.round(r.long_vol/1000)+'K';
+                        badge.innerHTML = '<span style="color:#ef4444;">&#x25BC; $' + vol + '</span>';
+                        badge.title = r.long_count + ' long liqs ($' + vol + ') in 15min — bearish';
+                    } else {
+                        var vol = (r.long_vol + r.short_vol);
+                        vol = vol >= 1000000 ? (vol/1000000).toFixed(1)+'M' : Math.round(vol/1000)+'K';
+                        badge.innerHTML = '<span style="color:#f59e0b;">&#x25C6; $' + vol + '</span>';
+                        badge.title = 'Equal long/short liqs in 15min';
+                    }
+                    nameEl.appendChild(badge);
+                });
+            })
+            .catch(function() {});
+    }
+    // Initial fetch + auto-refresh every 30s
+    fetchLiqData();
+    setInterval(fetchLiqData, 30000);
+})();
+</script>
 </body>
 </html>
