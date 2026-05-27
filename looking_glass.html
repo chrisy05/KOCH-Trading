@@ -205,13 +205,14 @@ function renderHistory(data) {
             '<td style="padding:6px 10px;text-align:center;color:'+dc+';font-weight:700">'+(e.direction||'?')+'</td>' +
             '<td style="padding:6px 10px;text-align:center">'+(e.score>=0?'+':'')+e.score+'</td>' +
             hCell(e.r1h||'') + hCell(e.r3h||'') + hCell(e.r6h||'') + hCell(e.r8h||'') + hCell(e.r12h||'') +
+            '<td style="padding:4px;text-align:center;font-weight:700;color:'+(r==='correct'?'#22c55e':r==='wrong'?'#ef4444':'#484f58')+'">'+(r==='correct'?'✓':r==='wrong'?'✗':'—')+'</td>' +
             '<td style="padding:4px;text-align:center;color:#8b949e;font-size:0.75rem">'+runAcc+'</td></tr>';
     }
     return '<div class="card"><div class="card-title">Vorhersage-Verlauf</div><div style="overflow-x:auto"><table>' +
         '<tr><th>Zeit</th><th style="text-align:right">Preis</th><th style="text-align:center">Signal</th><th style="text-align:center">Score</th>' +
         '<th style="text-align:center;font-size:0.65rem">1h</th><th style="text-align:center;font-size:0.65rem">3h</th>' +
         '<th style="text-align:center;font-size:0.65rem">6h</th><th style="text-align:center;font-size:0.65rem">8h</th>' +
-        '<th style="text-align:center;font-size:0.65rem">12h</th><th style="text-align:center">Acc</th></tr>' +
+        '<th style="text-align:center;font-size:0.65rem">12h</th><th style="text-align:center">Erg</th><th style="text-align:center">Acc</th></tr>' +
         rows + '</table></div></div>';
 }
 
