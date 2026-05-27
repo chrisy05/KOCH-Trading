@@ -130,7 +130,8 @@ const SIGNAL_LABELS = {
     options_pcr: 'Options P/C Ratio',
     onchain_tx_volume: 'On-Chain TX Volume',
     onchain_addresses: 'Active Addresses',
-    onchain_mempool: 'Mempool Pressure'
+    onchain_mempool: 'Mempool Pressure',
+    liquidations: 'Liquidations (Live)'
 };
 
 const MACRO_SIGNAL_LABELS = {
@@ -169,7 +170,7 @@ function renderLiquidation(entry) {
 
 function renderSignalTable(signals, score, direction) {
     let rows = '';
-    const order = ['funding','oi_change','ls_ratio','top_traders','taker_ratio','momentum','ee_momentum','rsi','volume','bybit_oi_divergence','mempool_activity','options_pcr','onchain_tx_volume','onchain_addresses','onchain_mempool'];
+    const order = ['funding','oi_change','ls_ratio','top_traders','taker_ratio','momentum','ee_momentum','rsi','volume','bybit_oi_divergence','mempool_activity','options_pcr','onchain_tx_volume','onchain_addresses','onchain_mempool','liquidations'];
     for (const key of order) {
         if (!signals[key]) continue;
         const sig = signals[key];
