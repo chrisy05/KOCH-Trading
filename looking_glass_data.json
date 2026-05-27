@@ -25151,7 +25151,9 @@
     "r1h": "\u2713",
     "r3h": "\u2713",
     "r6h": "\u2713",
-    "r8h": "\u2717"
+    "r8h": "\u2717",
+    "r12h": "\u2717",
+    "result": "wrong"
   },
   {
     "timestamp": "2026-05-27T07:30:08.954561+00:00",
@@ -26670,7 +26672,8 @@
     },
     "r1h": "\u2717",
     "r3h": "\u2717",
-    "r6h": "\u2717"
+    "r6h": "\u2717",
+    "r8h": "\u2717"
   },
   {
     "timestamp": "2026-05-27T11:30:15.762972+00:00",
@@ -27533,7 +27536,8 @@
       }
     },
     "r1h": "\u2713",
-    "r3h": "\u2713"
+    "r3h": "\u2713",
+    "r6h": "\u2713"
   },
   {
     "timestamp": "2026-05-27T13:30:10.364090+00:00",
@@ -28897,7 +28901,8 @@
         "label": "No liquidations in 15min"
       }
     },
-    "r1h": "\u2713"
+    "r1h": "\u2713",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-27T16:30:11.025329+00:00",
@@ -29692,7 +29697,8 @@
         "score": -15,
         "label": "S:0 L:3 | SVol:$0K LVol:$3613K | BEARISH [$3.6M AMPLIFIED]"
       }
-    }
+    },
+    "r1h": "\u2717"
   },
   {
     "timestamp": "2026-05-27T18:30:08.426917+00:00",
@@ -29911,6 +29917,136 @@
       "volume_comparison": {
         "score": 0,
         "label": "3d/7d: 0.96 Normal"
+      }
+    },
+    "result": "neutral",
+    "r1h": "\u2014",
+    "r3h": "\u2014",
+    "r6h": "\u2014",
+    "r8h": "\u2014",
+    "r12h": "\u2014"
+  },
+  {
+    "timestamp": "2026-05-27T22:00:09.958267+00:00",
+    "btc_price": 74466.57,
+    "score": -26,
+    "direction": "SHORT",
+    "confidence": 26,
+    "oi": 101370.212,
+    "long_liq_zone": 73743.0,
+    "short_liq_zone": 76712.0,
+    "signals": {
+      "funding": {
+        "value": 0.0099,
+        "score": 0,
+        "label": "0.0099%"
+      },
+      "oi_change": {
+        "value": -0.98,
+        "score": 0,
+        "label": "-0.98%"
+      },
+      "ls_ratio": {
+        "value": 1.593,
+        "score": 0,
+        "label": "1.593"
+      },
+      "top_traders": {
+        "value": 1.393,
+        "score": 0,
+        "label": "1.393"
+      },
+      "taker_ratio": {
+        "value": 0.819,
+        "score": -15,
+        "label": "0.819"
+      },
+      "momentum": {
+        "value": {
+          "1h": -0.07,
+          "4h": -0.81,
+          "24h": -1.77
+        },
+        "score": 0,
+        "label": "1h:-0.07% 4h:-0.81% 24h:-1.77%"
+      },
+      "ee_momentum": {
+        "value": -11.46,
+        "score": -12,
+        "label": "Main:-11.5 Sig:-11.1 \u25bc"
+      },
+      "rsi": {
+        "value": 31.9,
+        "score": -4,
+        "label": "31.9"
+      },
+      "volume": {
+        "value": -48.7,
+        "score": -5,
+        "label": "-48.7%"
+      },
+      "bybit_oi_divergence": {
+        "value": -0.65,
+        "score": 0,
+        "label": "Bybit -0.65% Binance -0.98% ALIGNED"
+      },
+      "mempool_activity": {
+        "value": 1,
+        "score": 0,
+        "label": "1 sat/vB normal"
+      },
+      "options_pcr": {
+        "value": 0.687,
+        "score": 10,
+        "label": "P/C 0.687 moderate put bias \u2192 lean LONG"
+      },
+      "onchain_tx_volume": {
+        "value": 100.5,
+        "score": 10,
+        "label": "+100.5% RISING \u2014 bullish activity"
+      },
+      "onchain_addresses": {
+        "value": -5.2,
+        "score": -10,
+        "label": "-5.2% FALLING \u2014 declining usage"
+      },
+      "onchain_mempool": {
+        "value": 1447,
+        "score": 0,
+        "label": "1,447 pending \u2014 normal"
+      },
+      "liquidations": {
+        "value": 0,
+        "score": 0,
+        "label": "STALE (199min old)"
+      }
+    },
+    "macro_score": -45,
+    "macro_direction": "SHORT",
+    "macro_signals": {
+      "daily_ema50": {
+        "score": -18,
+        "label": "$77,586 (BELOW 4.0%)"
+      },
+      "weekly_ema20": {
+        "score": -8,
+        "label": "$75,242 (BELOW 1.0%)"
+      },
+      "daily_ee_momentum": {
+        "score": -15,
+        "label": "Main:-10.7 Sig:-10.5 CROSS DOWN"
+      },
+      "daily_rsi": {
+        "score": -4,
+        "label": "39.8"
+      },
+      "dcb_detection": {
+        "score": 0,
+        "label": "UNLIKELY \u2014 No pattern detected"
+      },
+      "volume_comparison": {
+        "score": 0,
+        "label": "3d/7d: 1.01 Normal"
       }
     }
   }
