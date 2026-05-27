@@ -56,7 +56,7 @@ canvas{width:100%!important;height:100%!important}
     <div class="loading"><span class="spinner"></span> Daten werden geladen...</div>
 </div>
 
-<div class="footer">Looking Glass v2.1 &middot; Daten: Binance Futures &middot; Auto-Refresh 60s</div>
+<div class="footer">Looking Glass v2.2 &middot; Daten: Binance, Bybit, OKX, Bitget, dYdX, Hyperliquid &middot; Auto-Refresh 60s</div>
 
 <script>
 // ── Looking Glass — Client-side Renderer ──────────────────────────────────
@@ -182,10 +182,22 @@ function renderLiquidation(entry) {
     let html = '<div class="card"><div class="card-title">Liquidation Level Calculator (OI-based)</div>';
 
     // Top row: OI + L/S split
-    html += '<div style="display:flex;justify-content:center;gap:20px;margin-bottom:12px;flex-wrap:wrap">' +
+    html += '<div style="display:flex;justify-content:center;gap:20px;margin-bottom:8px;flex-wrap:wrap">' +
         '<div style="text-align:center"><div style="font-size:0.65rem;color:#484f58">Total Open Interest</div><div style="font-size:1rem;font-weight:700;color:#c9d1d9">'+(lc.total_oi_fmt||'N/A')+'</div></div>' +
         '<div style="text-align:center"><div style="font-size:0.65rem;color:#484f58">Long / Short</div><div style="font-size:1rem;font-weight:700"><span style="color:#22c55e">'+(lc.long_pct||50).toFixed(0)+'%</span> / <span style="color:#ef4444">'+(lc.short_pct||50).toFixed(0)+'%</span></div></div>' +
         '</div>';
+
+    // Exchange OI breakdown
+    const exch = lc.exchanges || {};
+    const exchOrder = ['binance','bybit','okx','bitget','dydx','hyperliquid'];
+    const exchNames = {binance:'Binance',bybit:'Bybit',okx:'OKX',bitget:'Bitget',dydx:'dYdX',hyperliquid:'Hyperliquid'};
+    const exchParts = [];
+    for (const k of exchOrder) {
+        if (exch[k]) exchParts.push(exchNames[k]+' '+(exch[k].oi_fmt||'?'));
+    }
+    if (exchParts.length > 0) {
+        html += '<div style="text-align:center;margin-bottom:12px;font-size:0.65rem;color:#484f58">'+exchParts.join(' | ')+'</div>';
+    }
 
     // Nearest clusters + current price
     html += '<div class="liq-row">' +
