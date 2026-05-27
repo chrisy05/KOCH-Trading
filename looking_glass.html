@@ -160,12 +160,77 @@ function renderPrediction(entry, accuracy, totalChecked) {
 }
 
 function renderLiquidation(entry) {
-    const ll = entry.long_liq_zone||0, sl = entry.short_liq_zone||0, bp = entry.btc_price;
-    return '<div class="card"><div class="card-title">Geschaetzte Liquidations-Zonen (24h Range)</div><div class="liq-row">' +
-        '<div class="liq-item liq-long"><div style="font-size:0.7rem;color:#ef4444">Long Liquidations</div><div style="font-size:1.2rem;font-weight:700;color:#ef4444">'+fmtPrice(ll)+'</div></div>' +
-        '<div class="liq-item" style="text-align:center"><div style="font-size:0.7rem;color:#8b949e">Current</div><div style="font-size:1.2rem;font-weight:700;color:#58a6ff">'+fmtPrice(bp)+'</div></div>' +
-        '<div class="liq-item liq-short"><div style="font-size:0.7rem;color:#22c55e">Short Liquidations</div><div style="font-size:1.2rem;font-weight:700;color:#22c55e">'+fmtPrice(sl)+'</div></div>' +
-        '</div></div>';
+    const lc = entry.liquidation_calc;
+    const bp = entry.btc_price;
+
+    // Fallback to old simple display if no calc data
+    if (!lc) {
+        const ll = entry.long_liq_zone||0, sl = entry.short_liq_zone||0;
+        return '<div class="card"><div class="card-title">Geschaetzte Liquidations-Zonen (24h Range)</div><div class="liq-row">' +
+            '<div class="liq-item liq-long"><div style="font-size:0.7rem;color:#ef4444">Long Liquidations</div><div style="font-size:1.2rem;font-weight:700;color:#ef4444">'+fmtPrice(ll)+'</div></div>' +
+            '<div class="liq-item" style="text-align:center"><div style="font-size:0.7rem;color:#8b949e">Current</div><div style="font-size:1.2rem;font-weight:700;color:#58a6ff">'+fmtPrice(bp)+'</div></div>' +
+            '<div class="liq-item liq-short"><div style="font-size:0.7rem;color:#22c55e">Short Liquidations</div><div style="font-size:1.2rem;font-weight:700;color:#22c55e">'+fmtPrice(sl)+'</div></div>' +
+            '</div></div>';
+    }
+
+    const nl = lc.nearest_long_liq || {};
+    const ns = lc.nearest_short_liq || {};
+    const magTarget = lc.magnetic_target || 'N/A';
+    const magColor = magTarget === 'LONG_LIQS' ? '#ef4444' : '#22c55e';
+    const magLabel = magTarget === 'LONG_LIQS' ? 'LONG LIQS (bearish magnet)' : 'SHORT LIQS (bullish magnet)';
+
+    let html = '<div class="card"><div class="card-title">Liquidation Level Calculator (OI-based)</div>';
+
+    // Top row: OI + L/S split
+    html += '<div style="display:flex;justify-content:center;gap:20px;margin-bottom:12px;flex-wrap:wrap">' +
+        '<div style="text-align:center"><div style="font-size:0.65rem;color:#484f58">Total Open Interest</div><div style="font-size:1rem;font-weight:700;color:#c9d1d9">'+(lc.total_oi_fmt||'N/A')+'</div></div>' +
+        '<div style="text-align:center"><div style="font-size:0.65rem;color:#484f58">Long / Short</div><div style="font-size:1rem;font-weight:700"><span style="color:#22c55e">'+(lc.long_pct||50).toFixed(0)+'%</span> / <span style="color:#ef4444">'+(lc.short_pct||50).toFixed(0)+'%</span></div></div>' +
+        '</div>';
+
+    // Nearest clusters + current price
+    html += '<div class="liq-row">' +
+        '<div class="liq-item liq-long"><div style="font-size:0.65rem;color:#ef4444">Nearest Long Liq</div>' +
+        '<div style="font-size:1.3rem;font-weight:700;color:#ef4444">'+fmtPrice(nl.price||0)+'</div>' +
+        '<div style="font-size:0.7rem;color:#8b949e">'+(nl.volume||'N/A')+' &middot; '+(nl.distance_pct||0).toFixed(1)+'%</div></div>' +
+        '<div class="liq-item" style="text-align:center;padding:8px 20px"><div style="font-size:0.65rem;color:#8b949e">BTC Price</div>' +
+        '<div style="font-size:1.3rem;font-weight:700;color:#58a6ff">'+fmtPrice(bp)+'</div></div>' +
+        '<div class="liq-item liq-short"><div style="font-size:0.65rem;color:#22c55e">Nearest Short Liq</div>' +
+        '<div style="font-size:1.3rem;font-weight:700;color:#22c55e">'+fmtPrice(ns.price||0)+'</div>' +
+        '<div style="font-size:0.7rem;color:#8b949e">'+(ns.volume||'N/A')+' &middot; +'+(ns.distance_pct||0).toFixed(1)+'%</div></div>' +
+        '</div>';
+
+    // Magnetic Target
+    html += '<div style="text-align:center;margin:14px 0 10px"><div style="font-size:0.65rem;color:#484f58;margin-bottom:2px">Magnetic Target (MM likely push)</div>' +
+        '<div style="display:inline-block;padding:4px 16px;border-radius:8px;font-weight:700;font-size:0.9rem;background:rgba(88,166,255,0.08);border:1px solid '+magColor+';color:'+magColor+'">'+magLabel+'</div>' +
+        '<div style="font-size:0.65rem;color:#484f58;margin-top:4px">Long Vol: '+(lc.near_long_vol_fmt||'N/A')+' | Short Vol: '+(lc.near_short_vol_fmt||'N/A')+'</div></div>';
+
+    // Tables: top 5 levels each side
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">';
+
+    // Long liq table
+    html += '<div><div style="font-size:0.65rem;color:#ef4444;text-transform:uppercase;margin-bottom:4px;letter-spacing:1px">Long Liquidation Levels</div><table>' +
+        '<tr><th style="font-size:0.6rem">Price</th><th style="font-size:0.6rem;text-align:right">Volume</th><th style="font-size:0.6rem;text-align:right">Leverage</th></tr>';
+    const ll = lc.long_liq_levels || [];
+    for (let i = 0; i < Math.min(5, ll.length); i++) {
+        html += '<tr><td style="padding:3px 6px;color:#ef4444;font-size:0.8rem">'+fmtPrice(ll[i].price)+'</td>' +
+            '<td style="padding:3px 6px;text-align:right;color:#8b949e;font-size:0.75rem">'+ll[i].volume_fmt+'</td>' +
+            '<td style="padding:3px 6px;text-align:right;color:#484f58;font-size:0.7rem">'+ll[i].leverage+'</td></tr>';
+    }
+    html += '</table></div>';
+
+    // Short liq table
+    html += '<div><div style="font-size:0.65rem;color:#22c55e;text-transform:uppercase;margin-bottom:4px;letter-spacing:1px">Short Liquidation Levels</div><table>' +
+        '<tr><th style="font-size:0.6rem">Price</th><th style="font-size:0.6rem;text-align:right">Volume</th><th style="font-size:0.6rem;text-align:right">Leverage</th></tr>';
+    const sl = lc.short_liq_levels || [];
+    for (let i = 0; i < Math.min(5, sl.length); i++) {
+        html += '<tr><td style="padding:3px 6px;color:#22c55e;font-size:0.8rem">'+fmtPrice(sl[i].price)+'</td>' +
+            '<td style="padding:3px 6px;text-align:right;color:#8b949e;font-size:0.75rem">'+sl[i].volume_fmt+'</td>' +
+            '<td style="padding:3px 6px;text-align:right;color:#484f58;font-size:0.7rem">'+sl[i].leverage+'</td></tr>';
+    }
+    html += '</table></div></div>';
+
+    html += '</div>';
+    return html;
 }
 
 function renderSignalTable(signals, score, direction) {
