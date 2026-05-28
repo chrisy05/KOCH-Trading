@@ -28360,7 +28360,9 @@
     },
     "r1h": "\u2717",
     "r3h": "\u2713",
-    "r8h": "\u2713"
+    "r8h": "\u2713",
+    "r12h": "\u2713",
+    "result": "correct"
   },
   {
     "timestamp": "2026-05-27T15:00:13.411714+00:00",
@@ -32366,7 +32368,8 @@
         "label": "S:0 L:5 | SVol:$0K LVol:$2009K | BEARISH [$2.0M AMPLIFIED]"
       }
     },
-    "r1h": "\u2717"
+    "r1h": "\u2717",
+    "r3h": "\u2713"
   },
   {
     "timestamp": "2026-05-28T00:00:16.212200+00:00",
@@ -34518,6 +34521,220 @@
         "value": 1537,
         "score": 0,
         "label": "1,537 pending \u2014 normal"
+      },
+      "liquidations": {
+        "value": 0,
+        "score": 0,
+        "label": "No liquidations in 15min"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-28T02:30:13.401823+00:00",
+    "btc_price": 74248.11,
+    "score": 15,
+    "direction": "LONG",
+    "confidence": 15,
+    "oi": 101190.561,
+    "long_liq_zone": 73483.0,
+    "short_liq_zone": 76772.0,
+    "liquidation_calc": {
+      "btc_price": 74180.6,
+      "total_oi_usd": 19932663607,
+      "total_oi_fmt": "$19.9B",
+      "long_pct": 63.1,
+      "short_pct": 36.9,
+      "long_liq_levels": [
+        {
+          "price": 67000,
+          "volume_usd": 3771761124,
+          "volume_fmt": "$3.8B",
+          "leverage": "5x-10x"
+        },
+        {
+          "price": 70500,
+          "volume_usd": 1885880562,
+          "volume_fmt": "$1.9B",
+          "leverage": "10x-25x"
+        },
+        {
+          "price": 71000,
+          "volume_usd": 1885880562,
+          "volume_fmt": "$1.9B",
+          "leverage": "10x-25x"
+        },
+        {
+          "price": 59500,
+          "volume_usd": 1257253708,
+          "volume_fmt": "$1.3B",
+          "leverage": "5x-10x"
+        },
+        {
+          "price": 69000,
+          "volume_usd": 1257253708,
+          "volume_fmt": "$1.3B",
+          "leverage": "10x-25x"
+        }
+      ],
+      "short_liq_levels": [
+        {
+          "price": 81500,
+          "volume_usd": 2208037958,
+          "volume_fmt": "$2.2B",
+          "leverage": "5x-10x"
+        },
+        {
+          "price": 78000,
+          "volume_usd": 1104018979,
+          "volume_fmt": "$1.1B",
+          "leverage": "10x-25x"
+        },
+        {
+          "price": 77000,
+          "volume_usd": 1104018979,
+          "volume_fmt": "$1.1B",
+          "leverage": "10x-25x"
+        },
+        {
+          "price": 89000,
+          "volume_usd": 736012653,
+          "volume_fmt": "$736M",
+          "leverage": "5x-10x"
+        },
+        {
+          "price": 79000,
+          "volume_usd": 736012653,
+          "volume_fmt": "$736M",
+          "leverage": "10x-25x"
+        }
+      ],
+      "nearest_long_liq": {
+        "price": 73500,
+        "volume": "$629M",
+        "volume_usd": 628626854,
+        "distance_pct": -0.9
+      },
+      "nearest_short_liq": {
+        "price": 75000,
+        "volume": "$736M",
+        "volume_usd": 736012653,
+        "distance_pct": 1.1
+      },
+      "magnetic_target": "LONG_LIQS",
+      "near_long_vol_fmt": "$6.3B",
+      "near_short_vol_fmt": "$2.6B",
+      "top_trader_ls": 1.394,
+      "exchanges": {
+        "binance": {
+          "oi_usd": 7506385505,
+          "oi_btc": 101190.68,
+          "oi_fmt": "$7.5B"
+        },
+        "bybit": {
+          "oi_usd": 4274907657,
+          "oi_btc": 57628.38,
+          "oi_fmt": "$4.3B"
+        },
+        "okx": {
+          "oi_usd": 3445685788,
+          "oi_fmt": "$3.4B"
+        },
+        "bitget": {
+          "oi_usd": 2358040228,
+          "oi_btc": 31787.83,
+          "oi_fmt": "$2.4B"
+        },
+        "dydx": {
+          "oi_usd": 35055274,
+          "oi_btc": 472.57,
+          "oi_fmt": "$35M"
+        },
+        "hyperliquid": {
+          "oi_usd": 2312589154,
+          "oi_btc": 31175.12,
+          "oi_fmt": "$2.3B"
+        }
+      }
+    },
+    "signals": {
+      "funding": {
+        "value": 0.01,
+        "score": 0,
+        "label": "0.0100%"
+      },
+      "oi_change": {
+        "value": -0.05,
+        "score": 0,
+        "label": "-0.05%"
+      },
+      "ls_ratio": {
+        "value": 1.695,
+        "score": 0,
+        "label": "1.695"
+      },
+      "top_traders": {
+        "value": 1.392,
+        "score": 0,
+        "label": "1.392"
+      },
+      "taker_ratio": {
+        "value": 1.154,
+        "score": 15,
+        "label": "1.154"
+      },
+      "momentum": {
+        "value": {
+          "1h": -0.13,
+          "4h": -0.24,
+          "24h": -2.16
+        },
+        "score": 0,
+        "label": "1h:-0.13% 4h:-0.24% 24h:-2.16%"
+      },
+      "ee_momentum": {
+        "value": -12.59,
+        "score": -12,
+        "label": "Main:-12.6 Sig:-12.2 \u25bc"
+      },
+      "rsi": {
+        "value": 29.1,
+        "score": -8,
+        "label": "29.1"
+      },
+      "volume": {
+        "value": 1.4,
+        "score": 0,
+        "label": "+1.4%"
+      },
+      "bybit_oi_divergence": {
+        "value": -0.25,
+        "score": 0,
+        "label": "Bybit -0.25% Binance -0.05% DIVERGENT"
+      },
+      "mempool_activity": {
+        "value": 2,
+        "score": 0,
+        "label": "2 sat/vB normal"
+      },
+      "options_pcr": {
+        "value": 0.687,
+        "score": 10,
+        "label": "P/C 0.687 moderate put bias \u2192 lean LONG"
+      },
+      "onchain_tx_volume": {
+        "value": 86.5,
+        "score": 10,
+        "label": "+86.5% RISING \u2014 bullish activity"
+      },
+      "onchain_addresses": {
+        "value": -1.0,
+        "score": 0,
+        "label": "-1.0% stable"
+      },
+      "onchain_mempool": {
+        "value": 3512,
+        "score": 0,
+        "label": "3,512 pending \u2014 normal"
       },
       "liquidations": {
         "value": 0,
