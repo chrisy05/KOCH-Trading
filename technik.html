@@ -287,6 +287,134 @@ td{padding:6px;border-bottom:1px solid #161f30}
 </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- STRATEGIE: Liq-Level Scalp -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="topic">
+<div class="topic-header"><span class="topic-title">Strategie: "Liq Magnet Scalp"</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+
+<p><b>Kernidee:</b> Der Markt bewegt sich dorthin wo die meisten Liquidationen liegen. Market Maker jagen die groessere Liquiditaets-Seite. Wenn 70% Long sind, liegt mehr Liquidation UNTER dem Preis → Preis wird nach unten gezogen. Umgekehrt bei ueberfuellten Shorts.</p>
+
+<p><b>Basis-Daten (alle automatisiert abrufbar):</b></p>
+<table>
+<tr><th>Datenpunkt</th><th>Quelle</th><th>Was es zeigt</th></tr>
+<tr><td>Open Interest (multi-exchange)</td><td>Binance, Bybit, Bitget, Hyperliquid</td><td>Wie viel Geld in Positionen steckt</td></tr>
+<tr><td>Long/Short Ratio</td><td>Binance, OKX</td><td>Welche Seite ueberfuellt ist</td></tr>
+<tr><td>Taker Buy/Sell Ratio</td><td>Binance</td><td>Wer aggressiv kauft/verkauft (Smart Money)</td></tr>
+<tr><td>Liquidation Cluster</td><td>Berechnet aus OI + L/S + Hebel-Verteilung</td><td>WO die Liquidationen liegen (= Magnet)</td></tr>
+</table>
+
+<p><b>Ablauf:</b></p>
+<ol>
+<li><b>Scan:</b> Welche Coins haben extremes L/S Ratio (&gt;65% oder &lt;35%)?</li>
+<li><b>Liq-Cluster berechnen:</b> Wo liegen Long-Liqs (unter Preis) und Short-Liqs (ueber Preis)?</li>
+<li><b>Magnetisches Ziel:</b> Welche Seite hat MEHR Volumen innerhalb 5%? → Dahin zieht der Markt.</li>
+<li><b>Entry:</b> Am naechsten Liq-Cluster der GEGENRICHTUNG (= Widerstand). Short Entry an Short-Liq-Zone, Long Entry an Long-Liq-Zone.</li>
+<li><b>TP:</b> Am Liq-Cluster des Magneten (= dort wo die Masse liquidiert wird).</li>
+<li><b>SL:</b> Ueber dem naechsten Liq-Cluster darueber/darunter.</li>
+</ol>
+
+<div class="formula">
+Long Liq Preis = Entry × (1 − 1/Hebel)<br>
+Short Liq Preis = Entry × (1 + 1/Hebel)<br>
+Hebel-Verteilung: 10x (30%), 20x (15%), 25x (15%), 50x (10%), 5x (10%), 15x (10%), 75-100x (10%)
+</div>
+
+<p><b>Bestaetigung durch Momentum (PFLICHT):</b></p>
+<ul>
+<li>SMA20 &lt; SMA50 auf mindestens 2 von 3 TFs (15m, 1h, 4h) fuer SHORT</li>
+<li>Taker Ratio &lt; 0.92 = Seller dominant (fuer SHORT)</li>
+<li>Volume Spike (&gt;1.5x Durchschnitt) = Bewegung hat Kraft</li>
+</ul>
+
+<div class="example"><b>Beispiel ADA SHORT (28.05.2026):</b> L/S 70% Long, OI $202M (4 Exchanges), Liq Magnet DOWN ($49.7M Long-Liqs vs $21M Short-Liqs), Taker 0.89 (Seller), 3/3 TF bearish. Entry $0.2381, SL $0.2420 (1.6%), TP $0.2100 (11.8%). Score 8/10.</div>
+
+<p><b>Score-System (max 10):</b></p>
+<table>
+<tr><th>Kriterium</th><th>Punkte</th></tr>
+<tr><td>L/S Ratio extrem (&gt;65% oder &lt;35%)</td><td>3</td></tr>
+<tr><td>Momentum (2+ TF aligned)</td><td>2</td></tr>
+<tr><td>Liq Magnet in Trade-Richtung</td><td>2</td></tr>
+<tr><td>Volume Spike</td><td>2</td></tr>
+<tr><td>Taker Divergenz</td><td>1</td></tr>
+</table>
+
+<p><b>Minimum Score fuer Entry: 7/10</b></p>
+
+<p><b>Tool:</b> <code>python3 liq_level_scanner.py ADA SUI LINK</code></p>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- STRATEGIE: AlgoAlpha Level Trade -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="topic">
+<div class="topic-header"><span class="topic-title">Strategie: "AlgoAlpha Level Trade"</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+
+<p><b>Kernidee:</b> Kombiniert Orderflow-Analyse (AlgoAlpha Whale Liquidity & Absorption) mit dem Liq Magnet Scalp. Das AlgoAlpha Profil zeigt WO echte Kaeufer/Verkaeufer sitzen und wo Orders absorbiert werden — nicht nur wo Liquidationen LIEGEN KOENNTEN, sondern wo tatsaechlich gehandelt wird.</p>
+
+<p><b>Die 3 Profile:</b></p>
+<table>
+<tr><th>Profil</th><th>Was es zeigt</th><th>Wie lesen</th></tr>
+<tr><td><b>Volume Profile</b></td><td>Volumen pro Preis-Level</td><td>Lange Balken = viel Handel = "fairer Preis". Kurze Balken = Vakuum, Preis rauscht durch.</td></tr>
+<tr><td><b>Delta Profile</b></td><td>Buy Vol − Sell Vol pro Level</td><td>GRUEN = Kaeufer dominieren. ROT = Verkaeufer dominieren. Zeigt wer die Kontrolle hat.</td></tr>
+<tr><td><b>Absorption Profile</b></td><td>Volumen in Wicks (Dochten)</td><td>Grosse Balken = dort werden Orders absorbiert ohne Preisbewegung = unsichtbare Wand.</td></tr>
+</table>
+
+<p><b>Schluessel-Konzepte:</b></p>
+<ul>
+<li><b>POC (Point of Control):</b> Preis mit meistem Volumen = Gleichgewicht. Preis wird dorthin zurueckgezogen.</li>
+<li><b>Value Area (30%):</b> Der Bereich wo 30% des Volumens gehandelt wurde = "fairer" Preisbereich.</li>
+<li><b>Absorption Zones:</b> Peaks im Absorption Profile (hoeher als beide Nachbarn) = Support/Resistance Levels.</li>
+<li><b>Vakuum:</b> Wenig Volumen zwischen zwei Zonen = Preis kann dort SCHNELL durchlaufen.</li>
+</ul>
+
+<p><b>Ablauf (Combined):</b></p>
+<ol>
+<li><b>AlgoAlpha Scan:</b> Volume, Delta, Absorption Profile berechnen (200 Kerzen, Lower-TF Granularitaet)</li>
+<li><b>Delta Bias:</b> Gesamtes Delta positiv oder negativ? → Grundrichtung</li>
+<li><b>Absorption Zones:</b> Wo sind die Peaks? → Entry (an Resistance) und TP (an Support)</li>
+<li><b>Liq-Modell:</b> Wo liegen Liquidations-Cluster? → Bestaetigt/verstaerkt die Zonen</li>
+<li><b>Momentum Check:</b> SMA, L/S Ratio, Taker, Volume → Timing-Bestaetigung</li>
+<li><b>Entry:</b> An der Absorption Zone die als Widerstand fungiert</li>
+<li><b>TP:</b> An der naechsten Absorption Zone + Liq-Cluster (doppelte Bestaetigung)</li>
+</ol>
+
+<div class="formula">
+Score max 15/15:<br>
+AlgoAlpha Delta (0-3) + Absorption Zone (0-2) + L/S Ratio (0-3) +<br>
+Liq Magnet (0-2) + Momentum (0-2) + Volume Spike (0-1) +<br>
+Taker (0-1) + POC Position (0-1)
+</div>
+
+<p><b>Minimum Score fuer Entry: 10/15</b></p>
+
+<div class="example"><b>Beispiel FIL SHORT (28.05.2026):</b> Delta STRONG BEARISH (-16%), Absorption Resistance bei $0.9714, L/S 70% Long, Liq Magnet DOWN ($25M), POC $1.01 (5% ueber Preis). Entry $0.982, SL $1.006, TP1 $0.950, TP2 $0.860. Score 13/15.</div>
+
+<div class="example"><b>Beispiel ADA SHORT (28.05.2026):</b> Delta STRONG BEARISH (-22%), Absorption Resistance bei $0.2343, L/S 70% Long, Liq Magnet DOWN ($49.7M), Taker 0.89 (Seller), 3/3 TF bearish. Entry $0.2381, SL $0.2420, TP $0.2100. Score 14/15.</div>
+
+<p><b>Wann welche Strategie?</b></p>
+<table>
+<tr><th>Situation</th><th>Strategie</th></tr>
+<tr><td>Schneller Scalp, nur Liq-Daten reichen</td><td>Liq Magnet Scalp</td></tr>
+<tr><td>Praeziser Entry mit Orderflow-Bestaetigung</td><td>AlgoAlpha Level Trade</td></tr>
+<tr><td>Beide Strategien gleiche Richtung</td><td>Hoechste Konfidenz → groessere Position</td></tr>
+</table>
+
+<p><b>Tools:</b></p>
+<ul>
+<li><code>python3 liq_level_scanner.py COIN1 COIN2</code> — Nur Liq-Modell</li>
+<li><code>python3 algoalpha_profile.py COIN1 COIN2</code> — Nur AlgoAlpha</li>
+<li><code>python3 level_trade_scanner.py COIN1 COIN2</code> — Combined (beides)</li>
+<li>Full Scan alle 20 Coins: <code>python3 level_trade_scanner.py</code></li>
+</ul>
+
+<p><b>Wichtig:</b> Das Liquidation-Spiel ist das Gesamtspiel. Market Maker bewegen den Preis dorthin wo die meisten Liquidationen liegen. AlgoAlpha zeigt dir WO die echten Orders sitzen. Zusammen = die komplette Karte.</p>
+</div>
+</div>
+
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 </body>
 </html>
