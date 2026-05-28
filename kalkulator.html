@@ -3,75 +3,238 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Trade Kalkulator</title>
+<title>Strategien & Kalkulator</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:10px}
 h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
-.nav{display:flex;justify-content:space-between;padding:0 10px;margin-bottom:10px}
-.nav a{color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px}
-.section{background:#161b22;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #21262d}
-.section-title{color:#58a6ff;font-size:0.95rem;font-weight:600;margin-bottom:10px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
-label{font-size:0.75rem;color:#8b949e;display:block;margin-bottom:2px}
-input,select{width:100%;padding:8px;background:#0d1117;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:0.9rem}
+
+/* Strategy Cards */
+.strat-card{background:#161b22;border-radius:10px;padding:16px;margin-bottom:10px;border:1px solid #21262d;border-left:3px solid #58a6ff}
+.strat-card.a{border-left-color:#f59e0b}
+.strat-card.b{border-left-color:#22c55e}
+.strat-card.c{border-left-color:#8b5cf6}
+.strat-card.d{border-left-color:#3b82f6}
+.strat-card.e{border-left-color:#ef4444}
+.strat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.strat-name{font-size:1rem;font-weight:700}
+.strat-name.a{color:#f59e0b}
+.strat-name.b{color:#22c55e}
+.strat-name.c{color:#8b5cf6}
+.strat-name.d{color:#3b82f6}
+.strat-name.e{color:#ef4444}
+.strat-badge{font-size:0.7rem;padding:3px 8px;border-radius:12px;font-weight:600}
+.badge-scalp{background:#f59e0b20;color:#f59e0b}
+.badge-swing{background:#22c55e20;color:#22c55e}
+.badge-copy{background:#3b82f620;color:#3b82f6}
+.badge-own{background:#ef444420;color:#ef4444}
+.strat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.strat-item{background:#0d1117;border-radius:6px;padding:8px 10px}
+.strat-item .lbl{font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px}
+.strat-item .val{font-size:0.85rem;font-weight:600;margin-top:2px}
+.strat-rule{font-size:0.78rem;color:#8b949e;margin-top:8px;padding:8px 10px;background:#0d1117;border-radius:6px;line-height:1.6}
+.strat-rule b{color:#c9d1d9}
+.green{color:#22c55e}.red{color:#ef4444}.orange{color:#ff9800}.blue{color:#58a6ff}.purple{color:#8b5cf6}
+
+/* Divider */
+.divider{border:none;border-top:1px solid #21262d;margin:16px 0}
+
+/* Kalkulator compact */
+.calc-section{background:#161b22;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #21262d}
+.calc-title{color:#58a6ff;font-size:0.85rem;font-weight:600;margin-bottom:8px}
+.calc-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px}
+.calc-row2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+label{font-size:0.68rem;color:#8b949e;display:block;margin-bottom:1px}
+input,select{width:100%;padding:6px;background:#0d1117;border:1px solid #21262d;border-radius:4px;color:#c9d1d9;font-size:0.82rem}
 input:focus{border-color:#58a6ff;outline:none}
-.btn{width:100%;padding:10px;background:#58a6ff;color:#fff;border:none;border-radius:6px;font-size:0.9rem;font-weight:600;cursor:pointer;margin-top:8px}
+.btn{width:100%;padding:8px;background:#58a6ff;color:#fff;border:none;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;margin-top:6px}
 .btn:hover{background:#4a90e0}
-.result{background:#0d1117;border-radius:8px;padding:10px;margin-top:10px;font-size:0.85rem;line-height:1.8}
+.result{background:#0d1117;border-radius:6px;padding:8px;margin-top:8px;font-size:0.78rem;line-height:1.7}
 .result .val{font-weight:700}
-.green{color:#22c55e}
-.red{color:#ef4444}
-.orange{color:#ff9800}
-.divider{border:none;border-top:1px solid #21262d;margin:8px 0}
+.calc-divider{border:none;border-top:1px solid #21262d;margin:6px 0}
 </style>
 </head>
 <body>
-<h1>Trade Kalkulator</h1>
-<div style="display:flex;justify-content:space-between;align-items:center;padding:0 10px;margin-bottom:10px"><a href="cockpit.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">← Cockpit</a><a href="index.html" style="color:#58a6ff;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Dashboard</a><a href="technik.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Technik →</a></div>
+<h1>Strategien & Kalkulator</h1>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:0 10px;margin-bottom:12px"><a href="cockpit.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">← Cockpit</a><a href="index.html" style="color:#58a6ff;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Dashboard</a><a href="technik.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Technik →</a></div>
 
-<div class="section">
-<div class="section-title">Setup</div>
-<div class="row">
-  <div><label>Richtung</label><select id="dir"><option value="L">LONG</option><option value="S">SHORT</option></select></div>
-  <div><label>Exchange</label><select id="exch"><option>Bitget</option><option>BingX</option><option>Phemex</option></select></div>
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- A) Signal Scalping -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="strat-card a">
+<div class="strat-header">
+  <span class="strat-name a">A) Signal Scalping</span>
+  <span class="strat-badge badge-scalp">SCALP</span>
 </div>
-<div class="row3">
+<div class="strat-grid">
+  <div class="strat-item"><div class="lbl">Signalgeber</div><div class="val">Viona, Koda</div></div>
+  <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$1,000</div></div>
+  <div class="strat-item"><div class="lbl">Hebel</div><div class="val">9-15x</div></div>
+  <div class="strat-item"><div class="lbl">Entry</div><div class="val">Market Order</div></div>
+</div>
+<div class="strat-rule">
+  <b>Regeln:</b><br>
+  ✓ Entry NUR nach BTC-Trend Checkup + eigene Markterwartung<br>
+  ✓ TP/SL exakt vom Signalgeber uebernehmen<br>
+  ✓ Nachkaufe NUR in BTC-stabiler Seitwartsbewegung<br>
+  ✗ KEINE Nachkaufe in BTC-Extremlagen (Dump/Pump)<br>
+  ✗ KEIN Entry gegen den BTC-Trend
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- B) Liq Magnet Scalp -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="strat-card b">
+<div class="strat-header">
+  <span class="strat-name b">B) Liq Magnet Scalp</span>
+  <span class="strat-badge badge-scalp">SCALP</span>
+</div>
+<div class="strat-grid">
+  <div class="strat-item"><div class="lbl">Basis</div><div class="val">Liq-Cluster + L/S Ratio</div></div>
+  <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$500</div></div>
+  <div class="strat-item"><div class="lbl">Hebel</div><div class="val">10-25x</div></div>
+  <div class="strat-item"><div class="lbl">Entry</div><div class="val">Limit an Liq-Level</div></div>
+</div>
+<div class="strat-rule">
+  <b>Regeln:</b><br>
+  ✓ Min Score: 7/10 (Liq Scanner)<br>
+  ✓ L/S Ratio muss extrem sein (&gt;65% oder &lt;35%)<br>
+  ✓ Momentum: min 2/3 TF aligned (SMA20/50)<br>
+  ✓ Entry am Liq-Cluster der Gegenrichtung (Resistance)<br>
+  ✓ TP am Liq-Cluster des Magneten<br>
+  ✗ KEIN Entry ohne Momentum-Bestaetigung<br>
+  <b>Tool:</b> <span class="blue">python3 liq_level_scanner.py COIN</span>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- C) AlgoAlpha Level Trade -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="strat-card c">
+<div class="strat-header">
+  <span class="strat-name c">C) AlgoAlpha Level Trade</span>
+  <span class="strat-badge badge-swing">SWING</span>
+</div>
+<div class="strat-grid">
+  <div class="strat-item"><div class="lbl">Basis</div><div class="val">Orderflow + Liq-Modell</div></div>
+  <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$1,000</div></div>
+  <div class="strat-item"><div class="lbl">Hebel</div><div class="val">10-20x</div></div>
+  <div class="strat-item"><div class="lbl">Entry</div><div class="val">Limit an Absorption Zone</div></div>
+</div>
+<div class="strat-rule">
+  <b>Regeln:</b><br>
+  ✓ Min Score: 10/15 (Combined Scanner)<br>
+  ✓ Delta muss Richtung bestaetigen (BEARISH fuer SHORT, BULLISH fuer LONG)<br>
+  ✓ Absorption Zone als Entry (unsichtbare Wand)<br>
+  ✓ TP an Absorption Support + Liq-Cluster (doppelt bestaetigt)<br>
+  ✓ POC Position beachten (Preis wird zum POC gezogen)<br>
+  ✗ KEIN Entry wenn Delta neutral (&lt;5% Differenz)<br>
+  <b>Tool:</b> <span class="blue">python3 level_trade_scanner.py COIN</span>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- D) Copytrade (Mark/MT) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="strat-card d">
+<div class="strat-header">
+  <span class="strat-name d">D) Copytrade (MT)</span>
+  <span class="strat-badge badge-copy">COPY</span>
+</div>
+<div class="strat-grid">
+  <div class="strat-item"><div class="lbl">Trader</div><div class="val">Mark (BingX)</div></div>
+  <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">2% vom Konto</div></div>
+  <div class="strat-item"><div class="lbl">Hebel</div><div class="val">Vom Trader</div></div>
+  <div class="strat-item"><div class="lbl">Entry</div><div class="val">Automatisch (Copy)</div></div>
+</div>
+<div class="strat-rule">
+  <b>Regeln:</b><br>
+  ✓ Cross Margin (ganzes Konto als Sicherheit)<br>
+  ✓ Max 2% Deposit pro Trade<br>
+  ✓ Eigene Analyse gegenpruefen vor dem Laufenlassen<br>
+  ✗ NICHT blind kopieren — bei klarem Gegentrend manuell schliessen<br>
+  ✗ KEINE Erhoehung der Copy-Margin
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- E) Eigene CK Trades -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="strat-card e">
+<div class="strat-header">
+  <span class="strat-name e">E) Eigene Trades (CK)</span>
+  <span class="strat-badge badge-own">EIGEN</span>
+</div>
+<div class="strat-grid">
+  <div class="strat-item"><div class="lbl">Basis</div><div class="val">Eigene Analyse</div></div>
+  <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$1,500</div></div>
+  <div class="strat-item"><div class="lbl">Hebel</div><div class="val">5-15x</div></div>
+  <div class="strat-item"><div class="lbl">Entry</div><div class="val">Limit bevorzugt</div></div>
+</div>
+<div class="strat-rule">
+  <b>Regeln:</b><br>
+  ✓ IMMER SL setzen — kein Trade ohne Exit-Plan<br>
+  ✓ R:R mindestens 1:2<br>
+  ✓ BTC-Richtung muss stimmen oder neutral sein<br>
+  ✓ Max 3 offene CK Positionen gleichzeitig<br>
+  ✗ KEINE Rache-Trades nach Verlust<br>
+  ✗ KEIN Nachkaufen einer Verlustposition ohne neue Analyse
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- Generelle Prinzipien -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="strat-card" style="border-left-color:#58a6ff;background:#0d1117">
+<div class="strat-name blue" style="margin-bottom:10px">Generelle Prinzipien</div>
+<div style="font-size:0.8rem;line-height:1.8;">
+  <b class="orange">Kapital:</b> Max 10% des Gesamtkapitals in einer einzelnen Position<br>
+  <b class="orange">Verluste:</b> Max 3% Kontoverlust pro Tag → Trading-Pause<br>
+  <b class="orange">BTC Check:</b> VOR JEDEM Trade BTC-Trend pruefen (Liq-Daten, TMO, SMA)<br>
+  <b class="orange">Korrelation:</b> Nicht 3x den gleichen Coin/Sektor gleichzeitig<br>
+  <b class="orange">Dokumentation:</b> Jeder Trade wird eingetragen — keine Ausnahmen<br>
+  <b class="orange">Emotionen:</b> Nach 2 Verlusten in Folge → 1h Pause, Chart neu bewerten
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- Kalkulator (kompakt) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="calc-section">
+<div class="calc-title">Trade Kalkulator</div>
+<div class="calc-row">
+  <div><label>Richtung</label><select id="dir"><option value="L">LONG</option><option value="S">SHORT</option></select></div>
   <div><label>Margin ($)</label><input type="number" id="margin" value="300" step="10"></div>
   <div><label>Hebel</label><input type="number" id="lev" value="10" step="1"></div>
+</div>
+<div class="calc-row">
   <div><label>Entry ($)</label><input type="number" id="entry" value="0.06" step="0.0001"></div>
-</div>
-<div class="row3">
-  <div><label>TP1 ($)</label><input type="number" id="tp1" step="0.0001"></div>
-  <div><label>TP2 ($)</label><input type="number" id="tp2" step="0.0001"></div>
-  <div><label>TP3 ($)</label><input type="number" id="tp3" step="0.0001"></div>
-</div>
-<div class="row">
-  <div><label>TP4 ($)</label><input type="number" id="tp4" step="0.0001"></div>
+  <div><label>TP ($)</label><input type="number" id="tp1" step="0.0001"></div>
   <div><label>SL ($)</label><input type="number" id="sl" step="0.0001"></div>
 </div>
-<div class="row">
-  <div><label>TP Split (%)</label><input type="text" id="split" value="25,25,25,25" placeholder="25,25,25,25"></div>
+<div class="calc-row">
+  <div><label>TP2 ($)</label><input type="number" id="tp2" step="0.0001"></div>
+  <div><label>TP Split (%)</label><input type="text" id="split" value="50,50" placeholder="50,50"></div>
   <div><label>Fee (%)</label><input type="number" id="fee" value="0.03" step="0.01"></div>
 </div>
 <button class="btn" onclick="calc()">Berechnen</button>
+<div class="result" id="result" style="display:none"></div>
 </div>
 
-<div class="section" id="resultSection" style="display:none">
-<div class="section-title">Ergebnis</div>
-<div class="result" id="result"></div>
-</div>
-
-<div class="section">
-<div class="section-title">Hebel-Aenderung Simulator</div>
-<div class="row3">
-  <div><label>Aktuelle Margin ($)</label><input type="number" id="hm" value="1338" step="10"></div>
-  <div><label>Position Value ($)</label><input type="number" id="hpv" value="9383" step="100"></div>
+<div class="calc-section">
+<div class="calc-title">Hebel-Simulator</div>
+<div class="calc-row">
+  <div><label>Margin ($)</label><input type="number" id="hm" value="1338" step="10"></div>
+  <div><label>Pos. Value ($)</label><input type="number" id="hpv" value="9383" step="100"></div>
   <div><label>Neuer Hebel</label><input type="number" id="hnew" value="15" step="1"></div>
 </div>
 <button class="btn" onclick="calcHebel()">Berechnen</button>
-<div class="result" id="hebelResult" style="margin-top:8px"></div>
+<div class="result" id="hebelResult" style="display:none"></div>
 </div>
 
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
@@ -84,63 +247,52 @@ function calc() {
   const entry = +document.getElementById('entry').value;
   const sl = +document.getElementById('sl').value;
   const fee = +document.getElementById('fee').value / 100;
-  const tps = [document.getElementById('tp1').value, document.getElementById('tp2').value, document.getElementById('tp3').value, document.getElementById('tp4').value].filter(v=>v).map(Number);
+  const tp1 = +document.getElementById('tp1').value;
+  const tp2v = document.getElementById('tp2').value;
+  const tp2 = tp2v ? +tp2v : 0;
   const splits = document.getElementById('split').value.split(',').map(Number);
 
   const posVal = margin * lev;
   const size = posVal / entry;
   const feeOpen = posVal * fee;
-
-  // Liquidation
   const mmr = 0.005;
   const maint = posVal * mmr;
   const liq = dir === 'L' ? entry - (margin - maint) / size : entry + (margin - maint) / size;
   const liqDist = Math.abs(entry - liq) / entry * 100;
 
-  let html = '<b>Position:</b> $' + posVal.toLocaleString() + ' | ' + size.toFixed(2) + ' Einheiten<br>';
-  html += '<b>Fee Open:</b> $' + feeOpen.toFixed(2) + '<br>';
-  html += '<b>Liq:</b> <span class="orange">$' + liq.toFixed(6) + '</span> (' + liqDist.toFixed(1) + '% vom Entry)<br>';
-  html += '<hr class="divider">';
+  let html = '<b>Pos:</b> $' + posVal.toLocaleString() + ' | <b>Liq:</b> <span class="orange">$' + liq.toFixed(entry<1?6:2) + '</span> (' + liqDist.toFixed(1) + '%)<br>';
 
-  // SL
   if (sl) {
     const slPnl = dir === 'L' ? (sl - entry) * size : (entry - sl) * size;
-    const slFee = Math.abs(sl * size * fee);
-    const slNet = slPnl - feeOpen - slFee;
-    const slRoi = slNet / margin * 100;
-    html += '<b>SL $' + sl + ':</b> <span class="red">$' + slNet.toFixed(0) + ' (' + slRoi.toFixed(1) + '% ROI)</span><br>';
-    html += '<hr class="divider">';
+    const slNet = slPnl - feeOpen - Math.abs(sl * size * fee);
+    html += '<b>SL:</b> <span class="red">$' + slNet.toFixed(0) + ' (' + (slNet/margin*100).toFixed(1) + '% ROI)</span><br>';
   }
 
-  // TPs
+  const tps = tp2 ? [tp1, tp2] : [tp1];
   let totalPnl = 0;
   tps.forEach((tp, i) => {
-    const pct = (splits[i] || 25) / 100;
+    if (!tp) return;
+    const pct = (splits[i] || 50) / 100;
     const tpPnl = dir === 'L' ? (tp - entry) * size : (entry - tp) * size;
-    const tpFee = Math.abs(tp * size * fee);
-    const tpNet = tpPnl - feeOpen - tpFee;
-    const tpRoi = tpNet / margin * 100;
+    const tpNet = tpPnl - feeOpen - Math.abs(tp * size * fee);
     const pricePct = dir === 'L' ? (tp - entry) / entry * 100 : (entry - tp) / entry * 100;
     const splitPnl = tpNet * pct;
     totalPnl += splitPnl;
     const cls = tpNet >= 0 ? 'green' : 'red';
-    html += '<b>TP' + (i+1) + ' $' + tp + '</b> (+' + pricePct.toFixed(1) + '%): <span class="' + cls + '">$' + tpNet.toFixed(0) + ' (' + tpRoi.toFixed(1) + '% ROI)</span> | ' + (splits[i]||25) + '% = $' + splitPnl.toFixed(0) + '<br>';
+    html += '<b>TP' + (i+1) + ':</b> <span class="' + cls + '">$' + tpNet.toFixed(0) + ' (' + (tpNet/margin*100).toFixed(0) + '% ROI)</span> × ' + (splits[i]||50) + '% = $' + splitPnl.toFixed(0) + '<br>';
   });
 
-  if (tps.length > 1) {
-    html += '<hr class="divider">';
-    html += '<b>Split Total:</b> <span class="green">$' + totalPnl.toFixed(0) + ' (' + (totalPnl/margin*100).toFixed(1) + '% ROI)</span><br>';
-  }
+  if (tps.length > 1) html += '<b>Split:</b> <span class="green">$' + totalPnl.toFixed(0) + '</span><br>';
 
-  // R:R
-  if (sl && tps.length) {
+  if (sl && tp1) {
     const risk = Math.abs(dir === 'L' ? (sl - entry) * size : (entry - sl) * size);
-    const reward = Math.abs(dir === 'L' ? (tps[0] - entry) * size : (entry - tps[0]) * size);
-    html += '<b>R:R (TP1):</b> ' + (reward/risk).toFixed(2) + ':1';
+    const reward = Math.abs(dir === 'L' ? (tp1 - entry) * size : (entry - tp1) * size);
+    html += '<b>R:R:</b> ' + (reward/risk).toFixed(1) + ':1';
   }
 
-  document.getElementById('result').innerHTML = html;
-  document.getElementById('resultSection').style.display = '';
+  const el = document.getElementById('result');
+  el.innerHTML = html;
+  el.style.display = '';
 }
 
 function calcHebel() {
@@ -149,16 +301,12 @@ function calcHebel() {
   const newLev = +document.getElementById('hnew').value;
   const newMargin = posVal / newLev;
   const freed = curMargin - newMargin;
-  const curLev = posVal / curMargin;
-
-  let html = 'Aktuell: ' + curLev.toFixed(1) + 'x (Margin $' + curMargin.toLocaleString() + ')<br>';
-  html += 'Neu: ' + newLev + 'x (Margin $' + newMargin.toFixed(0) + ')<br>';
-  if (freed > 0) {
-    html += '<span class="green">$' + freed.toFixed(0) + ' zum Rausnehmen</span> (manuell "Marge verringern")<br>';
-  } else {
-    html += '<span class="red">$' + Math.abs(freed).toFixed(0) + ' zusaetzlich noetig</span><br>';
-  }
-  document.getElementById('hebelResult').innerHTML = html;
+  const curLev = (posVal / curMargin).toFixed(1);
+  let html = curLev + 'x → ' + newLev + 'x | Margin: $' + curMargin + ' → $' + newMargin.toFixed(0) + '<br>';
+  html += freed > 0 ? '<span class="green">$' + freed.toFixed(0) + ' frei</span>' : '<span class="red">$' + Math.abs(freed).toFixed(0) + ' noetig</span>';
+  const el = document.getElementById('hebelResult');
+  el.innerHTML = html;
+  el.style.display = '';
 }
 </script>
 </body>
