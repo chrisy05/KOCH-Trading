@@ -415,6 +415,88 @@ Taker (0-1) + POC Position (0-1)
 </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- MANUAL: AlgoAlpha Chart lesen -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="topic">
+<div class="topic-header"><span class="topic-title">Manual: AlgoAlpha Chart lesen (Schritt fuer Schritt)</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+
+<p><b>Der Indikator zeigt 3 Profile rechts neben dem Preis-Chart. Zusammen ergeben sie eine komplette Karte des Orderflows.</b></p>
+
+<p><b>SCHRITT 1: Volume Profile (bunte Balken, links)</b></p>
+<p>Jeder Balken = ein Preis-Level. Laenge = wie viel Volumen dort gehandelt wurde.</p>
+<table>
+<tr><th>Farbe</th><th>Bedeutung</th><th>Relevanz</th></tr>
+<tr><td class="green">Dunkelgruen</td><td>Strong Buying (Top 3%)</td><td>Whale-Kaeufe — starker Support</td></tr>
+<tr><td style="color:#4ade80">Hellgruen</td><td>Weak Buying (normal)</td><td>Retail-Kaeufe — schwacher Support</td></tr>
+<tr><td style="color:#f87171">Hellrot</td><td>Weak Selling (normal)</td><td>Retail-Verkaeufe — schwache Resistance</td></tr>
+<tr><td class="red">Dunkelrot</td><td>Strong Selling (Top 3%)</td><td>Whale-Verkaeufe — starke Resistance</td></tr>
+</table>
+
+<p><b>Schluessel-Konzepte:</b></p>
+<ul>
+<li><b>POC (Point of Control):</b> Der laengste Balken = meistes Volumen = "fairer Preis". Preis wird dorthin zurueckgezogen.</li>
+<li><b>Lange Balken:</b> Viel Handel = Kampfzone. Kaeufer UND Verkaeufer waren aktiv.</li>
+<li><b>Kurze Balken / Luecken:</b> Vakuum — wenig Interesse. Preis rauscht dort SCHNELL durch.</li>
+<li><b>Preis unter POC:</b> Unter dem Gleichgewicht. Kann schnell fallen ODER zurueckgezogen werden.</li>
+<li><b>Preis ueber POC:</b> Ueber dem Gleichgewicht. Gleiche Logik umgekehrt.</li>
+</ul>
+
+<p><b>SCHRITT 2: Delta Profile (Zahlen in der Mitte)</b></p>
+<p>Delta = Buy Volume MINUS Sell Volume pro Preis-Level.</p>
+<ul>
+<li><b>△+5.85M (GRUEN):</b> Kaeufer haben 5.85M MEHR gehandelt als Verkaeufer → Kaufdruck</li>
+<li><b>△-11.61M (ROT):</b> Verkaeufer haben 11.61M MEHR gehandelt → Verkaufsdruck</li>
+</ul>
+
+<p><b>So lesen:</b> Scanne von oben nach unten. Wo wechselt die Farbe? Wo sind die groessten Zahlen?</p>
+<ul>
+<li>Grosse gruene Zahlen = dort haben Kaeufer die Kontrolle</li>
+<li>Grosse rote Zahlen = dort dominieren Verkaeufer</li>
+<li>Wechsel von gruen zu rot = Grenze zwischen Kauf- und Verkaufszone</li>
+</ul>
+
+<p><b>SCHRITT 3: Absorption Profile (graue Balken, rechts)</b></p>
+<p>Absorption = Volumen in den DOCHTEN (Wicks) der Kerzen.</p>
+<p>Wenn eine Kerze einen langen Docht hat: der Preis WOLLTE dorthin, wurde aber ZURUECKGEDRUECKT. Jemand hat die Bewegung absorbiert — eine unsichtbare Wand.</p>
+<ul>
+<li><b>Langer grauer Balken:</b> Starke Absorption = starke Wand (Support oder Resistance)</li>
+<li><b>Kurzer grauer Balken:</b> Wenig Absorption = keine Wand, Preis geht durch</li>
+<li><b>Absorption Peaks:</b> Hoehe &gt; beide Nachbarn = definiertes Support/Resistance Level</li>
+</ul>
+
+<p><b>SCHRITT 4: Zusammensetzen — Die Karte lesen</b></p>
+<p>Fuer jede Preiszone (oben, mitte, unten) alle 3 Profile zusammen lesen:</p>
+
+<div class="example"><b>Beispiel HBAR 4H (28.05.2026):</b><br><br>
+<b>OBEN ($0.094+):</b> Wenig Volume + Gruenes Delta + Wenig Absorption<br>
+→ Vakuum. Kein Widerstand, kein Interesse. Preis ist durchgefallen.<br><br>
+<b>MITTE ($0.089-0.093):</b> Mittleres Volume + STARK ROTES Delta (△-17.6M) + Mittlere Absorption<br>
+→ VERKAUFSDRUCK. Hier wird aktiv verkauft. Preis wird hier nicht gehalten.<br><br>
+<b>UNTEN ($0.084-0.088):</b> HOHES Volume (POC) + GRUENES Delta (△+12.4M) + GROSSE Absorption<br>
+→ SUPPORT-WAND. Kaeufer + hohe Absorption = starker Boden.<br><br>
+<b>Ergebnis:</b> Kurzfristig runter auf $0.085-0.088 (Support-Test). Danach schneller Bounce moeglich durch das Vakuum oben.</div>
+
+<p><b>SCHRITT 5: Wohin wird der Preis gezogen?</b></p>
+<p>Der Preis bewegt sich IMMER dorthin wo Liquiditaet ist:</p>
+<ul>
+<li><b>Hohes Volumen + Absorption:</b> Dort warten Auftraege = Magnet</li>
+<li><b>Liquidation Cluster:</b> Dort werden Positionen zwangs-geschlossen = neues Volumen</li>
+<li><b>Vakuum dazwischen:</b> Preis rauscht schnell durch = wenig Widerstand</li>
+</ul>
+
+<p><b>Merke:</b></p>
+<ul>
+<li>Support = Absorption + Gruenes Delta + Hohes Volumen (alle 3 zusammen)</li>
+<li>Resistance = Absorption + Rotes Delta + Hohes Volumen</li>
+<li>Nur 1 von 3 = schwach. Alle 3 zusammen = stark.</li>
+<li>Vakuum (wenig von allem) = Preis bewegt sich dort schnell</li>
+</ul>
+
+</div>
+</div>
+
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 </body>
 </html>
