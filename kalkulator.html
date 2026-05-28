@@ -40,6 +40,8 @@ h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
 .divider{border:none;border-top:1px solid #21262d;margin:16px 0}
 
 /* Kalkulator compact */
+.calc-wrap{max-width:50%;margin:0 auto}
+@media(max-width:700px){.calc-wrap{max-width:100%}}
 .calc-section{background:#161b22;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #21262d}
 .calc-title{color:#58a6ff;font-size:0.85rem;font-weight:600;margin-bottom:8px}
 .calc-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px}
@@ -71,6 +73,8 @@ input:focus{border-color:#58a6ff;outline:none}
   <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$1,000</div></div>
   <div class="strat-item"><div class="lbl">Hebel</div><div class="val">9-15x</div></div>
   <div class="strat-item"><div class="lbl">Entry</div><div class="val">Market Order</div></div>
+  <div class="strat-item"><div class="lbl">Gewinnziel</div><div class="val green">~1%</div></div>
+  <div class="strat-item"><div class="lbl">TP Split</div><div class="val">50% bei TP1, Rest nach Verlauf</div></div>
 </div>
 <div class="strat-rule">
   <b>Regeln:</b><br>
@@ -95,6 +99,8 @@ input:focus{border-color:#58a6ff;outline:none}
   <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$500</div></div>
   <div class="strat-item"><div class="lbl">Hebel</div><div class="val">10-25x</div></div>
   <div class="strat-item"><div class="lbl">Entry</div><div class="val">Limit an Liq-Level</div></div>
+  <div class="strat-item"><div class="lbl">Gewinnziel</div><div class="val green">1-3%</div></div>
+  <div class="strat-item"><div class="lbl">TP Split</div><div class="val">2x TP, ev. Rest 3%+</div></div>
 </div>
 <div class="strat-rule">
   <b>Regeln:</b><br>
@@ -121,6 +127,8 @@ input:focus{border-color:#58a6ff;outline:none}
   <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$1,000</div></div>
   <div class="strat-item"><div class="lbl">Hebel</div><div class="val">10-20x</div></div>
   <div class="strat-item"><div class="lbl">Entry</div><div class="val">Limit an Absorption Zone</div></div>
+  <div class="strat-item"><div class="lbl">Gewinnziel</div><div class="val green">mind. 5%</div></div>
+  <div class="strat-item"><div class="lbl">TP Split / Dauer</div><div class="val">25% TP1, Rest nach Verlauf | ~3-4 Tage</div></div>
 </div>
 <div class="strat-rule">
   <b>Regeln:</b><br>
@@ -147,6 +155,7 @@ input:focus{border-color:#58a6ff;outline:none}
   <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">2% vom Konto</div></div>
   <div class="strat-item"><div class="lbl">Hebel</div><div class="val">Vom Trader</div></div>
   <div class="strat-item"><div class="lbl">Entry</div><div class="val">Automatisch (Copy)</div></div>
+  <div class="strat-item"><div class="lbl">Gewinnziel</div><div class="val green">Exakte Vorgaben von MT</div></div>
 </div>
 <div class="strat-rule">
   <b>Regeln:</b><br>
@@ -168,9 +177,10 @@ input:focus{border-color:#58a6ff;outline:none}
 </div>
 <div class="strat-grid">
   <div class="strat-item"><div class="lbl">Basis</div><div class="val">Eigene Analyse</div></div>
-  <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$1,500</div></div>
+  <div class="strat-item"><div class="lbl">Max Margin</div><div class="val orange">$1,000</div></div>
   <div class="strat-item"><div class="lbl">Hebel</div><div class="val">5-15x</div></div>
   <div class="strat-item"><div class="lbl">Entry</div><div class="val">Limit bevorzugt</div></div>
+  <div class="strat-item"><div class="lbl">Gewinnziel</div><div class="val green">mind. 10%</div></div>
 </div>
 <div class="strat-rule">
   <b>Regeln:</b><br>
@@ -205,6 +215,7 @@ input:focus{border-color:#58a6ff;outline:none}
 <!-- ═══════════════════════════════════════════════════ -->
 <!-- Kalkulator (kompakt) -->
 <!-- ═══════════════════════════════════════════════════ -->
+<div class="calc-wrap">
 <div class="calc-section">
 <div class="calc-title">Trade Kalkulator</div>
 <div class="calc-row">
@@ -237,6 +248,7 @@ input:focus{border-color:#58a6ff;outline:none}
 <div class="result" id="hebelResult" style="display:none"></div>
 </div>
 
+</div><!-- /calc-wrap -->
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 
 <script>
