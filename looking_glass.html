@@ -116,6 +116,8 @@ function accBadge(acc, total) {
 
 // ── Signal label mapping ──────────────────────────────────────────────────
 const SIGNAL_LABELS = {
+    liq_magnet: 'Liq Magnet Target',
+    algoalpha_delta: 'AlgoAlpha Delta',
     funding: 'Funding Rate',
     oi_change: 'OI Change',
     ls_ratio: 'Long/Short Ratio',
@@ -247,7 +249,7 @@ function renderLiquidation(entry) {
 
 function renderSignalTable(signals, score, direction) {
     let rows = '';
-    const order = ['funding','oi_change','ls_ratio','top_traders','taker_ratio','momentum','ee_momentum','rsi','volume','bybit_oi_divergence','mempool_activity','options_pcr','onchain_tx_volume','onchain_addresses','onchain_mempool','liquidations'];
+    const order = ['liq_magnet','algoalpha_delta','ls_ratio','taker_ratio','ee_momentum','options_pcr','rsi','volume','liquidations','onchain_tx_volume','onchain_addresses','funding','oi_change','top_traders','momentum','bybit_oi_divergence','mempool_activity','onchain_mempool'];
     for (const key of order) {
         if (!signals[key]) continue;
         const sig = signals[key];
