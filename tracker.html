@@ -207,6 +207,47 @@ async function loadClosed() {
   } catch(e) {}
 }
 loadClosed();
+
+// Watchlist
+const watchlist = [
+  {coin:'BAT', sym:'BATUSDT', bias:'LONG', score:'—', notiz:'Weekly: POC $0.24, grünes Delta. Warte auf Boden bei $0.13+', update:'28.05.'},
+  {coin:'NEO', sym:'NEOUSDT', bias:'LONG', score:'—', notiz:'Delta GRÜN am Preis, L/S neutral 57%, RSI Bull. Entry ~$2.76', update:'28.05.'},
+  {coin:'HBAR', sym:'HBARUSDT', bias:'—', score:'—', notiz:'Support $0.084-0.088 (Absorption+Delta grün). Verkaufsdruck bei $0.090', update:'28.05.'},
+  {coin:'DYDX', sym:'DYDXUSDT', bias:'—', score:'—', notiz:'Beobachten', update:'28.05.'},
+  {coin:'FIL', sym:'FILUSDT', bias:'SHORT', score:'13/15', notiz:'AlgoAlpha SHORT Setup. Entry $0.971, TP $0.86. Delta STRONG BEARISH', update:'28.05.'},
+  {coin:'FIDA', sym:'FIDAUSDT', bias:'—', score:'—', notiz:'Beobachten', update:'28.05.'},
+  {coin:'HYPE', sym:'HYPEUSDT', bias:'—', score:'—', notiz:'Beobachten', update:'28.05.'},
+  {coin:'JASMY', sym:'JASMYUSDT', bias:'—', score:'—', notiz:'Beobachten', update:'28.05.'},
+  {coin:'DOGE', sym:'DOGEUSDT', bias:'SHORT', score:'12/15', notiz:'L/S 70% Long, Liq Magnet DOWN', update:'28.05.'},
+  {coin:'TON', sym:'TONUSDT', bias:'—', score:'—', notiz:'Beobachten', update:'28.05.'},
+  {coin:'BANANAS31', sym:'BANANAS31USDT', bias:'—', score:'3/15', notiz:'L/S 35% Long (Shorts überfüllt) aber alle TF bearish. Widersprüchlich', update:'28.05.'},
+];
+
+async function loadWatchlist() {
+  let html = '';
+  for (const w of watchlist) {
+    let price = '—';
+    try {
+      const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + w.sym);
+      const d = await r.json();
+      const p = parseFloat(d.price);
+      const dec = p < 0.01 ? 5 : (p < 1 ? 4 : (p < 10 ? 3 : 2));
+      price = '$' + p.toFixed(dec);
+    } catch(e) {}
+
+    const biasColor = w.bias === 'LONG' ? 'color:#22c55e' : w.bias === 'SHORT' ? 'color:#ef4444' : 'color:#8b949e';
+    html += '<tr style="border-bottom:1px solid #161f30;">';
+    html += '<td style="padding:4px;font-weight:600;color:#f59e0b;">' + w.coin + '</td>';
+    html += '<td style="padding:4px;text-align:right;">' + price + '</td>';
+    html += '<td style="padding:4px;text-align:center;font-weight:600;' + biasColor + '">' + w.bias + '</td>';
+    html += '<td style="padding:4px;text-align:center;">' + w.score + '</td>';
+    html += '<td style="padding:4px;color:#8b949e;font-size:0.7rem;">' + w.notiz + '</td>';
+    html += '<td style="padding:4px;text-align:right;color:#484f58;font-size:0.65rem;">' + w.update + '</td>';
+    html += '</tr>';
+  }
+  document.getElementById('watchlist').innerHTML = html;
+}
+loadWatchlist();
 </script>
 </body>
 </html>
