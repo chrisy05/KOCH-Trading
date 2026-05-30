@@ -271,6 +271,29 @@ input:focus{border-color:#58a6ff;outline:none}
 <div class="result" id="zukaufResult" style="display:none"></div>
 </div>
 
+<div class="calc-section">
+<div class="calc-title">DCA Rechner (Dollar Cost Average)</div>
+<div class="calc-row">
+  <div><label>Richtung</label><select id="dcaDir"><option value="L">LONG</option><option value="S">SHORT</option></select></div>
+  <div><label>Hebel</label><input type="number" id="dcaLev" value="10" step="1"></div>
+  <div><label>Akt. Preis ($)</label><input type="number" id="dcaPrice" step="0.0001"></div>
+</div>
+<div style="font-size:0.7rem;color:#8b949e;margin:6px 0 4px;text-transform:uppercase;letter-spacing:0.5px">Bestehende Position</div>
+<div class="calc-row">
+  <div><label>Entry ($)</label><input type="number" id="dcaEntry" step="0.0001"></div>
+  <div><label>Margin ($)</label><input type="number" id="dcaMargin" step="10"></div>
+  <div><label>Size (Coins)</label><input type="number" id="dcaSize" step="0.01"></div>
+</div>
+<div style="font-size:0.7rem;color:#8b949e;margin:6px 0 4px;text-transform:uppercase;letter-spacing:0.5px">DCA Plan</div>
+<div class="calc-row">
+  <div><label>Anzahl Zukaufe</label><input type="number" id="dcaCount" value="3" min="1" max="10" step="1"></div>
+  <div><label>Margin pro Zukauf ($)</label><input type="number" id="dcaAmount" value="100" step="10"></div>
+  <div><label>Abstand (%)</label><input type="number" id="dcaSpacing" value="2" step="0.5"></div>
+</div>
+<button class="btn" onclick="calcDCA()">Berechnen</button>
+<div class="result" id="dcaResult" style="display:none"></div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════ -->
 <!-- Coin Liquidity Analyzer -->
 <!-- ═══════════════════════════════════════════════════ -->
@@ -411,6 +434,104 @@ function calcZukauf() {
   });
 
   const el = document.getElementById('zukaufResult');
+  el.innerHTML = html;
+  el.style.display = '';
+}
+
+function calcDCA() {
+  const dir = document.getElementById('dcaDir').value;
+  const lev = +document.getElementById('dcaLev').value;
+  const curPrice = +document.getElementById('dcaPrice').value;
+  const entry = +document.getElementById('dcaEntry').value;
+  const margin = +document.getElementById('dcaMargin').value;
+  const size = +document.getElementById('dcaSize').value;
+  const count = +document.getElementById('dcaCount').value;
+  const amount = +document.getElementById('dcaAmount').value;
+  const spacing = +document.getElementById('dcaSpacing').value / 100;
+
+  if (!curPrice || !entry || !size || !count || !amount) return;
+
+  const dec = entry < 1 ? 5 : (entry < 10 ? 3 : 2);
+
+  // Build DCA levels
+  let levels = [];
+  let totalSize = size;
+  let totalMargin = margin;
+  let totalCost = size * entry; // weighted cost
+
+  let html = '<b>BESTEHEND:</b> Entry $' + entry.toFixed(dec) + ' | ' + size.toFixed(0) + ' Coins | Margin $' + margin + '<hr class="calc-divider">';
+  html += '<b>DCA PLAN:</b><br>';
+
+  for (let i = 0; i < count; i++) {
+    let dcaPrice;
+    if (dir === 'L') {
+      // LONG: DCA below current price
+      dcaPrice = curPrice * (1 - spacing * (i + 1));
+    } else {
+      // SHORT: DCA above current price
+      dcaPrice = curPrice * (1 + spacing * (i + 1));
+    }
+
+    let dcaPos = amount * lev;
+    let dcaSize = dcaPos / dcaPrice;
+    totalSize += dcaSize;
+    totalMargin += amount;
+    totalCost += dcaSize * dcaPrice;
+
+    let avgEntry = totalCost / totalSize;
+    let dist = dir === 'L' ? (dcaPrice - curPrice) / curPrice * 100 : (curPrice - dcaPrice) / curPrice * 100;
+
+    levels.push({ price: dcaPrice, size: dcaSize, avgEntry: avgEntry, totalSize: totalSize, totalMargin: totalMargin });
+
+    html += '<span class="blue">Zukauf ' + (i + 1) + ':</span> $' + dcaPrice.toFixed(dec) + ' (' + dist.toFixed(1) + '%) | +' + dcaSize.toFixed(0) + ' Coins | +$' + amount + ' Margin<br>';
+    html += '  → Avg Entry: <b class="green">$' + avgEntry.toFixed(dec) + '</b> | Total: ' + totalSize.toFixed(0) + ' Coins | Margin: $' + totalMargin + '<br>';
+  }
+
+  // Final summary
+  let finalAvg = totalCost / totalSize;
+  let totalDcaMargin = amount * count;
+
+  html += '<hr class="calc-divider">';
+  html += '<b>ERGEBNIS NACH ALLEN ZUKAUFEN:</b><br>';
+  html += 'Avg Entry: <b class="green">$' + finalAvg.toFixed(dec) + '</b> (war $' + entry.toFixed(dec) + ')<br>';
+  html += 'Total Size: <b>' + totalSize.toFixed(0) + '</b> Coins | Total Margin: <b>$' + totalMargin + '</b><br>';
+  html += 'DCA Kosten: <b class="orange">$' + totalDcaMargin + '</b> (' + count + ' × $' + amount + ')<br>';
+
+  // Liq estimate
+  let mmr = 0.005;
+  let totalPos = totalSize * curPrice;
+  let maint = totalPos * mmr;
+  let liq = dir === 'L' ? finalAvg - (totalMargin - maint) / totalSize : finalAvg + (totalMargin - maint) / totalSize;
+  let liqDist = Math.abs(liq - curPrice) / curPrice * 100;
+  html += 'Liq: <span class="orange">$' + liq.toFixed(dec) + '</span> (' + liqDist.toFixed(1) + '% vom Preis)<br>';
+
+  // PnL at different scenarios
+  html += '<hr class="calc-divider">';
+  html += '<b>PNL SZENARIEN:</b><br>';
+  let targets;
+  if (dir === 'L') {
+    targets = [
+      { label: 'TP +5%', price: finalAvg * 1.05 },
+      { label: 'TP +10%', price: finalAvg * 1.10 },
+      { label: 'TP +20%', price: finalAvg * 1.20 },
+      { label: 'Breakeven', price: finalAvg },
+    ];
+  } else {
+    targets = [
+      { label: 'TP -5%', price: finalAvg * 0.95 },
+      { label: 'TP -10%', price: finalAvg * 0.90 },
+      { label: 'TP -20%', price: finalAvg * 0.80 },
+      { label: 'Breakeven', price: finalAvg },
+    ];
+  }
+  targets.forEach(function(t) {
+    let pnl = dir === 'L' ? (t.price - finalAvg) * totalSize : (finalAvg - t.price) * totalSize;
+    let roi = pnl / totalMargin * 100;
+    let cls = pnl >= 0 ? 'green' : 'red';
+    html += t.label + ' ($' + t.price.toFixed(dec) + '): <span class="' + cls + '">' + (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(0) + ' (' + roi.toFixed(0) + '% ROI)</span><br>';
+  });
+
+  const el = document.getElementById('dcaResult');
   el.innerHTML = html;
   el.style.display = '';
 }
