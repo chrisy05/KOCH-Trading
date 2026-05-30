@@ -248,6 +248,29 @@ input:focus{border-color:#58a6ff;outline:none}
 <div class="result" id="hebelResult" style="display:none"></div>
 </div>
 
+<div class="calc-section">
+<div class="calc-title">Zukauf-Rechner (Avg Entry)</div>
+<div class="calc-row">
+  <div><label>Richtung</label><select id="zDir"><option value="L">LONG</option><option value="S">SHORT</option></select></div>
+  <div><label>Hebel</label><input type="number" id="zLev" value="5" step="1"></div>
+  <div><label>Akt. Preis ($)</label><input type="number" id="zPrice" step="0.0001"></div>
+</div>
+<div style="font-size:0.7rem;color:#8b949e;margin:6px 0 4px;text-transform:uppercase;letter-spacing:0.5px">Bestehende Position</div>
+<div class="calc-row">
+  <div><label>Entry ($)</label><input type="number" id="zEntry1" step="0.0001"></div>
+  <div><label>Margin ($)</label><input type="number" id="zMargin1" step="10"></div>
+  <div><label>Size (Coins)</label><input type="number" id="zSize1" step="0.01"></div>
+</div>
+<div style="font-size:0.7rem;color:#8b949e;margin:6px 0 4px;text-transform:uppercase;letter-spacing:0.5px">Zukauf</div>
+<div class="calc-row">
+  <div><label>Zukauf Margin ($)</label><input type="number" id="zMargin2" step="10"></div>
+  <div><label>Zukauf Preis ($)</label><input type="number" id="zEntry2" step="0.0001"></div>
+  <div></div>
+</div>
+<button class="btn" onclick="calcZukauf()">Berechnen</button>
+<div class="result" id="zukaufResult" style="display:none"></div>
+</div>
+
 </div><!-- /calc-wrap -->
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 
@@ -317,6 +340,64 @@ function calcHebel() {
   let html = curLev + 'x → ' + newLev + 'x | Margin: $' + curMargin + ' → $' + newMargin.toFixed(0) + '<br>';
   html += freed > 0 ? '<span class="green">$' + freed.toFixed(0) + ' frei</span>' : '<span class="red">$' + Math.abs(freed).toFixed(0) + ' noetig</span>';
   const el = document.getElementById('hebelResult');
+  el.innerHTML = html;
+  el.style.display = '';
+}
+
+function calcZukauf() {
+  const dir = document.getElementById('zDir').value;
+  const lev = +document.getElementById('zLev').value;
+  const curPrice = +document.getElementById('zPrice').value;
+  const entry1 = +document.getElementById('zEntry1').value;
+  const margin1 = +document.getElementById('zMargin1').value;
+  const size1 = +document.getElementById('zSize1').value;
+  const margin2 = +document.getElementById('zMargin2').value;
+  const entry2v = document.getElementById('zEntry2').value;
+  const entry2 = entry2v ? +entry2v : curPrice;
+
+  const pos2 = margin2 * lev;
+  const size2 = pos2 / entry2;
+  const totalSize = size1 + size2;
+  const avgEntry = (size1 * entry1 + size2 * entry2) / totalSize;
+  const totalMargin = margin1 + margin2;
+  const totalPos = totalSize * curPrice;
+
+  const dec = entry1 < 1 ? 5 : (entry1 < 10 ? 3 : 2);
+
+  // PnL at current price
+  const pnlNow = dir === 'L' ? (curPrice - avgEntry) * totalSize : (avgEntry - curPrice) * totalSize;
+  const roiNow = pnlNow / totalMargin * 100;
+
+  // Liq estimate
+  const mmr = 0.005;
+  const maint = totalPos * mmr;
+  const liq = dir === 'L' ? avgEntry - (totalMargin - maint) / totalSize : avgEntry + (totalMargin - maint) / totalSize;
+
+  // Breakeven distance
+  const beDist = dir === 'L' ? (avgEntry - curPrice) / curPrice * 100 : (curPrice - avgEntry) / curPrice * 100;
+
+  let html = '<b>VORHER:</b> Entry $' + entry1.toFixed(dec) + ' | ' + size1.toFixed(0) + ' Coins | Margin $' + margin1 + '<br>';
+  html += '<b>ZUKAUF:</b> $' + entry2.toFixed(dec) + ' | +' + size2.toFixed(0) + ' Coins | +$' + margin2 + ' Margin<br>';
+  html += '<hr class="calc-divider">';
+  html += '<b>NACHHER:</b><br>';
+  html += 'Avg Entry: <span class="blue">$' + avgEntry.toFixed(dec) + '</span> (war $' + entry1.toFixed(dec) + ')<br>';
+  html += 'Total: ' + totalSize.toFixed(0) + ' Coins | Margin $' + totalMargin + '<br>';
+  html += 'Liq: <span class="orange">$' + liq.toFixed(dec) + '</span> (' + (Math.abs(liq-curPrice)/curPrice*100).toFixed(0) + '% vom Preis)<br>';
+  html += '<hr class="calc-divider">';
+
+  const cls = pnlNow >= 0 ? 'green' : 'red';
+  html += 'PnL bei $' + curPrice.toFixed(dec) + ': <span class="' + cls + '">' + (pnlNow>=0?'+':'') + '$' + pnlNow.toFixed(0) + ' (' + roiNow.toFixed(0) + '% ROI)</span><br>';
+
+  // Show at different prices
+  const targets = dir === 'L' ? [curPrice*1.05, curPrice*1.10, curPrice*1.20] : [curPrice*0.95, curPrice*0.90, curPrice*0.80];
+  targets.forEach(tp => {
+    const tpPnl = dir === 'L' ? (tp - avgEntry) * totalSize : (avgEntry - tp) * totalSize;
+    const tpCls = tpPnl >= 0 ? 'green' : 'red';
+    const pct = ((tp - curPrice) / curPrice * 100);
+    html += 'Bei $' + tp.toFixed(dec) + ' (' + (pct>=0?'+':'') + pct.toFixed(0) + '%): <span class="' + tpCls + '">' + (tpPnl>=0?'+':'') + '$' + tpPnl.toFixed(0) + '</span><br>';
+  });
+
+  const el = document.getElementById('zukaufResult');
   el.innerHTML = html;
   el.style.display = '';
 }
