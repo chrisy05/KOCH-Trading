@@ -592,24 +592,78 @@ async function runAnalysis() {
     let shortC=Object.values(scores).filter(s=>s==='SHORT').length;
     let coinBias = longC>shortC+1?'LONG':(shortC>longC+1?'SHORT':'NEUTRAL');
 
-    // Resume builder
-    function buildResume(btcDir) {
-      if (coinBias==='LONG') {
-        if (btcDir==='LONG') return {cls:'green',icon:'▲',text:'LONG — Coin bullish + BTC Rueckenwind. Optimales Setup. Entry an Support/Absorption, TP am Liqi-Cluster oben.'};
-        if (btcDir==='SIDE') return {cls:'blue',icon:'►',text:'LONG moeglich — Coin bullish, BTC neutral. Funktioniert, aber mit kleinerem Size. Engerer SL.'};
-        return {cls:'orange',icon:'⏸',text:'ABWARTEN — Coin zwar bullish, aber BTC bearish ueberwiegt. Erst Boden bei BTC abwarten.'};
-      } else if (coinBias==='SHORT') {
-        if (btcDir==='LONG') return {cls:'orange',icon:'⏸',text:'ABWARTEN — Coin bearish, aber BTC steigt. Gegenwind zu stark. Kein Entry.'};
-        if (btcDir==='SIDE') return {cls:'blue',icon:'►',text:'SHORT moeglich — Coin bearish, BTC neutral. Setup ok mit normalem Size.'};
-        return {cls:'red',icon:'▼',text:'SHORT — Coin bearish + BTC faellt. Doppelte Bestaetigung. Aggressiver Entry moeglich.'};
+    // Probability calculation
+    // Base: coin score strength (0-7 mapped to conviction)
+    let coinStrength = Math.max(longC, shortC) / 7; // 0..1
+    let neutralPenalty = (7-longC-shortC) / 7 * 0.15; // more neutrals = less certainty
+
+    // Distance factor: closer liqi = higher probability
+    let distFactor = distDown < distUp
+      ? Math.min(distDown / (distDown + distUp) * 0.1, 0.05)  // longs closer = short bonus
+      : Math.min(distUp / (distDown + distUp) * 0.1, 0.05);
+
+    // Delta strength factor
+    let deltaFactor = Math.min(deltaRatio / 100 * 0.1, 0.08);
+
+    // OB ratio factor
+    let obFactor = Math.abs(obRatio - 1) * 0.05;
+
+    function calcProb(btcDir) {
+      // Aligned = coin bias matches the scenario direction
+      let coinDir = longC > shortC ? 'LONG' : (shortC > longC ? 'SHORT' : 'NEUTRAL');
+      let base = 35; // baseline
+
+      // Coin score contribution (up to +25%)
+      base += coinStrength * 25;
+      base -= neutralPenalty * 100;
+
+      // BTC alignment bonus/penalty
+      if (coinDir === 'LONG') {
+        if (btcDir === 'LONG') base += 15 + deltaFactor*100 + obFactor*100;
+        else if (btcDir === 'SIDE') base += 5;
+        else base -= 15;
+      } else if (coinDir === 'SHORT') {
+        if (btcDir === 'SHORT') base += 15 + deltaFactor*100 + obFactor*100;
+        else if (btcDir === 'SIDE') base += 5;
+        else base -= 15;
       } else {
-        if (btcDir==='LONG') return {cls:'blue',icon:'►',text:'LONG Tendenz — Coin neutral, BTC gibt die Richtung. Kleiner Size, weiter SL.'};
-        if (btcDir==='SIDE') return {cls:'orange',icon:'⏸',text:'KEIN TRADE — Coin neutral + BTC seitwaerts. Kein Edge. Warten auf klares Signal.'};
-        return {cls:'blue',icon:'►',text:'SHORT Tendenz — Coin neutral, BTC baerisch drueckt. Kleiner Size, konservativ.'};
+        // Neutral coin — BTC decides
+        if (btcDir === 'LONG') base += 5;
+        else if (btcDir === 'SHORT') base += 5;
+        else base -= 10;
+      }
+
+      // Distance bonus for matching direction
+      if ((coinDir==='SHORT' && distDown<distUp) || (coinDir==='LONG' && distUp<distDown)) {
+        base += distFactor * 100;
+      }
+
+      return Math.max(5, Math.min(85, Math.round(base)));
+    }
+
+    let probA = calcProb('LONG');
+    let probB = calcProb('SIDE');
+    let probC = calcProb('SHORT');
+
+    // Resume builder
+    function buildResume(btcDir, prob) {
+      let pStr = prob + '%';
+      if (coinBias==='LONG') {
+        if (btcDir==='LONG') return {cls:'green',icon:'▲',prob:pStr,text:'LONG — Coin bullish + BTC Rueckenwind. Optimales Setup. Entry an Support/Absorption, TP am Liqi-Cluster oben.'};
+        if (btcDir==='SIDE') return {cls:'blue',icon:'►',prob:pStr,text:'LONG moeglich — Coin bullish, BTC neutral. Funktioniert, aber mit kleinerem Size. Engerer SL.'};
+        return {cls:'orange',icon:'⏸',prob:pStr,text:'ABWARTEN — Coin zwar bullish, aber BTC bearish ueberwiegt. Erst Boden bei BTC abwarten.'};
+      } else if (coinBias==='SHORT') {
+        if (btcDir==='LONG') return {cls:'orange',icon:'⏸',prob:pStr,text:'ABWARTEN — Coin bearish, aber BTC steigt. Gegenwind zu stark. Kein Entry.'};
+        if (btcDir==='SIDE') return {cls:'blue',icon:'►',prob:pStr,text:'SHORT moeglich — Coin bearish, BTC neutral. Setup ok mit normalem Size.'};
+        return {cls:'red',icon:'▼',prob:pStr,text:'SHORT — Coin bearish + BTC faellt. Doppelte Bestaetigung. Aggressiver Entry moeglich.'};
+      } else {
+        if (btcDir==='LONG') return {cls:'blue',icon:'►',prob:pStr,text:'LONG Tendenz — Coin neutral, BTC gibt die Richtung. Kleiner Size, weiter SL.'};
+        if (btcDir==='SIDE') return {cls:'orange',icon:'⏸',prob:pStr,text:'KEIN TRADE — Coin neutral + BTC seitwaerts. Kein Edge. Warten auf klares Signal.'};
+        return {cls:'blue',icon:'►',prob:pStr,text:'SHORT Tendenz — Coin neutral, BTC baerisch drueckt. Kleiner Size, konservativ.'};
       }
     }
 
-    let resA=buildResume('LONG'), resB=buildResume('SIDE'), resC=buildResume('SHORT');
+    let resA=buildResume('LONG',probA), resB=buildResume('SIDE',probB), resC=buildResume('SHORT',probC);
 
     // Score badge helper
     function badge(val) {
@@ -675,7 +729,7 @@ async function runAnalysis() {
 
     // Score overview
     h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
-    h += '<b class="purple">SCORE</b> ('+longC+'L / '+shortC+'S / '+(7-longC-shortC)+'N)<br>';
+    h += '<b class="purple">SCORE</b> '+longC+'L / '+shortC+'S / '+(7-longC-shortC)+'N (max 7)<br>';
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px">';
     h += '<div>Delta: '+badge(scores.delta)+'</div>';
     h += '<div>Orderbook: '+badge(scores.ob)+'</div>';
@@ -699,15 +753,15 @@ async function runAnalysis() {
     h += '<div style="background:#161b22;padding:8px 10px;font-weight:700;color:#8b5cf6;font-size:0.85rem;border-bottom:1px solid #21262d">RESUEMEE</div>';
 
     h += '<div style="background:#0d1117;padding:10px;border-bottom:1px solid #21262d;font-size:0.78rem;line-height:1.6">';
-    h += '<b class="green">A) BTC Long:</b><br>';
+    h += '<b class="green">A) BTC Long</b> <span style="float:right;font-weight:700;color:'+(probA>=50?'#22c55e':'#f59e0b')+'">'+resA.prob+'</span><br>';
     h += '<span class="'+resA.cls+'">'+resA.icon+' '+resA.text+'</span></div>';
 
     h += '<div style="background:#0d1117;padding:10px;border-bottom:1px solid #21262d;font-size:0.78rem;line-height:1.6">';
-    h += '<b class="blue">B) BTC Seitwaerts:</b><br>';
+    h += '<b class="blue">B) BTC Seitwaerts</b> <span style="float:right;font-weight:700;color:'+(probB>=50?'#22c55e':'#f59e0b')+'">'+resB.prob+'</span><br>';
     h += '<span class="'+resB.cls+'">'+resB.icon+' '+resB.text+'</span></div>';
 
     h += '<div style="background:#0d1117;padding:10px;font-size:0.78rem;line-height:1.6">';
-    h += '<b class="red">C) BTC Short:</b><br>';
+    h += '<b class="red">C) BTC Short</b> <span style="float:right;font-weight:700;color:'+(probC>=50?'#22c55e':'#f59e0b')+'">'+resC.prob+'</span><br>';
     h += '<span class="'+resC.cls+'">'+resC.icon+' '+resC.text+'</span></div>';
 
     h += '</div>';
