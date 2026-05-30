@@ -271,6 +271,19 @@ input:focus{border-color:#58a6ff;outline:none}
 <div class="result" id="zukaufResult" style="display:none"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- Coin Liquidity Analyzer -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="calc-section" style="border-left:3px solid #8b5cf6">
+<div class="calc-title" style="color:#8b5cf6;font-size:0.95rem">Coin Liquidity Analyzer</div>
+<div style="display:flex;gap:6px;margin-bottom:6px">
+  <div style="flex:1"><label>Coin</label><input type="text" id="liqCoin" placeholder="z.B. TON, BAT, SOL..." style="text-transform:uppercase;font-size:1rem;padding:8px"></div>
+  <div style="display:flex;align-items:flex-end"><button class="btn" style="background:#8b5cf6;padding:8px 20px;white-space:nowrap" onclick="runAnalysis()">Analysieren</button></div>
+</div>
+<div id="liqLoading" style="display:none;text-align:center;padding:20px;color:#8b949e">Lade Daten von Binance...</div>
+<div id="liqResult" style="display:none"></div>
+</div>
+
 </div><!-- /calc-wrap -->
 <div style="text-align:center;margin-top:10px;color:#484f58;font-size:0.7rem;"><a href="cockpit.html" style="color:#484f58;text-decoration:none;">← Cockpit</a></div>
 
@@ -401,6 +414,317 @@ function calcZukauf() {
   el.innerHTML = html;
   el.style.display = '';
 }
+
+// ═══════════════════════════════════════════════════
+// Coin Liquidity Analyzer
+// ═══════════════════════════════════════════════════
+
+async function bnApi(path) {
+  const r = await fetch('https://fapi.binance.com' + path);
+  return r.json();
+}
+
+function fmtVol(v) {
+  if (Math.abs(v)>=1e9) return '$'+(v/1e9).toFixed(2)+'B';
+  if (Math.abs(v)>=1e6) return '$'+(v/1e6).toFixed(1)+'M';
+  if (Math.abs(v)>=1e3) return '$'+(v/1e3).toFixed(0)+'K';
+  return '$'+v.toFixed(0);
+}
+
+function priceDec(p) { return p<0.01?5:(p<1?4:(p<100?2:0)); }
+
+async function runAnalysis() {
+  const coin = document.getElementById('liqCoin').value.trim().toUpperCase();
+  if (!coin) return;
+  const sym = coin + 'USDT';
+  const loading = document.getElementById('liqLoading');
+  const resultEl = document.getElementById('liqResult');
+  loading.style.display = '';
+  resultEl.style.display = 'none';
+
+  try {
+    // Fetch all data in parallel
+    const [klines, depth, oi, funding, btcKlines, btcOi] = await Promise.all([
+      bnApi('/fapi/v1/klines?symbol='+sym+'&interval=15m&limit=800'),
+      bnApi('/fapi/v1/depth?symbol='+sym+'&limit=50'),
+      bnApi('/fapi/v1/openInterest?symbol='+sym),
+      bnApi('/fapi/v1/fundingRate?symbol='+sym+'&limit=3'),
+      bnApi('/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=50'),
+      bnApi('/fapi/v1/fundingRate?symbol=BTCUSDT&limit=3'),
+    ]);
+
+    if (!klines || klines.length < 50) throw new Error('Keine Daten fuer ' + sym);
+
+    // Parse klines
+    const bars = klines.map(k => ({
+      o:+k[1], h:+k[2], l:+k[3], c:+k[4], v:+k[5],
+      bv:+k[9], sv:+k[5]-k[9], dir: +k[4]>+k[1]?1:-1
+    }));
+
+    const price = bars[bars.length-1].c;
+    const dec = priceDec(price);
+    const fp = p => p.toFixed(dec);
+
+    // Build Volume Profile
+    const NUM_BINS = 35;
+    const allLows = bars.map(b=>b.l), allHighs = bars.map(b=>b.h);
+    const minP = Math.min(...allLows), maxP = Math.max(...allHighs);
+    const rng = Math.max(maxP-minP, minP*0.001);
+    const step = rng/NUM_BINS;
+
+    const vols = bars.map(b=>b.v).sort((a,b)=>a-b);
+    const stThr = vols[Math.min(vols.length-1, Math.floor(vols.length*0.97))];
+
+    const sb=Array(NUM_BINS).fill(0), wb=Array(NUM_BINS).fill(0);
+    const ss=Array(NUM_BINS).fill(0), ws=Array(NUM_BINS).fill(0);
+    const abBins=Array(NUM_BINS).fill(0);
+
+    bars.forEach(k => {
+      let bi = Math.max(0,Math.min(NUM_BINS-1, Math.floor((k.c-minP)/step)));
+      let strong = k.v >= stThr;
+      if (k.dir>0&&strong) sb[bi]+=k.v;
+      else if (k.dir>0) wb[bi]+=k.v;
+      else if (k.dir<0&&strong) ss[bi]+=k.v;
+      else ws[bi]+=k.v;
+
+      // Absorption
+      let uwB=Math.max(k.o,k.c), lwB=Math.min(k.o,k.c);
+      let fr=k.h-k.l||0.0001, uw=k.h-uwB, lw=lwB-k.l, tw=uw+lw;
+      let ab=0;
+      if (k.dir>0&&uw>0) ab=k.v*(uw/fr);
+      if (k.dir<0&&lw>0) ab=k.v*(lw/fr);
+      if (fr>0&&tw/fr>0.6) ab=Math.max(ab, k.v*(tw/fr)*0.5);
+      if (ab>0) abBins[bi]+=ab;
+    });
+
+    // Build bins
+    let bins=[], pocI=0, pocV=0, totalV=0;
+    for (let i=0;i<NUM_BINS;i++) {
+      let bv=sb[i]+wb[i], sv=ss[i]+ws[i], tot=bv+sv;
+      totalV+=tot;
+      if (tot>pocV){pocV=tot;pocI=i;}
+      bins.push({mid:minP+step*(i+0.5), bot:minP+step*i, top:minP+step*(i+1),
+                 buy:bv, sell:sv, total:tot, delta:bv-sv, abs:abBins[i]});
+    }
+
+    // Value Area
+    let vaVol=bins[pocI].total, vaLo=pocI, vaHi=pocI, target=totalV*0.30;
+    while(vaVol<target&&(vaLo>0||vaHi<NUM_BINS-1)){
+      let lv=vaLo>0?bins[vaLo-1].total:-1, uv=vaHi<NUM_BINS-1?bins[vaHi+1].total:-1;
+      if(uv>=lv){vaHi++;vaVol+=uv}else{vaLo--;vaVol+=lv}
+    }
+
+    // Absorption zones
+    let zones=[];
+    for(let i=1;i<NUM_BINS-1;i++){
+      if(bins[i].abs>bins[i-1].abs&&bins[i].abs>bins[i+1].abs&&bins[i].abs>0){
+        zones.push({mid:bins[i].mid, low:bins[i].bot, high:bins[i].top,
+                     abs:bins[i].abs, type:price>bins[i].mid?'SUPPORT':'RESISTANCE',
+                     delta:bins[i].delta});
+      }
+    }
+    zones.sort((a,b)=>b.abs-a.abs);
+
+    let totalBuy=bins.reduce((s,b)=>s+b.buy,0);
+    let totalSell=bins.reduce((s,b)=>s+b.sell,0);
+    let totalDelta=totalBuy-totalSell;
+    let deltaBias=totalDelta>0?'BULLISH':'BEARISH';
+    let deltaRatio=Math.abs(totalDelta)/(totalBuy+totalSell)*100;
+
+    // Orderbook analysis
+    let asks=depth.asks.map(a=>({p:+a[0],q:+a[1]}));
+    let bids=depth.bids.map(b=>({p:+b[0],q:+b[1]}));
+    let cumAsk=asks.slice(0,25).reduce((s,a)=>s+a.q,0);
+    let cumBid=bids.slice(0,25).reduce((s,b)=>s+b.q,0);
+    let obRatio=cumBid/cumAsk;
+    let obBias=obRatio>1.2?'BULLISH':(obRatio<0.8?'BEARISH':'NEUTRAL');
+
+    // Ask/Bid walls
+    let askQs=asks.map(a=>a.q).sort((a,b)=>a-b);
+    let bidQs=bids.map(b=>b.q).sort((a,b)=>a-b);
+    let medAsk=askQs[Math.floor(askQs.length/2)]||1;
+    let medBid=bidQs[Math.floor(bidQs.length/2)]||1;
+    let askWalls=asks.filter(a=>a.q>medAsk*3).length;
+    let bidWalls=bids.filter(b=>b.q>medBid*3).length;
+
+    // OI + Funding
+    let oiVal = oi.openInterest ? +oi.openInterest * price : 0;
+    let fundRate = funding&&funding.length ? +funding[funding.length-1].fundingRate*100 : 0;
+    let fundBias = fundRate>0.005?'SHORT':(fundRate<-0.005?'LONG':'NEUTRAL');
+    let fundMeaning = fundRate>0?'Longs zahlen → Short-heavy':'Shorts zahlen → Long-heavy';
+
+    // Recent high/low from last 100 bars
+    let rec100 = bars.slice(-100);
+    let recHigh = Math.max(...rec100.map(b=>b.h));
+    let recLow = Math.min(...rec100.map(b=>b.l));
+    let distUp = (recHigh-price)/price*100;
+    let distDown = (price-recLow)/price*100;
+
+    // BTC context
+    let btcBars = btcKlines.map(k=>+k[4]);
+    let btcPrice = btcBars[btcBars.length-1];
+    let btcSma20 = btcBars.slice(-20).reduce((s,v)=>s+v,0)/20;
+    let btcSma50 = btcBars.slice(-50).reduce((s,v)=>s+v,0)/Math.min(50,btcBars.length);
+    let btcTrend = btcPrice>btcSma20&&btcSma20>btcSma50?'BULLISH':
+                   (btcPrice<btcSma20&&btcSma20<btcSma50?'BEARISH':'SIDEWAYS');
+    let btcFund = btcOi&&btcOi.length ? (+btcOi[btcOi.length-1].fundingRate*100).toFixed(4)+'%' : '?';
+
+    // Scores
+    let supportZ = zones.filter(z=>z.type==='SUPPORT');
+    let resistZ = zones.filter(z=>z.type==='RESISTANCE');
+    let pocDist = (bins[pocI].mid-price)/price*100;
+
+    let inVA = price>=bins[vaLo].bot && price<=bins[vaHi].top;
+    let aboveVA = price>bins[vaHi].top;
+    let belowVA = price<bins[vaLo].bot;
+
+    let scores = {
+      delta: deltaBias==='BULLISH'?'LONG':'SHORT',
+      ob: obBias==='BULLISH'?'LONG':(obBias==='BEARISH'?'SHORT':'NEUTRAL'),
+      funding: fundBias==='LONG'?'LONG':(fundBias==='SHORT'?'SHORT':'NEUTRAL'),
+      distance: distDown<distUp?'SHORT':'LONG',
+      walls: askWalls<bidWalls?'SHORT':(bidWalls<askWalls?'LONG':'NEUTRAL'),
+      poc: pocDist<-1?'SHORT':(pocDist>1?'LONG':'NEUTRAL'),
+      va: aboveVA?'LONG':(belowVA?'SHORT':'NEUTRAL'),
+    };
+
+    let longC=Object.values(scores).filter(s=>s==='LONG').length;
+    let shortC=Object.values(scores).filter(s=>s==='SHORT').length;
+    let coinBias = longC>shortC+1?'LONG':(shortC>longC+1?'SHORT':'NEUTRAL');
+
+    // Resume builder
+    function buildResume(btcDir) {
+      if (coinBias==='LONG') {
+        if (btcDir==='LONG') return {cls:'green',icon:'▲',text:'LONG — Coin bullish + BTC Rueckenwind. Optimales Setup. Entry an Support/Absorption, TP am Liqi-Cluster oben.'};
+        if (btcDir==='SIDE') return {cls:'blue',icon:'►',text:'LONG moeglich — Coin bullish, BTC neutral. Funktioniert, aber mit kleinerem Size. Engerer SL.'};
+        return {cls:'orange',icon:'⏸',text:'ABWARTEN — Coin zwar bullish, aber BTC bearish ueberwiegt. Erst Boden bei BTC abwarten.'};
+      } else if (coinBias==='SHORT') {
+        if (btcDir==='LONG') return {cls:'orange',icon:'⏸',text:'ABWARTEN — Coin bearish, aber BTC steigt. Gegenwind zu stark. Kein Entry.'};
+        if (btcDir==='SIDE') return {cls:'blue',icon:'►',text:'SHORT moeglich — Coin bearish, BTC neutral. Setup ok mit normalem Size.'};
+        return {cls:'red',icon:'▼',text:'SHORT — Coin bearish + BTC faellt. Doppelte Bestaetigung. Aggressiver Entry moeglich.'};
+      } else {
+        if (btcDir==='LONG') return {cls:'blue',icon:'►',text:'LONG Tendenz — Coin neutral, BTC gibt die Richtung. Kleiner Size, weiter SL.'};
+        if (btcDir==='SIDE') return {cls:'orange',icon:'⏸',text:'KEIN TRADE — Coin neutral + BTC seitwaerts. Kein Edge. Warten auf klares Signal.'};
+        return {cls:'blue',icon:'►',text:'SHORT Tendenz — Coin neutral, BTC baerisch drueckt. Kleiner Size, konservativ.'};
+      }
+    }
+
+    let resA=buildResume('LONG'), resB=buildResume('SIDE'), resC=buildResume('SHORT');
+
+    // Score badge helper
+    function badge(val) {
+      if (val==='LONG') return '<span style="color:#22c55e;font-weight:700">▲ LONG</span>';
+      if (val==='SHORT') return '<span style="color:#ef4444;font-weight:700">▼ SHORT</span>';
+      return '<span style="color:#8b949e;font-weight:700">— NEUTRAL</span>';
+    }
+
+    // Build HTML
+    let h = '';
+
+    // Header
+    let biasColor = coinBias==='LONG'?'#22c55e':(coinBias==='SHORT'?'#ef4444':'#f59e0b');
+    h += '<div style="text-align:center;padding:10px 0;border-bottom:1px solid #21262d;margin-bottom:10px">';
+    h += '<div style="font-size:1.4rem;font-weight:700;color:'+biasColor+'">'+coin+' — '+coinBias+'</div>';
+    h += '<div style="font-size:0.8rem;color:#8b949e">$'+fp(price)+' | '+new Date().toLocaleString("de-DE",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit"})+' ET</div>';
+    h += '</div>';
+
+    // Profile section
+    h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
+    h += '<b class="purple">VOLUME PROFILE</b><br>';
+    h += 'POC: <b class="blue">$'+fp(bins[pocI].mid)+'</b> ('+pocDist.toFixed(1)+'% vom Preis)<br>';
+    h += 'Value Area: <b>$'+fp(bins[vaLo].bot)+' - $'+fp(bins[vaHi].top)+'</b> | Position: '+(inVA?'<span class="blue">DARIN</span>':(aboveVA?'<span class="green">DARUEBER</span>':'<span class="red">DARUNTER</span>'))+'<br>';
+    h += 'Delta: <b>'+(totalDelta>0?'<span class="green">+':'<span class="red">')+fmtVol(totalDelta)+'</span></b> → <b>'+(deltaBias==='BULLISH'?'<span class="green">BULLISH</span>':'<span class="red">BEARISH</span>')+'</b> ('+deltaRatio.toFixed(1)+'%)';
+    h += '</div>';
+
+    // Orderbook
+    h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
+    h += '<b class="purple">ORDERBOOK</b><br>';
+    h += 'Bid/Ask Ratio: <b>'+obRatio.toFixed(2)+'</b> → '+(obBias==='BULLISH'?'<span class="green">Kaeufer dominieren</span>':(obBias==='BEARISH'?'<span class="red">Verkaeufer dominieren</span>':'<span class="blue">Ausgeglichen</span>'))+'<br>';
+    h += 'Ask Walls: <b>'+askWalls+'</b> | Bid Walls: <b>'+bidWalls+'</b>';
+    h += '</div>';
+
+    // OI + Funding
+    h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
+    h += '<b class="purple">OI & FUNDING</b><br>';
+    h += 'Open Interest: <b>'+fmtVol(oiVal)+'</b><br>';
+    h += 'Funding: <b>'+fundRate.toFixed(4)+'%</b> → '+fundMeaning;
+    h += '</div>';
+
+    // Liquidity (distance + zones)
+    h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
+    h += '<b class="purple">LIQUIDITAET</b><br>';
+    h += 'Recent High: <b>$'+fp(recHigh)+'</b> ('+distUp.toFixed(1)+'% entfernt) — Short-Liqs<br>';
+    h += 'Recent Low: <b>$'+fp(recLow)+'</b> ('+distDown.toFixed(1)+'% entfernt) — Long-Liqs<br>';
+    h += 'Naeher: <b>'+(distDown<distUp?'<span class="red">UNTEN (Long-Liqs)</span>':'<span class="green">OBEN (Short-Liqs)</span>')+'</b><br>';
+
+    if (supportZ.length) {
+      h += '<br><b>Support Zones (Steine nach unten):</b><br>';
+      supportZ.slice(0,4).forEach(z => {
+        let d2 = ((price-z.mid)/price*100).toFixed(1);
+        h += '  $'+fp(z.mid)+' (-'+d2+'%) | Absorption: '+fmtVol(z.abs)+' | Delta: '+(z.delta>0?'<span class="green">BUY</span>':'<span class="red">SELL</span>')+'<br>';
+      });
+    }
+    if (resistZ.length) {
+      h += '<br><b>Resistance Zones (Steine nach oben):</b><br>';
+      resistZ.slice(0,4).forEach(z => {
+        let d2 = ((z.mid-price)/price*100).toFixed(1);
+        h += '  $'+fp(z.mid)+' (+'+d2+'%) | Absorption: '+fmtVol(z.abs)+' | Delta: '+(z.delta>0?'<span class="green">BUY</span>':'<span class="red">SELL</span>')+'<br>';
+      });
+    }
+    h += '</div>';
+
+    // Score overview
+    h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
+    h += '<b class="purple">SCORE</b> ('+longC+'L / '+shortC+'S / '+(7-longC-shortC)+'N)<br>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px">';
+    h += '<div>Delta: '+badge(scores.delta)+'</div>';
+    h += '<div>Orderbook: '+badge(scores.ob)+'</div>';
+    h += '<div>Funding: '+badge(scores.funding)+'</div>';
+    h += '<div>Distanz: '+badge(scores.distance)+'</div>';
+    h += '<div>Walls: '+badge(scores.walls)+'</div>';
+    h += '<div>POC: '+badge(scores.poc)+'</div>';
+    h += '<div>Value Area: '+badge(scores.va)+'</div>';
+    h += '</div></div>';
+
+    // BTC context
+    let btcTrendCol = btcTrend==='BULLISH'?'green':(btcTrend==='BEARISH'?'red':'blue');
+    h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
+    h += '<b class="purple">BTC KONTEXT</b><br>';
+    h += 'BTC: <b>$'+btcPrice.toFixed(0)+'</b> | Trend: <b class="'+btcTrendCol+'">'+btcTrend+'</b><br>';
+    h += 'SMA20: $'+btcSma20.toFixed(0)+' | SMA50: $'+btcSma50.toFixed(0)+' | Funding: '+btcFund;
+    h += '</div>';
+
+    // Resume (3-part)
+    h += '<div style="border-radius:8px;overflow:hidden;margin-top:10px;border:1px solid #21262d">';
+    h += '<div style="background:#161b22;padding:8px 10px;font-weight:700;color:#8b5cf6;font-size:0.85rem;border-bottom:1px solid #21262d">RESUEMEE</div>';
+
+    h += '<div style="background:#0d1117;padding:10px;border-bottom:1px solid #21262d;font-size:0.78rem;line-height:1.6">';
+    h += '<b class="green">A) BTC Long:</b><br>';
+    h += '<span class="'+resA.cls+'">'+resA.icon+' '+resA.text+'</span></div>';
+
+    h += '<div style="background:#0d1117;padding:10px;border-bottom:1px solid #21262d;font-size:0.78rem;line-height:1.6">';
+    h += '<b class="blue">B) BTC Seitwaerts:</b><br>';
+    h += '<span class="'+resB.cls+'">'+resB.icon+' '+resB.text+'</span></div>';
+
+    h += '<div style="background:#0d1117;padding:10px;font-size:0.78rem;line-height:1.6">';
+    h += '<b class="red">C) BTC Short:</b><br>';
+    h += '<span class="'+resC.cls+'">'+resC.icon+' '+resC.text+'</span></div>';
+
+    h += '</div>';
+
+    loading.style.display = 'none';
+    resultEl.innerHTML = h;
+    resultEl.style.display = '';
+
+  } catch(err) {
+    loading.style.display = 'none';
+    resultEl.innerHTML = '<div style="color:#ef4444;padding:10px">Fehler: '+err.message+'</div>';
+    resultEl.style.display = '';
+  }
+}
+
+// Enter key triggers analysis
+document.getElementById('liqCoin').addEventListener('keydown', e => { if(e.key==='Enter') runAnalysis(); });
 </script>
 </body>
 </html>
