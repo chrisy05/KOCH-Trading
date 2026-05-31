@@ -844,6 +844,20 @@ async function runAnalysis() {
     // Build HTML
     let h = '';
 
+    // BTC full analysis block
+    let btcTrendCol = btcTrend==='BULLISH'?'green':(btcTrend==='BEARISH'?'red':'blue');
+    let btcDeltaCol = btcDeltaBias==='BULLISH'?'green':'red';
+    let btcBiasColor = btcTrend==='BULLISH'?'#22c55e':(btcTrend==='BEARISH'?'#ef4444':'#f59e0b');
+    let btcFundMeaning = btcFundRate>0?'Longs zahlen':'Shorts zahlen';
+    let btcBlock = '<div style="background:#0d1117;border-radius:8px;padding:10px;margin-bottom:10px;border:1px solid #21262d;border-left:3px solid #f59e0b">';
+    btcBlock += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="color:#f59e0b;font-size:0.9rem">BTC ANALYSE ('+tf+')</b><span style="font-weight:700;color:'+btcBiasColor+'">'+btcTrend+'</span></div>';
+    btcBlock += '<div style="font-size:0.78rem;line-height:1.8">';
+    btcBlock += 'Preis: <b>$'+btcPrice.toFixed(0)+'</b> | SMA20: $'+btcSma20.toFixed(0)+' | SMA50: $'+btcSma50.toFixed(0)+'<br>';
+    btcBlock += 'Delta: <b class="'+btcDeltaCol+'">'+btcDeltaBias+'</b> ('+btcDeltaPct.toFixed(1)+'%) | OB: <b>'+btcObBias+'</b><br>';
+    btcBlock += 'OI: <b>'+fmtVol(btcOiVal)+'</b> | Funding: <b>'+btcFund+'</b> ('+btcFundMeaning+')<br>';
+    btcBlock += 'High: $'+btcRecHigh.toFixed(0)+' (+'+btcDistUp.toFixed(1)+'%) | Low: $'+btcRecLow.toFixed(0)+' (-'+btcDistDown.toFixed(1)+'%)';
+    btcBlock += '</div></div>';
+
     // Header
     let biasColor = coinBias==='LONG'?'#22c55e':(coinBias==='SHORT'?'#ef4444':'#f59e0b');
     h += '<div style="text-align:center;padding:10px 0;border-bottom:1px solid #21262d;margin-bottom:10px">';
@@ -911,20 +925,6 @@ async function runAnalysis() {
     h += '<div>POC: '+badge(scores.poc)+'</div>';
     h += '<div>Value Area: '+badge(scores.va)+'</div>';
     h += '</div></div>';
-
-    // BTC full analysis block — rendered at end, inserted at top later
-    let btcTrendCol = btcTrend==='BULLISH'?'green':(btcTrend==='BEARISH'?'red':'blue');
-    let btcDeltaCol = btcDeltaBias==='BULLISH'?'green':'red';
-    let btcBiasColor = btcTrend==='BULLISH'?'#22c55e':(btcTrend==='BEARISH'?'#ef4444':'#f59e0b');
-    let btcFundMeaning = btcFundRate>0?'Longs zahlen':'Shorts zahlen';
-    let btcBlock = '<div style="background:#0d1117;border-radius:8px;padding:10px;margin-bottom:10px;border:1px solid #21262d;border-left:3px solid #f59e0b">';
-    btcBlock += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="color:#f59e0b;font-size:0.9rem">BTC ANALYSE ('+tf+')</b><span style="font-weight:700;color:'+btcBiasColor+'">'+btcTrend+'</span></div>';
-    btcBlock += '<div style="font-size:0.78rem;line-height:1.8">';
-    btcBlock += 'Preis: <b>$'+btcPrice.toFixed(0)+'</b> | SMA20: $'+btcSma20.toFixed(0)+' | SMA50: $'+btcSma50.toFixed(0)+'<br>';
-    btcBlock += 'Delta: <b class="'+btcDeltaCol+'">'+btcDeltaBias+'</b> ('+btcDeltaPct.toFixed(1)+'%) | OB: <b>'+btcObBias+'</b><br>';
-    btcBlock += 'OI: <b>'+fmtVol(btcOiVal)+'</b> | Funding: <b>'+btcFund+'</b> ('+btcFundMeaning+')<br>';
-    btcBlock += 'High: $'+btcRecHigh.toFixed(0)+' (+'+btcDistUp.toFixed(1)+'%) | Low: $'+btcRecLow.toFixed(0)+' (-'+btcDistDown.toFixed(1)+'%)';
-    btcBlock += '</div></div>';
 
     // Resume (3-part)
     h += '<div style="border-radius:8px;overflow:hidden;margin-top:10px;border:1px solid #21262d">';
