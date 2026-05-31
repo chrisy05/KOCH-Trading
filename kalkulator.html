@@ -575,14 +575,16 @@ async function runAnalysis() {
   resultEl.style.display = 'none';
 
   try {
-    // Fetch all data in parallel
-    const [klines, depth, oi, funding, btcKlines, btcOi] = await Promise.all([
+    // Fetch all data in parallel (Coin + BTC on same TF)
+    const [klines, depth, oi, funding, btcKlines, btcOi, btcDepth, btcOiData] = await Promise.all([
       bnApi('/fapi/v1/klines?symbol='+sym+'&interval='+tf+'&limit='+tfLimit),
       bnApi('/fapi/v1/depth?symbol='+sym+'&limit=50'),
       bnApi('/fapi/v1/openInterest?symbol='+sym),
       bnApi('/fapi/v1/fundingRate?symbol='+sym+'&limit=3'),
-      bnApi('/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=50'),
+      bnApi('/fapi/v1/klines?symbol=BTCUSDT&interval='+tf+'&limit='+tfLimit),
       bnApi('/fapi/v1/fundingRate?symbol=BTCUSDT&limit=3'),
+      bnApi('/fapi/v1/depth?symbol=BTCUSDT&limit=50'),
+      bnApi('/fapi/v1/openInterest?symbol=BTCUSDT'),
     ]);
 
     if (!klines || klines.length < 50) throw new Error('Keine Daten fuer ' + sym);
@@ -692,14 +694,45 @@ async function runAnalysis() {
     let distUp = (recHigh-price)/price*100;
     let distDown = (price-recLow)/price*100;
 
-    // BTC context
-    let btcBars = btcKlines.map(k=>+k[4]);
-    let btcPrice = btcBars[btcBars.length-1];
-    let btcSma20 = btcBars.slice(-20).reduce((s,v)=>s+v,0)/20;
-    let btcSma50 = btcBars.slice(-50).reduce((s,v)=>s+v,0)/Math.min(50,btcBars.length);
+    // BTC full analysis on same TF
+    let btcBarsRaw = btcKlines.map(k => ({
+      o:+k[1], h:+k[2], l:+k[3], c:+k[4], v:+k[5],
+      bv:+k[9], sv:+k[5]-k[9], dir: +k[4]>+k[1]?1:-1
+    }));
+    let btcPrice = btcBarsRaw[btcBarsRaw.length-1].c;
+    let btcCloses = btcBarsRaw.map(b=>b.c);
+    let btcSma20 = btcCloses.slice(-20).reduce((s,v)=>s+v,0)/Math.min(20,btcCloses.length);
+    let btcSma50 = btcCloses.slice(-50).reduce((s,v)=>s+v,0)/Math.min(50,btcCloses.length);
     let btcTrend = btcPrice>btcSma20&&btcSma20>btcSma50?'BULLISH':
                    (btcPrice<btcSma20&&btcSma20<btcSma50?'BEARISH':'SIDEWAYS');
     let btcFund = btcOi&&btcOi.length ? (+btcOi[btcOi.length-1].fundingRate*100).toFixed(4)+'%' : '?';
+    let btcFundRate = btcOi&&btcOi.length ? +btcOi[btcOi.length-1].fundingRate*100 : 0;
+
+    // BTC Volume Profile
+    let btcTotalBuy=0, btcTotalSell=0;
+    btcBarsRaw.forEach(k => { btcTotalBuy+=k.bv; btcTotalSell+=k.sv; });
+    let btcDelta = btcTotalBuy - btcTotalSell;
+    let btcDeltaBias = btcDelta>0?'BULLISH':'BEARISH';
+    let btcDeltaPct = Math.abs(btcDelta)/(btcTotalBuy+btcTotalSell)*100;
+
+    // BTC OB
+    let btcObBias = 'NEUTRAL';
+    if (btcDepth && btcDepth.asks && btcDepth.bids) {
+      let btcCumAsk=btcDepth.asks.slice(0,25).reduce((s,a)=>s+(+a[1]),0);
+      let btcCumBid=btcDepth.bids.slice(0,25).reduce((s,b)=>s+(+b[1]),0);
+      let btcObRatio=btcCumBid/btcCumAsk;
+      btcObBias=btcObRatio>1.2?'BULLISH':(btcObRatio<0.8?'BEARISH':'NEUTRAL');
+    }
+
+    // BTC OI
+    let btcOiVal = btcOiData&&btcOiData.openInterest ? +btcOiData.openInterest * btcPrice : 0;
+
+    // BTC recent high/low
+    let btcRec = btcBarsRaw.slice(-100);
+    let btcRecHigh = Math.max(...btcRec.map(b=>b.h));
+    let btcRecLow = Math.min(...btcRec.map(b=>b.l));
+    let btcDistUp = (btcRecHigh-btcPrice)/btcPrice*100;
+    let btcDistDown = (btcPrice-btcRecLow)/btcPrice*100;
 
     // Scores
     let supportZ = zones.filter(z=>z.type==='SUPPORT');
@@ -818,6 +851,9 @@ async function runAnalysis() {
     h += '<div style="font-size:0.8rem;color:#8b949e">$'+fp(price)+' | TF: '+tf+' ('+tfLimit+' Bars) | '+new Date().toLocaleString("de-DE",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit"})+' ET</div>';
     h += '</div>';
 
+    // BTC analysis at top
+    h += btcBlock;
+
     // Profile section
     h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
     h += '<b class="purple">VOLUME PROFILE</b><br>';
@@ -876,13 +912,19 @@ async function runAnalysis() {
     h += '<div>Value Area: '+badge(scores.va)+'</div>';
     h += '</div></div>';
 
-    // BTC context
+    // BTC full analysis block — rendered at end, inserted at top later
     let btcTrendCol = btcTrend==='BULLISH'?'green':(btcTrend==='BEARISH'?'red':'blue');
-    h += '<div style="background:#0d1117;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.78rem;line-height:1.8">';
-    h += '<b class="purple">BTC KONTEXT</b><br>';
-    h += 'BTC: <b>$'+btcPrice.toFixed(0)+'</b> | Trend: <b class="'+btcTrendCol+'">'+btcTrend+'</b><br>';
-    h += 'SMA20: $'+btcSma20.toFixed(0)+' | SMA50: $'+btcSma50.toFixed(0)+' | Funding: '+btcFund;
-    h += '</div>';
+    let btcDeltaCol = btcDeltaBias==='BULLISH'?'green':'red';
+    let btcBiasColor = btcTrend==='BULLISH'?'#22c55e':(btcTrend==='BEARISH'?'#ef4444':'#f59e0b');
+    let btcFundMeaning = btcFundRate>0?'Longs zahlen':'Shorts zahlen';
+    let btcBlock = '<div style="background:#0d1117;border-radius:8px;padding:10px;margin-bottom:10px;border:1px solid #21262d;border-left:3px solid #f59e0b">';
+    btcBlock += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="color:#f59e0b;font-size:0.9rem">BTC ANALYSE ('+tf+')</b><span style="font-weight:700;color:'+btcBiasColor+'">'+btcTrend+'</span></div>';
+    btcBlock += '<div style="font-size:0.78rem;line-height:1.8">';
+    btcBlock += 'Preis: <b>$'+btcPrice.toFixed(0)+'</b> | SMA20: $'+btcSma20.toFixed(0)+' | SMA50: $'+btcSma50.toFixed(0)+'<br>';
+    btcBlock += 'Delta: <b class="'+btcDeltaCol+'">'+btcDeltaBias+'</b> ('+btcDeltaPct.toFixed(1)+'%) | OB: <b>'+btcObBias+'</b><br>';
+    btcBlock += 'OI: <b>'+fmtVol(btcOiVal)+'</b> | Funding: <b>'+btcFund+'</b> ('+btcFundMeaning+')<br>';
+    btcBlock += 'High: $'+btcRecHigh.toFixed(0)+' (+'+btcDistUp.toFixed(1)+'%) | Low: $'+btcRecLow.toFixed(0)+' (-'+btcDistDown.toFixed(1)+'%)';
+    btcBlock += '</div></div>';
 
     // Resume (3-part)
     h += '<div style="border-radius:8px;overflow:hidden;margin-top:10px;border:1px solid #21262d">';
