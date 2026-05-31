@@ -762,9 +762,13 @@ async function runAnalysis() {
       return Math.max(5, Math.min(85, Math.round(base)));
     }
 
-    let probA = calcProb('LONG');
-    let probB = calcProb('SIDE');
-    let probC = calcProb('SHORT');
+    let rawA = calcProb('LONG');
+    let rawB = calcProb('SIDE');
+    let rawC = calcProb('SHORT');
+    let rawTotal = rawA + rawB + rawC;
+    let probA = Math.round(rawA / rawTotal * 100);
+    let probB = Math.round(rawB / rawTotal * 100);
+    let probC = 100 - probA - probB; // Rest damit exakt 100%
 
     // Resume builder
     function buildResume(btcDir, prob) {
