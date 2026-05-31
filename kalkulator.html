@@ -301,6 +301,14 @@ input:focus{border-color:#58a6ff;outline:none}
 <div class="calc-title" style="color:#8b5cf6;font-size:0.95rem">Coin Liquidity Analyzer</div>
 <div style="display:flex;gap:6px;margin-bottom:6px">
   <div style="flex:1"><label>Coin</label><input type="text" id="liqCoin" placeholder="z.B. TON, BAT, SOL..." style="text-transform:uppercase;font-size:1rem;padding:8px"></div>
+  <div><label>Timeframe</label><select id="liqTF" style="padding:8px;font-size:0.9rem">
+    <option value="5m|500">5min (1.7d)</option>
+    <option value="15m|800" selected>15min (8d)</option>
+    <option value="30m|800">30min (17d)</option>
+    <option value="1h|500">1h (21d)</option>
+    <option value="4h|500">4h (83d)</option>
+    <option value="1d|365">1D (1y)</option>
+  </select></div>
   <div style="display:flex;align-items:flex-end"><button class="btn" style="background:#8b5cf6;padding:8px 20px;white-space:nowrap" onclick="runAnalysis()">Analysieren</button></div>
 </div>
 <div id="liqLoading" style="display:none;text-align:center;padding:20px;color:#8b949e">Lade Daten von Binance...</div>
@@ -558,15 +566,18 @@ async function runAnalysis() {
   const coin = document.getElementById('liqCoin').value.trim().toUpperCase();
   if (!coin) return;
   const sym = coin + 'USDT';
+  const tfSel = document.getElementById('liqTF').value.split('|');
+  const tf = tfSel[0], tfLimit = tfSel[1];
   const loading = document.getElementById('liqLoading');
   const resultEl = document.getElementById('liqResult');
   loading.style.display = '';
+  loading.textContent = 'Lade Daten von Binance (' + tf + ', ' + tfLimit + ' Bars)...';
   resultEl.style.display = 'none';
 
   try {
     // Fetch all data in parallel
     const [klines, depth, oi, funding, btcKlines, btcOi] = await Promise.all([
-      bnApi('/fapi/v1/klines?symbol='+sym+'&interval=15m&limit=800'),
+      bnApi('/fapi/v1/klines?symbol='+sym+'&interval='+tf+'&limit='+tfLimit),
       bnApi('/fapi/v1/depth?symbol='+sym+'&limit=50'),
       bnApi('/fapi/v1/openInterest?symbol='+sym),
       bnApi('/fapi/v1/fundingRate?symbol='+sym+'&limit=3'),
@@ -804,7 +815,7 @@ async function runAnalysis() {
     let biasColor = coinBias==='LONG'?'#22c55e':(coinBias==='SHORT'?'#ef4444':'#f59e0b');
     h += '<div style="text-align:center;padding:10px 0;border-bottom:1px solid #21262d;margin-bottom:10px">';
     h += '<div style="font-size:1.4rem;font-weight:700;color:'+biasColor+'">'+coin+' — '+coinBias+'</div>';
-    h += '<div style="font-size:0.8rem;color:#8b949e">$'+fp(price)+' | '+new Date().toLocaleString("de-DE",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit"})+' ET</div>';
+    h += '<div style="font-size:0.8rem;color:#8b949e">$'+fp(price)+' | TF: '+tf+' ('+tfLimit+' Bars) | '+new Date().toLocaleString("de-DE",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit"})+' ET</div>';
     h += '</div>';
 
     // Profile section
