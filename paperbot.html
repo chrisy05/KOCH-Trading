@@ -229,7 +229,7 @@ function duration(openTime, closeTime) {
 
 async function fetchPrice(symbol) {
   try {
-    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + symbol + 'USDT');
+    const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/price?symbol=' + symbol + 'USDT');
     const d = await r.json();
     return parseFloat(d.price);
   } catch { return null; }
