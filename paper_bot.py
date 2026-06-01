@@ -872,6 +872,16 @@ def main():
             update_stats(data)
             save_data(data)
 
+            # Auto-push to GitHub every 5 minutes
+            if minute % 5 == 0:
+                try:
+                    import subprocess
+                    subprocess.run(["git", "add", "paper_trades.json"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
+                    subprocess.run(["git", "commit", "-m", "Paper bot data update"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
+                    subprocess.run(["git", "push"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=30)
+                except:
+                    pass
+
             # Sleep until next minute
             elapsed = (datetime.now(TZ) - now).total_seconds()
             sleep_time = max(5, 60 - elapsed)
