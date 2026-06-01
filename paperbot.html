@@ -164,7 +164,7 @@ function toggleAutoRefresh() {
   if (autoRefresh) {
     btn.textContent = 'Auto-Refresh: ON';
     btn.classList.add('active');
-    autoRefreshTimer = setInterval(loadData, 30000);
+    autoRefreshTimer = setInterval(loadData, 5000);
   } else {
     btn.textContent = 'Auto-Refresh: OFF';
     btn.classList.remove('active');
