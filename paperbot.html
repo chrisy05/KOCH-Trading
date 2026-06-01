@@ -85,10 +85,23 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
 </div>
 
 <div class="container">
-  <!-- Summary Stats -->
+  <!-- LIVE Stats Block -->
+  <div class="summary-card" style="border:1px solid #f59e0b55;background:linear-gradient(135deg,#161b22,#1a1f2e);margin-bottom:14px">
+    <h2 style="color:#f59e0b;margin-bottom:8px">LIVE <span style="font-size:.7rem;color:#8b949e" id="liveTimer">--</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;text-align:center" id="liveStats">
+      <div><div class="label">Offene Trades</div><div class="value blue" id="liveOpen">--</div></div>
+      <div><div class="label">Unrealized PnL</div><div class="value gray" id="livePnl">--</div></div>
+      <div><div class="label">Margin gebunden</div><div class="value gray" id="liveMargin">--</div></div>
+      <div><div class="label">Im Plus</div><div class="value green" id="liveWinning">--</div></div>
+      <div><div class="label">Im Minus</div><div class="value red" id="liveLosing">--</div></div>
+      <div><div class="label">Beste / Schlechteste</div><div class="value gray" id="liveBestWorst">--</div></div>
+    </div>
+  </div>
+
+  <!-- Closed Stats (15m / 1h) -->
   <div class="summary-grid">
     <div class="summary-card">
-      <h2><span class="dot" style="background:#8b5cf6"></span> 15-Minute Timeframe</h2>
+      <h2><span class="dot" style="background:#8b5cf6"></span> 15min Abgeschlossen</h2>
       <div class="stat-row" id="stats15m">
         <div class="stat-item"><div class="label">Trades</div><div class="value gray">--</div></div>
         <div class="stat-item"><div class="label">Winrate</div><div class="value gray">--</div></div>
@@ -98,7 +111,7 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
       </div>
     </div>
     <div class="summary-card">
-      <h2><span class="dot" style="background:#f59e0b"></span> 1-Hour Timeframe</h2>
+      <h2><span class="dot" style="background:#f59e0b"></span> 1h Abgeschlossen</h2>
       <div class="stat-row" id="stats1h">
         <div class="stat-item"><div class="label">Trades</div><div class="value gray">--</div></div>
         <div class="stat-item"><div class="label">Winrate</div><div class="value gray">--</div></div>
@@ -156,7 +169,9 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
 <script>
 let autoRefresh = false;
 let autoRefreshTimer = null;
+let liveTimer = null;
 let priceCache = {};
+let cachedOpenTrades = [];
 
 function toggleAutoRefresh() {
   autoRefresh = !autoRefresh;
@@ -164,11 +179,13 @@ function toggleAutoRefresh() {
   if (autoRefresh) {
     btn.textContent = 'Auto-Refresh: ON';
     btn.classList.add('active');
-    autoRefreshTimer = setInterval(loadData, 5000);
+    autoRefreshTimer = setInterval(loadData, 60000); // JSON reload every 60s
+    liveTimer = setInterval(refreshLivePrices, 5000); // Prices every 5s
   } else {
     btn.textContent = 'Auto-Refresh: OFF';
     btn.classList.remove('active');
     if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    if (liveTimer) clearInterval(liveTimer);
   }
 }
 
@@ -276,10 +293,14 @@ function calcPnl(direction, entry, currentPrice, size) {
   return (entry - currentPrice) * size;
 }
 
-async function renderOpenTrades(trades15m, trades1h) {
-  const allOpen = [...trades15m, ...trades1h]
-    .filter(t => t.status === 'open')
-    .sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+async function renderOpenTrades(trades15mOrAll, trades1h) {
+  let allOpen;
+  if (trades1h && trades1h.length !== undefined) {
+    allOpen = [...trades15mOrAll, ...trades1h].filter(t => t.status === 'open');
+  } else {
+    allOpen = trades15mOrAll.filter(t => t.status === 'open');
+  }
+  allOpen.sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
 
   document.getElementById('openCount').textContent = allOpen.length;
 
@@ -360,6 +381,39 @@ function renderClosedTrades(trades15m, trades1h) {
   document.getElementById('closedBody').innerHTML = html;
 }
 
+async function refreshLivePrices() {
+  if (cachedOpenTrades.length === 0) return;
+  const coins = [...new Set(cachedOpenTrades.map(t => t.coin))];
+  await fetchPrices(coins);
+
+  let totalPnl = 0, totalMargin = 0, winning = 0, losing = 0;
+  let best = -Infinity, worst = Infinity, bestCoin = '', worstCoin = '';
+
+  for (const t of cachedOpenTrades) {
+    const price = priceCache[t.coin];
+    if (!price) continue;
+    const pnl = calcPnl(t.direction, t.entry, price, t.size);
+    totalPnl += pnl;
+    totalMargin += t.margin;
+    if (pnl >= 0) winning++; else losing++;
+    if (pnl > best) { best = pnl; bestCoin = t.coin; }
+    if (pnl < worst) { worst = pnl; worstCoin = t.coin; }
+  }
+
+  document.getElementById('liveOpen').textContent = cachedOpenTrades.length;
+  const pnlEl = document.getElementById('livePnl');
+  pnlEl.textContent = '$' + totalPnl.toFixed(2);
+  pnlEl.className = 'value ' + pnlColor(totalPnl);
+  document.getElementById('liveMargin').textContent = '$' + totalMargin.toFixed(0);
+  document.getElementById('liveWinning').textContent = winning;
+  document.getElementById('liveLosing').textContent = losing;
+  document.getElementById('liveBestWorst').innerHTML = '<span class="green">' + bestCoin + ' +$' + best.toFixed(1) + '</span><br><span class="red">' + worstCoin + ' $' + worst.toFixed(1) + '</span>';
+  document.getElementById('liveTimer').textContent = new Date().toLocaleTimeString();
+
+  // Also update open trades table
+  await renderOpenTrades(cachedOpenTrades, []);
+}
+
 async function loadData() {
   try {
     const r = await fetch('paper_trades.json?t=' + Date.now());
@@ -368,8 +422,13 @@ async function loadData() {
     renderConfig(data.config || {});
     renderStats('stats15m', data.stats_15m || {});
     renderStats('stats1h', data.stats_1h || {});
+
+    // Cache open trades for live refresh
+    cachedOpenTrades = [...(data.trades_15m||[]), ...(data.trades_1h||[])].filter(t => t.status === 'open');
+
     await renderOpenTrades(data.trades_15m || [], data.trades_1h || []);
     renderClosedTrades(data.trades_15m || [], data.trades_1h || []);
+    await refreshLivePrices();
 
     document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
   } catch (e) {
