@@ -86,15 +86,18 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
 
 <div class="container">
   <!-- LIVE Stats Block -->
-  <div class="summary-card" style="border:1px solid #f59e0b55;background:linear-gradient(135deg,#161b22,#1a1f2e);margin-bottom:14px">
-    <h2 style="color:#f59e0b;margin-bottom:8px">LIVE <span style="font-size:.7rem;color:#8b949e" id="liveTimer">--</span></h2>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;text-align:center" id="liveStats">
-      <div><div class="label">Offene Trades</div><div class="value blue" id="liveOpen">--</div></div>
-      <div><div class="label">Unrealized PnL</div><div class="value gray" id="livePnl">--</div></div>
-      <div><div class="label">Margin gebunden</div><div class="value gray" id="liveMargin">--</div></div>
-      <div><div class="label">Im Plus</div><div class="value green" id="liveWinning">--</div></div>
-      <div><div class="label">Im Minus</div><div class="value red" id="liveLosing">--</div></div>
-      <div><div class="label">Beste / Schlechteste</div><div class="value gray" id="liveBestWorst">--</div></div>
+  <div class="summary-card" style="border:1px solid #f59e0b55;margin-bottom:14px">
+    <h2 style="margin-bottom:10px"><span class="dot" style="background:#f59e0b;animation:pulse 2s infinite"></span> LIVE <span style="font-size:.7rem;color:#8b949e;font-weight:400" id="liveTimer">--</span></h2>
+    <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+    <div class="stat-row">
+      <div class="stat-item"><div class="label">Offene Trades</div><div class="value blue" id="liveOpen">--</div></div>
+      <div class="stat-item"><div class="label">Unrealized PnL</div><div class="value gray" id="livePnl">--</div></div>
+      <div class="stat-item"><div class="label">Margin gebunden</div><div class="value gray" id="liveMargin">--</div></div>
+    </div>
+    <div class="stat-row" style="margin-top:8px">
+      <div class="stat-item"><div class="label">Im Plus</div><div class="value green" id="liveWinning">--</div></div>
+      <div class="stat-item"><div class="label">Im Minus</div><div class="value red" id="liveLosing">--</div></div>
+      <div class="stat-item"><div class="label">Beste / Schlechteste</div><div class="value gray" style="font-size:.85rem" id="liveBestWorst">--</div></div>
     </div>
   </div>
 
