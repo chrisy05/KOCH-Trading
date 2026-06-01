@@ -562,6 +562,93 @@ function fmtVol(v) {
 
 function priceDec(p) { return p<0.01?5:(p<1?4:(p<100?2:0)); }
 
+// TMO calculation
+function calcEma(vals, p) {
+  let k=2/(p+1), e=vals[0], res=[e];
+  for(let i=1;i<vals.length;i++){e=vals[i]*k+e*(1-k);res.push(e);}
+  return res;
+}
+function calcTmo(closes, opens, length, calcL, smoothL) {
+  length=length||14; calcL=calcL||5; smoothL=smoothL||3;
+  let raw=[];
+  for(let i=0;i<closes.length;i++){
+    let s=0;
+    for(let j=1;j<=length;j++){if(i-j<0)continue;if(closes[i]>opens[i-j])s++;else if(closes[i]<opens[i-j])s--;}
+    raw.push(s);
+  }
+  return {main:calcEma(raw,calcL), signal:calcEma(calcEma(raw,calcL),smoothL)};
+}
+function calcEmaSimple(vals, period) {
+  let k=2/(period+1), e=vals[0], res=[e];
+  for(let i=1;i<vals.length;i++){e=vals[i]*k+e*(1-k);res.push(e);}
+  return res;
+}
+
+async function getCoinTmo(sym) {
+  const tfs = [
+    {name:'5m', interval:'5m', limit:80},
+    {name:'15m', interval:'15m', limit:80},
+    {name:'30m', interval:'30m', limit:80},
+    {name:'1h', interval:'1h', limit:80},
+    {name:'4h', interval:'4h', limit:80},
+  ];
+  let results = {};
+  let fetches = tfs.map(cfg =>
+    bnApi('/fapi/v1/klines?symbol='+sym+'&interval='+cfg.interval+'&limit='+cfg.limit)
+      .then(raw => {
+        if(!raw||raw.length<30) return;
+        let candles = raw.map(k=>[k[0],+k[1],+k[2],+k[3],+k[4]]);
+        candles.pop(); // remove open candle
+        let closes=candles.map(c=>c[4]), opens=candles.map(c=>c[1]);
+        let tmo=calcTmo(closes,opens,14,5,3);
+        let m=tmo.main[tmo.main.length-1], s=tmo.signal[tmo.signal.length-1];
+        let mP=tmo.main[tmo.main.length-2], sP=tmo.signal[tmo.signal.length-2];
+        let mP2=tmo.main.length>=3?tmo.main[tmo.main.length-3]:mP;
+        let sP2=tmo.signal.length>=3?tmo.signal[tmo.signal.length-3]:sP;
+        let ema50=calcEmaSimple(closes,50);
+        let e50=ema50[ema50.length-1], e50p=ema50[ema50.length-6]||e50;
+        let trend=e50>e50p?'BULL':'BEAR';
+        let aboveEma=closes[closes.length-1]>e50;
+        let eeDir=m>s?1:m<s?-1:0;
+        let signals=(trend==='BULL'?1:-1)+(aboveEma?1:-1)+eeDir;
+        let dir=signals>=2?'LONG':signals<=-2?'SHORT':'NEUTRAL';
+        let cross='';
+        if(m>s&&mP<=sP)cross='LONG';else if(m<s&&mP>=sP)cross='SHORT';
+        else if(mP>sP&&mP2<=sP2)cross='LONG';else if(mP<sP&&mP2>=sP2)cross='SHORT';
+        results[cfg.name]={main:m, sig:s, dir:dir, cross:cross, bullish:m>s};
+      }).catch(()=>{})
+  );
+  await Promise.all(fetches);
+  return results;
+}
+
+function renderTmoRow(coin, results) {
+  const tfs=['5m','15m','30m','1h','4h'];
+  let r='<div style="background:#0d1117;border-radius:6px;padding:6px 8px;margin-bottom:8px;">';
+  r+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+  r+='<span style="color:#8b5cf6;font-weight:700;font-size:0.75rem;">TMO</span>';
+  tfs.forEach(tf=>{
+    let d=results[tf];
+    if(!d){r+='<span style="background:#161b22;padding:2px 6px;border-radius:4px;font-size:0.7rem;color:#555;">'+tf+' ·</span>';return;}
+    let m=d.main, bull=d.bullish, cross=d.cross, dir=d.dir;
+    let bgCol=dir==='LONG'?'rgba(34,197,94,0.15)':dir==='SHORT'?'rgba(239,68,68,0.15)':'rgba(100,100,100,0.15)';
+    let dirCol=dir==='LONG'?'#22c55e':dir==='SHORT'?'#ef4444':'#8b949e';
+    let crossBadge='';
+    if(cross==='LONG')crossBadge=' <span style="color:#22c55e;font-size:0.6rem;">●X</span>';
+    else if(cross==='SHORT')crossBadge=' <span style="color:#ef4444;font-size:0.6rem;">●X</span>';
+    let arrow=bull?'▲':'▼';
+    let arrowCol=bull?'#22c55e':'#ef4444';
+    r+='<span style="background:'+bgCol+';padding:2px 6px;border-radius:4px;font-size:0.7rem;border:1px solid '+dirCol+'33;">';
+    r+='<span style="color:#8b949e;">'+tf+'</span> ';
+    r+='<span style="color:'+dirCol+';font-weight:700;">'+dir.charAt(0)+'</span> ';
+    r+='<span style="color:'+arrowCol+';">'+arrow+'</span>';
+    r+='<span style="color:#8b949e;font-size:0.6rem;"> '+m.toFixed(1)+'</span>';
+    r+=crossBadge+'</span>';
+  });
+  r+='</div></div>';
+  return r;
+}
+
 async function runAnalysis() {
   const coin = document.getElementById('liqCoin').value.trim().toUpperCase();
   if (!coin) return;
@@ -575,6 +662,9 @@ async function runAnalysis() {
   resultEl.style.display = 'none';
 
   try {
+    // Fetch TMO data in parallel with main data
+    const tmoPromise = getCoinTmo(sym);
+
     // Fetch all data in parallel (Coin + BTC on same TF)
     const [klines, depth, oi, funding, btcKlines, btcOi, btcDepth, btcOiData] = await Promise.all([
       bnApi('/fapi/v1/klines?symbol='+sym+'&interval='+tf+'&limit='+tfLimit),
@@ -862,6 +952,10 @@ async function runAnalysis() {
     h += '<div style="font-size:1.4rem;font-weight:700;color:'+biasColor+'">'+coin+' — '+coinBias+'</div>';
     h += '<div style="font-size:0.8rem;color:#8b949e">$'+fp(price)+' | TF: '+tf+' ('+tfLimit+' Bars) | '+new Date().toLocaleString("de-DE",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit"})+' ET</div>';
     h += '</div>';
+
+    // TMO row under header
+    let tmoData = await tmoPromise;
+    h += renderTmoRow(coin, tmoData);
 
     // BTC analysis at top
     h += btcBlock;
