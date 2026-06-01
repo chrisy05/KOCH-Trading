@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<title>Paper Trading Bot</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:0}
+a{color:#58a6ff;text-decoration:none}
+a:hover{text-decoration:underline}
+
+.header{background:#161b22;border-bottom:1px solid #21262d;padding:16px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.header h1{font-size:1.4rem;color:#58a6ff;font-weight:700}
+.nav{display:flex;gap:16px;font-size:.85rem}
+.config-bar{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:#8b949e}
+.config-bar span{background:#21262d;padding:3px 10px;border-radius:12px}
+.refresh-bar{display:flex;align-items:center;gap:10px;font-size:.75rem;color:#8b949e}
+.refresh-bar button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:.75rem}
+.refresh-bar button:hover{border-color:#58a6ff}
+.refresh-bar button.active{background:#0d419d;border-color:#58a6ff;color:#fff}
+
+.container{max-width:1400px;margin:0 auto;padding:20px}
+
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:700px){.summary-grid{grid-template-columns:1fr}}
+.summary-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:16px}
+.summary-card h2{font-size:.8rem;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.summary-card h2 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.stat-row{display:flex;flex-wrap:wrap;gap:12px}
+.stat-item{flex:1;min-width:100px;text-align:center;background:#0d1117;border-radius:8px;padding:10px 8px}
+.stat-item .label{font-size:.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-item .value{font-size:1.3rem;font-weight:700}
+
+.section{margin-bottom:24px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.section-header h2{font-size:1rem;font-weight:600;color:#c9d1d9}
+.section-header .count{font-size:.75rem;color:#8b949e;background:#21262d;padding:2px 10px;border-radius:10px}
+.toggle-btn{background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:.75rem}
+.toggle-btn:hover{border-color:#58a6ff;color:#c9d1d9}
+
+.table-wrap{overflow-x:auto;background:#161b22;border:1px solid #21262d;border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:.8rem;white-space:nowrap}
+thead th{padding:10px 12px;text-align:left;font-size:.68rem;letter-spacing:.8px;color:#8b949e;text-transform:uppercase;background:#0d1117;border-bottom:1px solid #21262d}
+tbody tr{border-bottom:1px solid #21262d;transition:background .15s}
+tbody tr:hover{background:#1c2333}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:8px 12px}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.7rem;font-weight:600}
+.badge-long{background:rgba(34,197,94,0.15);color:#22c55e}
+.badge-short{background:rgba(239,68,68,0.15);color:#ef4444}
+.badge-tp{background:rgba(34,197,94,0.15);color:#22c55e}
+.badge-liq{background:rgba(239,68,68,0.15);color:#ef4444}
+
+.green{color:#22c55e}.red{color:#ef4444}.blue{color:#58a6ff}.orange{color:#f59e0b}.purple{color:#8b5cf6}.gray{color:#8b949e}
+.row-win{background:rgba(34,197,94,0.04)}.row-loss{background:rgba(239,68,68,0.04)}
+
+.empty-state{text-align:center;padding:40px 20px;color:#8b949e;font-size:.9rem}
+
+footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1px solid #21262d;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <h1>Paper Trading Bot</h1>
+    <nav class="nav">
+      <a href="cockpit.html">&larr; Cockpit</a>
+      <a href="index.html">Dashboard</a>
+      <a href="kalkulator.html">Kalkulator &rarr;</a>
+    </nav>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+    <div class="config-bar" id="configBar"></div>
+    <div class="refresh-bar">
+      <span id="lastUpdate">--</span>
+      <button id="autoRefreshBtn" onclick="toggleAutoRefresh()">Auto-Refresh: OFF</button>
+      <button onclick="loadData()">Refresh</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Summary Stats -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h2><span class="dot" style="background:#8b5cf6"></span> 15-Minute Timeframe</h2>
+      <div class="stat-row" id="stats15m">
+        <div class="stat-item"><div class="label">Trades</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Winrate</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Total PnL</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Avg PnL</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Avg Duration</div><div class="value gray">--</div></div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <h2><span class="dot" style="background:#f59e0b"></span> 1-Hour Timeframe</h2>
+      <div class="stat-row" id="stats1h">
+        <div class="stat-item"><div class="label">Trades</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Winrate</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Total PnL</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Avg PnL</div><div class="value gray">--</div></div>
+        <div class="stat-item"><div class="label">Avg Duration</div><div class="value gray">--</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Open Trades -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Open Trades</h2>
+      <span class="count" id="openCount">0</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Entry</th><th class="num">Current</th><th class="num">TP</th><th class="num">Liq</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Opened</th>
+          </tr>
+        </thead>
+        <tbody id="openBody"><tr><td colspan="12" class="empty-state">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Closed Trades -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Closed Trades</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="count" id="closedCount">0</span>
+        <button class="toggle-btn" id="closedToggle" onclick="toggleClosed()">Show</button>
+      </div>
+    </div>
+    <div id="closedSection" style="display:none">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Entry</th><th class="num">Close</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Reason</th><th>Closed</th>
+            </tr>
+          </thead>
+          <tbody id="closedBody"><tr><td colspan="11" class="empty-state">No closed trades</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Paper Trading Bot &mdash; Simulated trades, no real money at risk</footer>
+
+<script>
+let autoRefresh = false;
+let autoRefreshTimer = null;
+let priceCache = {};
+
+function toggleAutoRefresh() {
+  autoRefresh = !autoRefresh;
+  const btn = document.getElementById('autoRefreshBtn');
+  if (autoRefresh) {
+    btn.textContent = 'Auto-Refresh: ON';
+    btn.classList.add('active');
+    autoRefreshTimer = setInterval(loadData, 30000);
+  } else {
+    btn.textContent = 'Auto-Refresh: OFF';
+    btn.classList.remove('active');
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  }
+}
+
+function toggleClosed() {
+  const sec = document.getElementById('closedSection');
+  const btn = document.getElementById('closedToggle');
+  if (sec.style.display === 'none') {
+    sec.style.display = 'block';
+    btn.textContent = 'Hide';
+  } else {
+    sec.style.display = 'none';
+    btn.textContent = 'Show';
+  }
+}
+
+function fmt(n, decimals) {
+  if (n === null || n === undefined) return '--';
+  if (typeof decimals === 'undefined') {
+    if (Math.abs(n) >= 100) decimals = 2;
+    else if (Math.abs(n) >= 1) decimals = 4;
+    else if (Math.abs(n) >= 0.01) decimals = 6;
+    else decimals = 8;
+  }
+  return n.toFixed(decimals);
+}
+
+function pnlColor(v) { return v >= 0 ? 'green' : 'red'; }
+
+function duration(openTime, closeTime) {
+  const start = new Date(openTime);
+  const end = closeTime ? new Date(closeTime) : new Date();
+  let secs = Math.floor((end - start) / 1000);
+  if (secs < 0) secs = 0;
+  if (secs < 3600) return Math.floor(secs / 60) + 'm';
+  if (secs < 86400) return (secs / 3600).toFixed(1) + 'h';
+  return (secs / 86400).toFixed(1) + 'd';
+}
+
+async function fetchPrice(symbol) {
+  try {
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + symbol + 'USDT');
+    const d = await r.json();
+    return parseFloat(d.price);
+  } catch { return null; }
+}
+
+async function fetchPrices(coins) {
+  const unique = [...new Set(coins)];
+  const promises = unique.map(async c => {
+    const price = await fetchPrice(c);
+    if (price !== null) priceCache[c] = price;
+  });
+  await Promise.all(promises);
+}
+
+function renderStats(containerId, stats) {
+  const el = document.getElementById(containerId);
+  const open = stats.open || 0;
+  const total = stats.total || 0;
+  const wr = stats.winrate || 0;
+  const wrColor = wr >= 55 ? 'green' : wr >= 45 ? 'orange' : 'red';
+  const pnlCol = pnlColor(stats.total_pnl || 0);
+  const avgCol = pnlColor(stats.avg_pnl || 0);
+
+  el.innerHTML = `
+    <div class="stat-item">
+      <div class="label">Total / Open</div>
+      <div class="value blue">${total} <span style="font-size:.75rem;color:#8b949e">/ ${open}</span></div>
+    </div>
+    <div class="stat-item">
+      <div class="label">W / L</div>
+      <div class="value"><span class="green">${stats.wins || 0}</span> <span style="font-size:.75rem;color:#8b949e">/</span> <span class="red">${stats.losses || 0}</span></div>
+    </div>
+    <div class="stat-item">
+      <div class="label">Winrate</div>
+      <div class="value ${wrColor}">${wr.toFixed(1)}%</div>
+    </div>
+    <div class="stat-item">
+      <div class="label">Total PnL</div>
+      <div class="value ${pnlCol}">$${(stats.total_pnl || 0).toFixed(2)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="label">Avg PnL</div>
+      <div class="value ${avgCol}">$${(stats.avg_pnl || 0).toFixed(2)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="label">Avg Duration</div>
+      <div class="value gray">${stats.avg_duration || '--'}</div>
+    </div>
+  `;
+}
+
+function renderConfig(config) {
+  const el = document.getElementById('configBar');
+  el.innerHTML = `
+    <span>Capital <b style="color:#c9d1d9">$${config.capital || 100}</b></span>
+    <span>Leverage <b style="color:#c9d1d9">${config.leverage || 10}x</b></span>
+    <span>Min Prob <b style="color:#c9d1d9">${config.min_probability || 60}%</b></span>
+    <span>TP <b style="color:#c9d1d9">${config.tp_pct || 80}%</b></span>
+  `;
+}
+
+function calcPnl(direction, entry, currentPrice, size) {
+  if (direction === 'LONG') return (currentPrice - entry) * size;
+  return (entry - currentPrice) * size;
+}
+
+async function renderOpenTrades(trades15m, trades1h) {
+  const allOpen = [...trades15m, ...trades1h]
+    .filter(t => t.status === 'open')
+    .sort((a, b) => new Date(b.open_time) - new Date(a.open_time));
+
+  document.getElementById('openCount').textContent = allOpen.length;
+
+  if (allOpen.length === 0) {
+    document.getElementById('openBody').innerHTML = '<tr><td colspan="12" class="empty-state">No open trades</td></tr>';
+    return;
+  }
+
+  const coins = allOpen.map(t => t.coin);
+  await fetchPrices(coins);
+
+  let html = '';
+  for (const t of allOpen) {
+    const price = priceCache[t.coin];
+    let pnl = null, roi = null, priceStr = '--';
+    if (price !== null && price !== undefined) {
+      pnl = calcPnl(t.direction, t.entry, price, t.size);
+      roi = pnl / t.margin * 100;
+      priceStr = fmt(price);
+    }
+    const dirClass = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
+    const dur = duration(t.open_time);
+    const openDt = t.open_time.replace('T', ' ').slice(0, 16);
+
+    html += `<tr>
+      <td><b>${t.coin}</b></td>
+      <td><span class="badge ${dirClass}">${t.direction}</span></td>
+      <td>${t.tf}</td>
+      <td class="num">${fmt(t.entry)}</td>
+      <td class="num">${priceStr}</td>
+      <td class="num">${fmt(t.tp)}</td>
+      <td class="num">${fmt(t.liq)}</td>
+      <td class="num">${t.probability}%</td>
+      <td class="num ${pnl !== null ? pnlColor(pnl) : ''}" style="font-weight:600">${pnl !== null ? '$' + pnl.toFixed(2) : '--'}</td>
+      <td class="num ${roi !== null ? pnlColor(roi) : ''}">${roi !== null ? roi.toFixed(1) + '%' : '--'}</td>
+      <td class="gray">${dur}</td>
+      <td class="gray" style="font-size:.72rem">${openDt}</td>
+    </tr>`;
+  }
+  document.getElementById('openBody').innerHTML = html;
+}
+
+function renderClosedTrades(trades15m, trades1h) {
+  const allClosed = [...trades15m, ...trades1h]
+    .filter(t => t.status === 'closed')
+    .sort((a, b) => new Date(b.close_time) - new Date(a.close_time))
+    .slice(0, 50);
+
+  document.getElementById('closedCount').textContent = allClosed.length;
+
+  if (allClosed.length === 0) {
+    document.getElementById('closedBody').innerHTML = '<tr><td colspan="11" class="empty-state">No closed trades yet</td></tr>';
+    return;
+  }
+
+  let html = '';
+  for (const t of allClosed) {
+    const dirClass = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
+    const reasonClass = t.close_reason === 'TP' ? 'badge-tp' : 'badge-liq';
+    const rowClass = (t.pnl || 0) >= 0 ? 'row-win' : 'row-loss';
+    const dur = duration(t.open_time, t.close_time);
+    const closeDt = (t.close_time || '').replace('T', ' ').slice(0, 16);
+
+    html += `<tr class="${rowClass}">
+      <td><b>${t.coin}</b></td>
+      <td><span class="badge ${dirClass}">${t.direction}</span></td>
+      <td>${t.tf}</td>
+      <td class="num">${fmt(t.entry)}</td>
+      <td class="num">${fmt(t.close_price)}</td>
+      <td class="num">${t.probability}%</td>
+      <td class="num ${pnlColor(t.pnl || 0)}" style="font-weight:600">$${(t.pnl || 0).toFixed(2)}</td>
+      <td class="num ${pnlColor(t.roi || 0)}">${(t.roi || 0).toFixed(1)}%</td>
+      <td class="gray">${dur}</td>
+      <td><span class="badge ${reasonClass}">${t.close_reason || '--'}</span></td>
+      <td class="gray" style="font-size:.72rem">${closeDt}</td>
+    </tr>`;
+  }
+  document.getElementById('closedBody').innerHTML = html;
+}
+
+async function loadData() {
+  try {
+    const r = await fetch('paper_trades.json?t=' + Date.now());
+    const data = await r.json();
+
+    renderConfig(data.config || {});
+    renderStats('stats15m', data.stats_15m || {});
+    renderStats('stats1h', data.stats_1h || {});
+    await renderOpenTrades(data.trades_15m || [], data.trades_1h || []);
+    renderClosedTrades(data.trades_15m || [], data.trades_1h || []);
+
+    document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('lastUpdate').textContent = 'Error loading data';
+    console.error('Load error:', e);
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
