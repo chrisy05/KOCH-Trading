@@ -734,7 +734,10 @@ def scan_and_trade(data, tf, limit, tf_key):
     log(f"{'='*60}")
 
     open_trades = [t for t in data[tf_key] if t["status"] == "open"]
-    open_coins = set(t["coin"] for t in open_trades)
+    # Check ALL open trades across BOTH timeframes — 1 coin = 1 trade max
+    all_open = [t for t in data["trades_15m"] if t["status"] == "open"] + \
+               [t for t in data["trades_1h"] if t["status"] == "open"]
+    open_coins = set(t["coin"] for t in all_open)
 
     # For 15m: check max open trades limit
     if tf_key == "trades_15m" and len(open_trades) >= CONFIG["max_open_15m"]:
