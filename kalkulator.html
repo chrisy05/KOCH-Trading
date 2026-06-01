@@ -1018,9 +1018,83 @@ async function runAnalysis() {
     h += '<div>Value Area: '+badge(scores.va)+'</div>';
     h += '</div></div>';
 
+    // Price Range Prediction
+    // ATR (14) for volatility
+    let atrVals = [];
+    for (let i=1; i<bars.length; i++) {
+      let tr = Math.max(bars[i].h-bars[i].l, Math.abs(bars[i].h-bars[i-1].c), Math.abs(bars[i].l-bars[i-1].c));
+      atrVals.push(tr);
+    }
+    let atr14 = atrVals.slice(-14).reduce((s,v)=>s+v,0)/Math.min(14,atrVals.length);
+    let atrPct = atr14/price*100;
+
+    // TF multiplier: how many bars in ~24h
+    let tfMins = {'5m':5,'15m':15,'30m':30,'1h':60,'4h':240,'1d':1440};
+    let barsPerDay = 1440/(tfMins[tf]||15);
+    // Expected move = ATR * sqrt(bars in prediction window)
+    // Prediction window: 1 TF-Periode voraus = ~barsPerDay bars
+    let expectedMove = atr14 * Math.sqrt(barsPerDay) * 0.5; // dampened
+    let expMovePct = expectedMove/price*100;
+
+    // Range boundaries: use nearest support/resistance as realistic limits
+    let rangeHigh = price + expectedMove;
+    let rangeLow = price - expectedMove;
+
+    // Adjust with absorption zones
+    if (resistZ.length && resistZ[0].mid < rangeHigh) rangeHigh = Math.min(rangeHigh, resistZ[0].mid + atr14);
+    if (supportZ.length && supportZ[0].mid > rangeLow) rangeLow = Math.max(rangeLow, supportZ[0].mid - atr14);
+
+    let rangeHighPct = (rangeHigh-price)/price*100;
+    let rangeLowPct = (price-rangeLow)/price*100;
+
+    // Bias-adjusted targets
+    let targetUp, targetDown;
+    if (coinBias==='LONG') {
+      targetUp = rangeHigh; // full upside
+      targetDown = price - expectedMove*0.5; // smaller downside
+    } else if (coinBias==='SHORT') {
+      targetUp = price + expectedMove*0.5;
+      targetDown = rangeLow;
+    } else {
+      targetUp = rangeHigh;
+      targetDown = rangeLow;
+    }
+    let targetUpPct = (targetUp-price)/price*100;
+    let targetDownPct = (price-targetDown)/price*100;
+
     // Resume (3-part)
     h += '<div style="border-radius:8px;overflow:hidden;margin-top:10px;border:1px solid #21262d">';
     h += '<div style="background:#161b22;padding:8px 10px;font-weight:700;color:#8b5cf6;font-size:0.85rem;border-bottom:1px solid #21262d">RESUEMEE</div>';
+
+    // Price range block
+    h += '<div style="background:#0d1117;padding:10px;border-bottom:1px solid #21262d;font-size:0.78rem;line-height:1.8">';
+    h += '<b style="color:#f59e0b;">PREIS-RANGE ('+tf+')</b><br>';
+    h += 'ATR(14): $'+atr14.toFixed(dec)+' ('+atrPct.toFixed(2)+'% pro Kerze)<br>';
+
+    // Visual range bar
+    let barTotal = rangeLowPct + rangeHighPct;
+    let lowW = rangeLowPct/barTotal*100;
+    let highW = rangeHighPct/barTotal*100;
+    h += '<div style="display:flex;align-items:center;gap:4px;margin:6px 0;">';
+    h += '<span style="font-size:0.7rem;color:#ef4444;min-width:60px;text-align:right">$'+fp(rangeLow)+'</span>';
+    h += '<div style="flex:1;height:12px;background:#161b22;border-radius:6px;overflow:hidden;position:relative;display:flex;">';
+    h += '<div style="width:'+lowW+'%;background:rgba(239,68,68,0.4);"></div>';
+    h += '<div style="width:2px;background:#fff;"></div>';
+    h += '<div style="width:'+highW+'%;background:rgba(34,197,94,0.4);"></div>';
+    h += '</div>';
+    h += '<span style="font-size:0.7rem;color:#22c55e;min-width:60px">$'+fp(rangeHigh)+'</span>';
+    h += '</div>';
+
+    h += '<div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#8b949e;margin-bottom:4px">';
+    h += '<span>-'+rangeLowPct.toFixed(1)+'%</span><span style="color:#58a6ff">JETZT $'+fp(price)+'</span><span>+'+rangeHighPct.toFixed(1)+'%</span></div>';
+
+    // Bias-adjusted targets
+    let biasArrow = coinBias==='LONG'?'▲':coinBias==='SHORT'?'▼':'◆';
+    let biasCol = coinBias==='LONG'?'#22c55e':coinBias==='SHORT'?'#ef4444':'#f59e0b';
+    h += 'Bias-Target '+biasArrow+': ';
+    h += '<span class="green">$'+fp(targetUp)+' (+'+targetUpPct.toFixed(1)+'%)</span> / ';
+    h += '<span class="red">$'+fp(targetDown)+' (-'+targetDownPct.toFixed(1)+'%)</span>';
+    h += '</div>';
 
     h += '<div style="background:#0d1117;padding:10px;border-bottom:1px solid #21262d;font-size:0.78rem;line-height:1.6">';
     h += '<b class="green">A) BTC Long</b> <span style="float:right;font-weight:700;color:'+(probA>=50?'#22c55e':'#f59e0b')+'">'+resA.prob+'</span><br>';
