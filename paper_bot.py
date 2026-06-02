@@ -638,8 +638,24 @@ def close_trade(trade, close_price, reason):
     return trade
 
 
+def get_recent_highlow(sym, minutes=5):
+    """Get high/low from recent klines to catch wicks."""
+    try:
+        url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1m&limit={minutes}"
+        req = urllib.request.Request(url, headers={"User-Agent": "PaperBot/1.0"})
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+            klines = json.loads(resp.read().decode())
+        if not klines:
+            return None, None
+        high = max(float(k[2]) for k in klines)
+        low = min(float(k[3]) for k in klines)
+        return high, low
+    except:
+        return None, None
+
+
 def check_open_trades(data):
-    """Check all open trades for TP or liquidation hits."""
+    """Check all open trades for TP or liquidation hits using kline highs/lows."""
     for tf_key in ["trades_15m", "trades_1h"]:
         open_trades = [t for t in data[tf_key] if t["status"] == "open"]
         if not open_trades:
@@ -647,30 +663,37 @@ def check_open_trades(data):
 
         # Group by coin to minimize API calls
         coins_needed = set(t["coin"] for t in open_trades)
-        prices = {}
+        price_data = {}  # coin -> (current, high, low)
         for coin in coins_needed:
             sym = f"{coin}USDT"
             p = get_current_price(sym)
+            h, l = get_recent_highlow(sym, 3)
             if p is not None:
-                prices[coin] = p
+                price_data[coin] = (p, h or p, l or p)
             time.sleep(0.05)
 
         for trade in open_trades:
             coin = trade["coin"]
-            if coin not in prices:
+            if coin not in price_data:
                 continue
-            current_price = prices[coin]
+            current_price, recent_high, recent_low = price_data[coin]
 
             if trade["direction"] == "LONG":
-                if current_price >= trade["tp"]:
+                # Check TP hit (using high — wick up counts)
+                if recent_high >= trade["tp"]:
                     close_trade(trade, trade["tp"], "TP")
-                elif current_price <= trade["liq"]:
+                # Check LIQ hit (using low — wick down counts)
+                elif recent_low <= trade["liq"]:
                     close_trade(trade, trade["liq"], "LIQ")
+                    log(f"  LIQ HIT: {coin} LONG | Low {recent_low:.6f} <= Liq {trade['liq']:.6f}")
             else:  # SHORT
-                if current_price <= trade["tp"]:
+                # Check TP hit (using low — wick down counts)
+                if recent_low <= trade["tp"]:
                     close_trade(trade, trade["tp"], "TP")
-                elif current_price >= trade["liq"]:
+                # Check LIQ hit (using high — wick up counts)
+                elif recent_high >= trade["liq"]:
                     close_trade(trade, trade["liq"], "LIQ")
+                    log(f"  LIQ HIT: {coin} SHORT | High {recent_high:.6f} >= Liq {trade['liq']:.6f}")
 
 
 def update_stats(data):
