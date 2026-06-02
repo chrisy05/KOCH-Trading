@@ -1336,19 +1336,19 @@ def main():
             # Check open trades for TP/Liq every minute
             check_open_trades(data)
 
-            # 15min scan: run at 0, 15, 30, 45
-            current_15m_slot = (hour * 60 + minute) // 15
-            if minute % 15 == 0 and current_15m_slot != last_15m_scan:
-                last_15m_scan = current_15m_slot
+            # 15min scan: run every 5 minutes
+            current_5m_slot = (hour * 60 + minute) // 5
+            if minute % 5 == 0 and current_5m_slot != last_15m_scan:
+                last_15m_scan = current_5m_slot
                 scan_and_trade(data, "15m", 800, "trades_15m")
                 update_stats(data)
                 save_data(data)
                 print_status(data)
 
-            # 30m scan: run at 0, 30
-            current_30m_slot = (hour * 60 + minute) // 30
-            if minute % 30 == 0 and current_30m_slot != last_30m_scan:
-                last_30m_scan = current_30m_slot
+            # 30m scan: run every 10 minutes
+            current_10m_slot = (hour * 60 + minute) // 10
+            if minute % 10 == 0 and current_10m_slot != last_30m_scan:
+                last_30m_scan = current_10m_slot
                 scan_and_trade(data, "30m", 500, "trades_30m")
                 update_stats(data)
                 save_data(data)
