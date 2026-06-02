@@ -325,10 +325,13 @@ def get_wallet_balance():
         coins = result.get("result", {}).get("list", [{}])[0].get("coin", [])
         for c in coins:
             if c.get("coin") == "USDT":
+                def safe_float(v):
+                    try: return float(v) if v else 0.0
+                    except: return 0.0
                 return {
-                    "available": float(c.get("availableToWithdraw", "0")),
-                    "equity": float(c.get("equity", "0")),
-                    "wallet_balance": float(c.get("walletBalance", "0")),
+                    "available": safe_float(c.get("availableToWithdraw", "0")),
+                    "equity": safe_float(c.get("equity", "0")),
+                    "wallet_balance": safe_float(c.get("walletBalance", "0")),
                 }
     return None
 
