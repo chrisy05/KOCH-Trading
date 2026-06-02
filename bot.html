@@ -115,26 +115,32 @@
       <div class="stat-box"><div class="label">Balance</div><div class="value white" id="lbBalance">—</div></div>
       <div class="stat-box"><div class="label">API</div><div class="value" id="lbApi" style="color:#555">Prüfe...</div></div>
     </div>
+    <style>
+      .cfg-input{background:#1a1a1a;border:2px solid #333;color:#fff;padding:14px 16px;border-radius:8px;font-size:1.5rem;font-weight:700;width:100%;text-align:center;outline:none;transition:border-color .2s;-moz-appearance:textfield}
+      .cfg-input:focus{border-color:#58a6ff}
+      .cfg-input::-webkit-inner-spin-button,.cfg-input::-webkit-outer-spin-button{opacity:1;height:36px;width:20px;cursor:pointer}
+      .cfg-unit{color:#555;font-size:1rem;margin-left:6px}
+    </style>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
-      <div class="stat-box">
+      <div class="stat-box" style="padding:14px">
         <div class="label">Kapital/Trade</div>
-        <div><span style="color:#555;font-size:.8rem">$</span><input type="number" id="cfgCapital" value="100" min="10" max="10000" step="10" style="background:transparent;border:1px solid #333;color:#fff;padding:8px 12px;border-radius:6px;font-size:1.3rem;font-weight:700;width:100px;text-align:center"></div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><span class="cfg-unit">$</span><input type="number" id="cfgCapital" value="100" min="0" max="50000" step="1" class="cfg-input" style="width:110px"></div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" style="padding:14px">
         <div class="label">Hebel</div>
-        <div><input type="number" id="cfgLeverage" value="10" min="1" max="100" step="1" style="background:transparent;border:1px solid #333;color:#fff;padding:8px 12px;border-radius:6px;font-size:1.3rem;font-weight:700;width:80px;text-align:center"><span style="color:#555;font-size:.8rem">x</span></div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgLeverage" value="10" min="0" max="125" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">x</span></div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" style="padding:14px">
         <div class="label">Min Prob</div>
-        <div><input type="number" id="cfgMinProb" value="60" min="50" max="90" step="5" style="background:transparent;border:1px solid #333;color:#fff;padding:8px 12px;border-radius:6px;font-size:1.3rem;font-weight:700;width:80px;text-align:center"><span style="color:#555;font-size:.8rem">%</span></div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgMinProb" value="60" min="0" max="100" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" style="padding:14px">
         <div class="label">TP Range</div>
-        <div><input type="number" id="cfgTpRange" value="80" min="50" max="100" step="5" style="background:transparent;border:1px solid #333;color:#fff;padding:8px 12px;border-radius:6px;font-size:1.3rem;font-weight:700;width:80px;text-align:center"><span style="color:#555;font-size:.8rem">%</span></div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTpRange" value="80" min="0" max="100" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" style="padding:14px">
         <div class="label">Max 4h Trades</div>
-        <div><input type="number" id="cfgMax4h" value="3" min="1" max="10" step="1" style="background:transparent;border:1px solid #333;color:#fff;padding:8px 12px;border-radius:6px;font-size:1.3rem;font-weight:700;width:80px;text-align:center"></div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgMax4h" value="3" min="0" max="20" step="1" class="cfg-input" style="width:80px"></div>
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
