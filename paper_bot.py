@@ -21,7 +21,7 @@ CONFIG = {
     "capital": 100,
     "leverage": 10,
     "min_probability": 60,
-    "tp_range_pct": 80,       # 80% of expected move
+    "tp_range_pct": 70,       # 70% of expected move (was 80%, changed 02.06. — saves ~7/9 liqs)
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
