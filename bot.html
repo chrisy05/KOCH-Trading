@@ -775,7 +775,7 @@ async function loadLiveTrades() {
         <td style="text-align:right">$${(t.entry||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
         <td style="text-align:right">$${(t.close_price||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
         <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(4)}</td>
-        <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${(roi*100).toFixed(2)}%</td>
+        <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
         <td>${duration}</td>
         <td>${status}</td>
       </tr>`;
