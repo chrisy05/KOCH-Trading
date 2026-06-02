@@ -25,6 +25,7 @@ CONFIG = {
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
+    "total_budget": 10000,    # Virtuelles Gesamtkapital
 }
 
 COINS = [
@@ -787,6 +788,18 @@ def scan_and_trade(data, tf, limit, tf_key):
     # For 4h: check max open trades limit
     if tf_key == "trades_4h" and len(open_trades) >= CONFIG["max_open_4h"]:
         log(f"  Max open 4h trades reached ({CONFIG['max_open_4h']}). Skipping scan.")
+        return
+
+    # Budget check: starting budget + realized PnL - margin in open trades
+    all_closed_trades = []
+    for tfk in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+        all_closed_trades.extend([t for t in data.get(tfk, []) if t["status"] == "closed"])
+    realized_pnl = sum(t.get("pnl", 0) or 0 for t in all_closed_trades)
+    margin_used = sum(t.get("margin", CONFIG["capital"]) for t in all_open)
+    current_budget = CONFIG.get("total_budget", 10000) + realized_pnl
+    budget_available = current_budget - margin_used
+    if budget_available < CONFIG["capital"]:
+        log(f"  Budget: ${current_budget:.0f} (Start ${CONFIG['total_budget']:.0f} + PnL ${realized_pnl:+.0f}) | Margin used: ${margin_used:.0f} | Frei: ${budget_available:.0f} — kein Platz.")
         return
 
     # For 1h: track daily trades per coin
