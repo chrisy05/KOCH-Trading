@@ -167,6 +167,7 @@
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">TP</th>
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">PnL</th>
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">ROI</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Opened</th>
             </tr>
           </thead>
           <tbody id="livePositionsBody">
@@ -680,6 +681,22 @@ async function loadLivePositions() {
       return;
     }
     tbody.innerHTML = '';
+    // Load trade open times from live_trades.json
+    let tradeOpenTimes = {};
+    try {
+      const tr = await fetch('live_trades.json?t=' + Date.now());
+      if (tr.ok) {
+        const td = await tr.json();
+        for (const key of ['trades_15m','trades_30m','trades_1h','trades_4h']) {
+          for (const t of (td[key]||[])) {
+            if (t.status === 'open' && t.coin) {
+              tradeOpenTimes[t.coin] = t.open_time;
+            }
+          }
+        }
+      }
+    } catch(e) {}
+
     data.positions.forEach(p => {
       const coin = p.symbol.replace('USDT', '');
       const side = p.side === 'Buy' ? 'LONG' : 'SHORT';
@@ -689,6 +706,7 @@ async function loadLivePositions() {
       const entry = parseFloat(p.avgPrice) || 0;
       const mark = parseFloat(p.markPrice) || 0;
       const lev = parseFloat(p.leverage) || 1;
+      const openTime = tradeOpenTimes[coin] ? tradeOpenTimes[coin].replace('T',' ').slice(0,16) : '';
       // ROI = (mark - entry) / entry * leverage * 100 for LONG, inverted for SHORT
       let roi = 0;
       if (entry > 0) {
@@ -707,6 +725,7 @@ async function loadLivePositions() {
         <td style="text-align:right">${p.takeProfit ? '$'+parseFloat(p.takeProfit).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}) : '—'}</td>
         <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(4)}</td>
         <td style="text-align:right" class="${roiClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
+        <td style="color:#555;font-size:.7rem">${openTime}</td>
       </tr>`;
     });
   } catch(e) {}
