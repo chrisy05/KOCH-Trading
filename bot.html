@@ -97,7 +97,38 @@
 </header>
 
 <div class="container">
-  <!-- KPI Row -->
+  <!-- Live Bot Section -->
+  <div style="background:#161616;border:1px solid #22c55e33;border-left:3px solid #22c55e;border-radius:10px;padding:20px;margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <h2 style="color:#22c55e;font-size:1.2rem;margin-bottom:4px">KODA Live Bot — Bybit</h2>
+        <div style="color:#555;font-size:.8rem">Coin Analyzer Strategie · Bybit V5 API</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <a href="paperbot.html" style="color:#8b5cf6;text-decoration:none;font-size:.8rem;padding:5px 14px;border:1px solid #8b5cf655;border-radius:20px;background:#8b5cf610">Paper Bot</a>
+        <span id="liveStatus" style="padding:5px 14px;border-radius:20px;font-size:.8rem;font-weight:700;background:#f59e0b15;color:#f59e0b">BEREIT</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+      <div class="stat-box"><div class="label">Modus</div><div class="value" style="color:#f59e0b" id="lbMode">Dry-Run</div></div>
+      <div class="stat-box"><div class="label">Exchange</div><div class="value" style="color:#00c8ff">Bybit</div></div>
+      <div class="stat-box"><div class="label">Balance</div><div class="value white" id="lbBalance">—</div></div>
+      <div class="stat-box"><div class="label">API</div><div class="value" id="lbApi" style="color:#555">Prüfe...</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
+      <div class="stat-box"><div class="label">Kapital/Trade</div><div class="value white">$100</div></div>
+      <div class="stat-box"><div class="label">Hebel</div><div class="value white">10x</div></div>
+      <div class="stat-box"><div class="label">Min Prob</div><div class="value white">60%</div></div>
+      <div class="stat-box"><div class="label">TP Range</div><div class="value white">80%</div></div>
+      <div class="stat-box"><div class="label">Coins</div><div class="value white">51</div></div>
+    </div>
+    <div style="font-size:.75rem;color:#555;line-height:1.6">
+      <b>Starten:</b> Terminal → <code style="background:#1a1a1a;padding:2px 6px;border-radius:4px;color:#00c8ff">python3 live_bot.py</code> (Dry-Run) · <code style="background:#1a1a1a;padding:2px 6px;border-radius:4px;color:#ef4444">python3 live_bot.py --live</code> (Echte Orders)<br>
+      <b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer (identisch mit Paper Bot)
+    </div>
+  </div>
+
+  <!-- KODA Bot (ER1) KPI Row -->
   <div class="grid-4">
     <div class="stat-box"><div class="label">Bot Trades</div><div class="value white" id="kpi-trades">0</div><div class="sub" id="kpi-trades-sub">—</div></div>
     <div class="stat-box"><div class="label">Winrate</div><div class="value green" id="kpi-wr">—</div><div class="sub" id="kpi-wr-sub"></div></div>
@@ -257,6 +288,28 @@ function render(trades) {
 
 // Trade data will be injected here by the build script
 var KODA_TRADES = [];
+
+// Live Bot status check
+async function checkLiveBot() {
+  try {
+    const r = await fetch('live_trades.json?t=' + Date.now());
+    if (r.ok) {
+      const data = await r.json();
+      const mode = data.config && data.config.mode === 'live' ? 'LIVE' : 'Dry-Run';
+      document.getElementById('lbMode').textContent = mode;
+      document.getElementById('lbMode').style.color = mode === 'LIVE' ? '#22c55e' : '#f59e0b';
+      document.getElementById('lbApi').textContent = 'Verbunden';
+      document.getElementById('lbApi').style.color = '#22c55e';
+      document.getElementById('liveStatus').textContent = mode === 'LIVE' ? 'LIVE' : 'DRY-RUN';
+      document.getElementById('liveStatus').style.color = mode === 'LIVE' ? '#22c55e' : '#f59e0b';
+      document.getElementById('liveStatus').style.background = mode === 'LIVE' ? '#22c55e15' : '#f59e0b15';
+    }
+  } catch(e) {
+    document.getElementById('lbApi').textContent = 'Nicht gestartet';
+    document.getElementById('lbApi').style.color = '#555';
+  }
+}
+checkLiveBot();
 </script>
 
 </body>
