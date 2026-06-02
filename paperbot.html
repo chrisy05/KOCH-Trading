@@ -166,8 +166,6 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
     </div>
   </div>
 
-  <!-- Losses Summary -->
-  <div id="lossesSummary" style="display:none"></div>
 </div>
 
 <footer>Paper Trading Bot &mdash; Simulated trades, no real money at risk</footer>
@@ -467,7 +465,6 @@ async function loadData() {
     // Cache open trades for live refresh
     cachedOpenTrades = [...(data.trades_15m||[]), ...(data.trades_1h||[])].filter(t => t.status === 'open');
 
-    renderLosses(data.trades_15m || [], data.trades_1h || []);
     await renderOpenTrades(data.trades_15m || [], data.trades_1h || []);
     renderClosedTrades(data.trades_15m || [], data.trades_1h || []);
     await refreshLivePrices();
