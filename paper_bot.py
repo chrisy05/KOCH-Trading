@@ -24,6 +24,7 @@ CONFIG = {
     "tp_range_pct": 80,       # 80% of expected move
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
+    "max_open_4h": 3,
 }
 
 COINS = [
@@ -529,7 +530,17 @@ def load_data():
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+            # Ensure new TF keys exist (backward compat)
+            empty_stats = {"total": 0, "wins": 0, "losses": 0, "winrate": 0.0,
+                           "total_pnl": 0.0, "avg_pnl": 0.0, "avg_duration": "0m"}
+            for key in ["trades_30m", "trades_4h"]:
+                if key not in data:
+                    data[key] = []
+            for key in ["stats_30m", "stats_4h"]:
+                if key not in data:
+                    data[key] = dict(empty_stats)
+            return data
         except Exception:
             pass
     return {
@@ -542,10 +553,16 @@ def load_data():
             "end_date": (datetime.now(TZ) + timedelta(days=7)).strftime("%Y-%m-%d"),
         },
         "trades_15m": [],
+        "trades_30m": [],
         "trades_1h": [],
+        "trades_4h": [],
         "stats_15m": {"total": 0, "wins": 0, "losses": 0, "winrate": 0.0,
                       "total_pnl": 0.0, "avg_pnl": 0.0, "avg_duration": "0m"},
+        "stats_30m": {"total": 0, "wins": 0, "losses": 0, "winrate": 0.0,
+                      "total_pnl": 0.0, "avg_pnl": 0.0, "avg_duration": "0m"},
         "stats_1h": {"total": 0, "wins": 0, "losses": 0, "winrate": 0.0,
+                     "total_pnl": 0.0, "avg_pnl": 0.0, "avg_duration": "0m"},
+        "stats_4h": {"total": 0, "wins": 0, "losses": 0, "winrate": 0.0,
                      "total_pnl": 0.0, "avg_pnl": 0.0, "avg_duration": "0m"},
     }
 
@@ -656,7 +673,7 @@ def get_recent_highlow(sym, minutes=5):
 
 def check_open_trades(data):
     """Check all open trades for TP or liquidation hits using kline highs/lows."""
-    for tf_key in ["trades_15m", "trades_1h"]:
+    for tf_key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
         open_trades = [t for t in data[tf_key] if t["status"] == "open"]
         if not open_trades:
             continue
@@ -698,7 +715,7 @@ def check_open_trades(data):
 
 def update_stats(data):
     """Update statistics for both timeframes."""
-    for tf_key, stats_key in [("trades_15m", "stats_15m"), ("trades_1h", "stats_1h")]:
+    for tf_key, stats_key in [("trades_15m", "stats_15m"), ("trades_30m", "stats_30m"), ("trades_1h", "stats_1h"), ("trades_4h", "stats_4h")]:
         closed = [t for t in data[tf_key] if t["status"] == "closed"]
         if not closed:
             data[stats_key] = {
@@ -757,14 +774,19 @@ def scan_and_trade(data, tf, limit, tf_key):
     log(f"{'='*60}")
 
     open_trades = [t for t in data[tf_key] if t["status"] == "open"]
-    # Check ALL open trades across BOTH timeframes — 1 coin = 1 trade max
-    all_open = [t for t in data["trades_15m"] if t["status"] == "open"] + \
-               [t for t in data["trades_1h"] if t["status"] == "open"]
+    # Check ALL open trades across ALL timeframes — 1 coin = 1 trade max
+    all_open = [t for tf in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]
+                for t in data.get(tf, []) if t["status"] == "open"]
     open_coins = set(t["coin"] for t in all_open)
 
     # For 15m: check max open trades limit
     if tf_key == "trades_15m" and len(open_trades) >= CONFIG["max_open_15m"]:
         log(f"  Max open 15m trades reached ({CONFIG['max_open_15m']}). Skipping scan.")
+        return
+
+    # For 4h: check max open trades limit
+    if tf_key == "trades_4h" and len(open_trades) >= CONFIG["max_open_4h"]:
+        log(f"  Max open 4h trades reached ({CONFIG['max_open_4h']}). Skipping scan.")
         return
 
     # For 1h: track daily trades per coin
@@ -813,6 +835,13 @@ def scan_and_trade(data, tf, limit, tf_key):
                         log(f"  Max open 15m trades reached. Stopping scan.")
                         break
 
+                # Check 4h max open limit again
+                if tf_key == "trades_4h":
+                    current_open = len([t for t in data[tf_key] if t["status"] == "open"])
+                    if current_open >= CONFIG["max_open_4h"]:
+                        log(f"  Max open 4h trades reached. Stopping scan.")
+                        break
+
                 open_trade(data, tf_key, coin, direction, entry, tp, probability, tf)
                 trades_opened += 1
 
@@ -843,7 +872,7 @@ def log(msg):
 
 def print_status(data):
     """Print current status summary."""
-    for tf_key, label in [("trades_15m", "15m"), ("trades_1h", "1h")]:
+    for tf_key, label in [("trades_15m", "15m"), ("trades_30m", "30m"), ("trades_1h", "1h"), ("trades_4h", "4h")]:
         open_trades = [t for t in data[tf_key] if t["status"] == "open"]
         closed = [t for t in data[tf_key] if t["status"] == "closed"]
         total_pnl = sum(t["pnl"] for t in closed if t["pnl"])
@@ -865,7 +894,9 @@ def main():
 
     # Track last scan times to avoid duplicate scans
     last_15m_scan = -1
+    last_30m_scan = -1
     last_1h_scan = -1
+    last_4h_scan = -1
 
     while True:
         try:
@@ -885,10 +916,27 @@ def main():
                 save_data(data)
                 print_status(data)
 
+            # 30m scan: run at 0, 30
+            current_30m_slot = (hour * 60 + minute) // 30
+            if minute % 30 == 0 and current_30m_slot != last_30m_scan:
+                last_30m_scan = current_30m_slot
+                scan_and_trade(data, "30m", 500, "trades_30m")
+                update_stats(data)
+                save_data(data)
+                print_status(data)
+
             # 1h scan: run at minute 0
             if minute == 0 and hour != last_1h_scan:
                 last_1h_scan = hour
                 scan_and_trade(data, "1h", 500, "trades_1h")
+                update_stats(data)
+                save_data(data)
+                print_status(data)
+
+            # 4h scan: run at hours 0,4,8,12,16,20 minute 0
+            if minute == 0 and hour in (0, 4, 8, 12, 16, 20) and hour != last_4h_scan:
+                last_4h_scan = hour
+                scan_and_trade(data, "4h", 500, "trades_4h")
                 update_stats(data)
                 save_data(data)
                 print_status(data)
