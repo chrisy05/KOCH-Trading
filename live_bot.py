@@ -1196,6 +1196,21 @@ def scan_and_trade(data, tf, limit, tf_key):
             if balance["available"] < CONFIG["capital"]:
                 log(f"  WARNING: Available balance (${balance['available']:.2f}) < capital (${CONFIG['capital']}). Some trades may fail.")
 
+    # Build recent LIQ history for cooldown
+    recent_liqs = {}
+    for tfk in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+        for t in data.get(tfk, []):
+            if t.get("close_reason") == "LIQ" and t.get("close_time"):
+                try:
+                    ct = datetime.fromisoformat(t["close_time"])
+                    age_min = (now - ct.replace(tzinfo=TZ if ct.tzinfo is None else ct.tzinfo)).total_seconds() / 60
+                    if age_min < 30:
+                        key = t["coin"]
+                        if key not in recent_liqs or t["close_time"] > recent_liqs[key]["close_time"]:
+                            recent_liqs[key] = {"direction": t["direction"], "close_time": t["close_time"]}
+                except:
+                    pass
+
     signals_found = 0
     trades_opened = 0
 

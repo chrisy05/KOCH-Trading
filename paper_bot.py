@@ -832,6 +832,21 @@ def scan_and_trade(data, tf, limit, tf_key):
     signals_found = 0
     trades_opened = 0
 
+    # Build recent LIQ history for cooldown check
+    recent_liqs = {}  # coin -> {direction, close_time}
+    for tfk in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+        for t in data.get(tfk, []):
+            if t.get("close_reason") == "LIQ" and t.get("close_time"):
+                try:
+                    ct = datetime.fromisoformat(t["close_time"])
+                    age_min = (now - ct.replace(tzinfo=TZ if ct.tzinfo is None else ct.tzinfo)).total_seconds() / 60
+                    if age_min < 30:  # Only last 30 minutes
+                        key = t["coin"]
+                        if key not in recent_liqs or t["close_time"] > recent_liqs[key]["close_time"]:
+                            recent_liqs[key] = {"direction": t["direction"], "close_time": t["close_time"]}
+                except:
+                    pass
+
     for coin in COINS:
         # Skip if already in an open trade for this coin+tf
         if coin in open_coins:
@@ -859,6 +874,13 @@ def scan_and_trade(data, tf, limit, tf_key):
                 continue
             if direction == "SHORT" and tp >= entry:
                 continue
+
+            # Cooldown: nach LIQ 30min Sperre fuer gleiche Richtung, Reversal sofort erlaubt
+            if coin in recent_liqs:
+                liq_dir = recent_liqs[coin]["direction"]
+                if direction == liq_dir:
+                    log(f"  COOLDOWN: {coin} {direction} — gleiche Richtung wie LIQ vor <30min. Uebersprungen.")
+                    continue
 
             if probability >= CONFIG["min_probability"]:
                 signals_found += 1
