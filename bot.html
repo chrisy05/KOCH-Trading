@@ -661,6 +661,8 @@ loadLiveTrades();
 setInterval(checkLiveBot, 10000);
 
 // ── Live Positions & Trade Log ──
+let _lastPosHtml = '';
+let _lastTradeHtml = '';
 async function loadLivePositions() {
   try {
     let data;
@@ -728,7 +730,10 @@ async function loadLivePositions() {
         <td style="color:#555;font-size:.7rem">${openTime}</td>
       </tr>`;
     });
-    tbody.innerHTML = rowsHtml;
+    if (rowsHtml !== _lastPosHtml) {
+      tbody.innerHTML = rowsHtml;
+      _lastPosHtml = rowsHtml;
+    }
   } catch(e) {}
 }
 
@@ -771,7 +776,7 @@ async function loadLiveTrades() {
       return bTime.localeCompare(aTime);
     });
 
-    tbody.innerHTML = '';
+    let tradeHtml = '';
     closed.forEach(t => {
       const coin = (t.coin || t.symbol || '').replace('USDT', '');
       const side = (t.direction || '').toUpperCase();
@@ -789,7 +794,7 @@ async function loadLiveTrades() {
         else duration = Math.floor(mins/1440) + 'd ' + Math.floor((mins%1440)/60) + 'h';
       }
       const status = t.close_reason || t.status || '—';
-      tbody.innerHTML += `<tr>
+      tradeHtml += `<tr>
         <td><span class="coin">${coin}</span></td>
         <td><span class="badge ${dirClass}">${side}</span></td>
         <td style="text-align:right">$${(t.entry||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
@@ -800,6 +805,10 @@ async function loadLiveTrades() {
         <td>${status}</td>
       </tr>`;
     });
+    if (tradeHtml !== _lastTradeHtml) {
+      tbody.innerHTML = tradeHtml;
+      _lastTradeHtml = tradeHtml;
+    }
   } catch(e) {}
 }
 
