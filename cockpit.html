@@ -26,6 +26,16 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
 </head>
 <body>
 
+<div id="login-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0e17;z-index:1000;display:flex;align-items:center;justify-content:center">
+<div style="background:#161b22;border:1px solid #21262d;border-radius:16px;padding:40px;text-align:center;max-width:360px;width:90%">
+  <h2 style="color:#58a6ff;margin-bottom:6px">KOCH Trading Cockpit</h2>
+  <div style="color:#484f58;font-size:.85rem;margin-bottom:24px">Zugang geschuetzt</div>
+  <input type="password" id="cockpit-pin" placeholder="PIN" maxlength="4" style="background:#0d1117;border:2px solid #21262d;color:#fff;padding:14px 18px;border-radius:10px;font-size:1.2rem;text-align:center;width:100%;outline:none;letter-spacing:8px" onkeyup="if(this.value==='4712'){document.getElementById('login-overlay').style.display='none';document.getElementById('main-content').style.display=''}else if(this.value.length>=4){this.style.borderColor='#ef4444';setTimeout(()=>{this.value='';this.style.borderColor='#21262d'},500)}">
+  <div style="color:#484f58;font-size:.75rem;margin-top:12px">4-stelliger PIN</div>
+</div>
+</div>
+
+<div id="main-content" style="display:none">
 <h1>KOCH Trading Cockpit</h1>
 <div class="sub">Alle Tools auf einen Blick</div>
 
@@ -139,6 +149,7 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
 </div>
 
 <div class="footer"><a href="index.html">← Dashboard</a></div>
+</div><!-- /main-content -->
 
 </body>
 </html>
