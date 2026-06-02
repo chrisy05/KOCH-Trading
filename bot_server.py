@@ -34,6 +34,7 @@ PID_FILE = "/tmp/live_bot.pid"
 CONFIG_FILE = os.path.join(BOT_DIR, "live_bot_config.json")
 CREDS_FILE = os.path.join(BOT_DIR, "bybit_credentials.json")
 STATUS_FILE = os.path.join(BOT_DIR, "live_bot_status.json")
+TRADES_FILE = os.path.join(BOT_DIR, "live_trades.json")
 LOG_FILE = "/tmp/live_bot.log"
 
 BYBIT_BASE = "https://api.bybit.com"
@@ -295,6 +296,61 @@ def write_status(running, mode, pid=None):
         log(f"Error writing status: {e}")
 
 
+def get_bybit_positions():
+    """Fetch open positions from Bybit V5 API."""
+    api_key, api_secret = load_credentials()
+    if not api_key:
+        return [], "No API credentials"
+
+    try:
+        result = bybit_request("GET", "/v5/position/list",
+                               {"category": "linear", "settleCoin": "USDT"},
+                               api_key, api_secret)
+        if result.get("retCode") != 0:
+            return [], result.get("retMsg", "API error")
+
+        positions = []
+        for p in result.get("result", {}).get("list", []):
+            size = float(p.get("size", 0))
+            if size == 0:
+                continue
+            positions.append({
+                "symbol": p.get("symbol", ""),
+                "side": p.get("side", ""),
+                "size": p.get("size", "0"),
+                "avgPrice": p.get("avgPrice", "0"),
+                "markPrice": p.get("markPrice", "0"),
+                "liqPrice": p.get("liqPrice", "0"),
+                "unrealisedPnl": p.get("unrealisedPnl", "0"),
+                "curRealisedPnl": p.get("curRealisedPnl", "0"),
+                "leverage": p.get("leverage", "0"),
+                "takeProfit": p.get("takeProfit", ""),
+                "stopLoss": p.get("stopLoss", ""),
+            })
+        return positions, None
+    except Exception as e:
+        log(f"Position fetch failed: {e}")
+        return [], str(e)
+
+
+def get_live_trades():
+    """Load trades from live_trades.json."""
+    if not os.path.exists(TRADES_FILE):
+        return []
+    try:
+        with open(TRADES_FILE, "r") as f:
+            data = json.load(f)
+        # Combine all TF trade lists
+        trades = []
+        for key, val in data.items():
+            if key.startswith("trades_") and isinstance(val, list):
+                trades.extend(val)
+        return trades
+    except Exception as e:
+        log(f"Error loading trades: {e}")
+        return []
+
+
 # ── HTTP Handler ────────────────────────────────────────────────
 
 class BotHandler(BaseHTTPRequestHandler):
@@ -342,6 +398,10 @@ class BotHandler(BaseHTTPRequestHandler):
             self.handle_balance()
         elif path == "/config":
             self.handle_get_config()
+        elif path == "/positions":
+            self.handle_positions()
+        elif path == "/trades":
+            self.handle_trades()
         else:
             self.send_json({"error": "not found"}, 404)
 
@@ -381,6 +441,22 @@ class BotHandler(BaseHTTPRequestHandler):
 
     def handle_get_config(self):
         self.send_json(load_config())
+
+    def handle_positions(self):
+        positions, error = get_bybit_positions()
+        self.send_json({
+            "positions": positions,
+            "error": error,
+            "timestamp": datetime.now(TZ).isoformat(),
+        })
+
+    def handle_trades(self):
+        trades = get_live_trades()
+        self.send_json({
+            "trades": trades,
+            "count": len(trades),
+            "timestamp": datetime.now(TZ).isoformat(),
+        })
 
     # ── POST endpoints ──
 
@@ -460,7 +536,7 @@ def main():
 
     server = HTTPServer(("0.0.0.0", PORT), BotHandler)
     log(f"Listening on http://0.0.0.0:{PORT}")
-    log("Endpoints: GET /status, /balance, /config | POST /start, /stop, /config")
+    log("Endpoints: GET /status, /balance, /config, /positions, /trades | POST /start, /stop, /config")
 
     try:
         server.serve_forever()

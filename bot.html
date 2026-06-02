@@ -150,6 +150,55 @@
       <span id="lbStatusMsg" style="color:#555;font-size:.8rem;margin-left:10px"></span>
     </div>
     <div style="font-size:.7rem;color:#444;margin-top:8px"><b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer (identisch mit Paper Bot) · <b>Coins:</b> 51 (Viona)</div>
+
+    <!-- Live Positions -->
+    <div style="margin-top:20px">
+      <h3 style="color:#22c55e;font-size:.9rem;margin-bottom:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Laufende Positionen</h3>
+      <div style="overflow:auto;max-height:40vh">
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead>
+            <tr style="border-bottom:1px solid #21262d">
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Coin</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Richtung</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Size</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Entry</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Mark Price</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Liq</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">TP</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">PnL</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">ROI</th>
+            </tr>
+          </thead>
+          <tbody id="livePositionsBody">
+            <tr><td colspan="9" style="text-align:center;padding:30px;color:#333">Keine offenen Positionen</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- KODA Bot Trade Log -->
+    <div style="margin-top:20px">
+      <h3 style="color:#22c55e;font-size:.9rem;margin-bottom:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase">KODA Bot Trade Log</h3>
+      <div style="overflow:auto;max-height:40vh">
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead>
+            <tr style="border-bottom:1px solid #21262d">
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Coin</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Richtung</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Entry</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Close</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">PnL</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">ROI</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Dauer</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Status</th>
+            </tr>
+          </thead>
+          <tbody id="liveTradeLogBody">
+            <tr><td colspan="8" style="text-align:center;padding:30px;color:#333">Keine Trades vorhanden</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- Signal-Trading-Bot Section -->
@@ -606,7 +655,119 @@ async function loadConfig() {
 
 loadConfig();
 checkLiveBot();
+loadLivePositions();
+loadLiveTrades();
 setInterval(checkLiveBot, 10000);
+
+// ── Live Positions & Trade Log ──
+async function loadLivePositions() {
+  try {
+    const r = await fetch(BOT_API + '/positions');
+    if (!r.ok) return;
+    const data = await r.json();
+    const tbody = document.getElementById('livePositionsBody');
+    if (!data.positions || data.positions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#333">Keine offenen Positionen</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    data.positions.forEach(p => {
+      const coin = p.symbol.replace('USDT', '');
+      const side = p.side === 'Buy' ? 'LONG' : 'SHORT';
+      const dirClass = side === 'LONG' ? 'long' : 'short';
+      const pnl = parseFloat(p.unrealisedPnl) || 0;
+      const pnlClass = pnl >= 0 ? 'pos' : 'neg';
+      const entry = parseFloat(p.avgPrice) || 0;
+      const mark = parseFloat(p.markPrice) || 0;
+      const lev = parseFloat(p.leverage) || 1;
+      // ROI = (mark - entry) / entry * leverage * 100 for LONG, inverted for SHORT
+      let roi = 0;
+      if (entry > 0) {
+        roi = side === 'LONG'
+          ? ((mark - entry) / entry) * lev * 100
+          : ((entry - mark) / entry) * lev * 100;
+      }
+      const roiClass = roi >= 0 ? 'pos' : 'neg';
+      tbody.innerHTML += `<tr>
+        <td><span class="coin">${coin}</span></td>
+        <td><span class="badge ${dirClass}">${side}</span></td>
+        <td style="text-align:right">${p.size}</td>
+        <td style="text-align:right">$${entry.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
+        <td style="text-align:right">$${mark.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
+        <td style="text-align:right">${p.liqPrice && parseFloat(p.liqPrice) > 0 ? '$'+parseFloat(p.liqPrice).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4}) : '—'}</td>
+        <td style="text-align:right">${p.takeProfit ? '$'+parseFloat(p.takeProfit).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}) : '—'}</td>
+        <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(4)}</td>
+        <td style="text-align:right" class="${roiClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
+      </tr>`;
+    });
+  } catch(e) {}
+}
+
+async function loadLiveTrades() {
+  try {
+    const r = await fetch(BOT_API + '/trades');
+    if (!r.ok) return;
+    const data = await r.json();
+    const tbody = document.getElementById('liveTradeLogBody');
+    if (!data.trades || data.trades.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#333">Keine Trades vorhanden</td></tr>';
+      return;
+    }
+
+    // Separate closed and open trades
+    const closed = data.trades.filter(t => t.status !== 'open');
+    const open = data.trades.filter(t => t.status === 'open');
+
+    if (closed.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#333">Keine geschlossenen Trades</td></tr>';
+      return;
+    }
+
+    // Sort: losses first, then by close_time desc
+    closed.sort((a, b) => {
+      const aPnl = a.pnl || 0, bPnl = b.pnl || 0;
+      if (aPnl < 0 && bPnl >= 0) return -1;
+      if (aPnl >= 0 && bPnl < 0) return 1;
+      // Within same group: by close_time desc
+      const aTime = a.close_time || '', bTime = b.close_time || '';
+      return bTime.localeCompare(aTime);
+    });
+
+    tbody.innerHTML = '';
+    closed.forEach(t => {
+      const coin = (t.coin || t.symbol || '').replace('USDT', '');
+      const side = (t.direction || '').toUpperCase();
+      const dirClass = side === 'LONG' ? 'long' : 'short';
+      const pnl = t.pnl || 0;
+      const roi = t.roi || 0;
+      const pnlClass = pnl >= 0 ? 'pos' : 'neg';
+      // Duration
+      let duration = '—';
+      if (t.open_time && t.close_time) {
+        const ms = new Date(t.close_time) - new Date(t.open_time);
+        const mins = Math.floor(ms / 60000);
+        if (mins < 60) duration = mins + 'm';
+        else if (mins < 1440) duration = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+        else duration = Math.floor(mins/1440) + 'd ' + Math.floor((mins%1440)/60) + 'h';
+      }
+      const status = t.close_reason || t.status || '—';
+      tbody.innerHTML += `<tr>
+        <td><span class="coin">${coin}</span></td>
+        <td><span class="badge ${dirClass}">${side}</span></td>
+        <td style="text-align:right">$${(t.entry||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
+        <td style="text-align:right">$${(t.close_price||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
+        <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(4)}</td>
+        <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${(roi*100).toFixed(2)}%</td>
+        <td>${duration}</td>
+        <td>${status}</td>
+      </tr>`;
+    });
+  } catch(e) {}
+}
+
+// Auto-refresh positions every 5s, trades every 30s
+setInterval(loadLivePositions, 5000);
+setInterval(loadLiveTrades, 30000);
 
 // ── Signal-Trading-Bot (Placeholder) ──
 function saveSignalConfig() {
