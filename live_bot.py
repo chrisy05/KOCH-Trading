@@ -1373,8 +1373,31 @@ def main():
             # Reload config from file (allows bot_server.py to change settings)
             load_config_overrides()
 
-            # Write status for dashboard every minute
+            # Write status + positions for dashboard every minute
             write_bot_status()
+            try:
+                positions = get_positions()
+                pos_data = []
+                if positions:
+                    for p in positions:
+                        if float(p.get('size', '0')) > 0:
+                            pos_data.append({
+                                'symbol': p.get('symbol', ''),
+                                'side': p.get('side', ''),
+                                'size': p.get('size', '0'),
+                                'avgPrice': p.get('avgPrice', '0'),
+                                'markPrice': p.get('markPrice', '0'),
+                                'liqPrice': p.get('liqPrice', '0'),
+                                'unrealisedPnl': p.get('unrealisedPnl', '0'),
+                                'leverage': p.get('leverage', '0'),
+                                'takeProfit': p.get('takeProfit', ''),
+                                'stopLoss': p.get('stopLoss', ''),
+                            })
+                pos_file = os.path.join(os.path.dirname(DATA_FILE), 'live_positions.json')
+                with open(pos_file, 'w') as f:
+                    json.dump({'positions': pos_data, 'timestamp': datetime.now(TZ).isoformat()}, f, indent=2)
+            except:
+                pass
 
             # Save periodically
             update_stats(data)
@@ -1385,7 +1408,7 @@ def main():
                 try:
                     import subprocess
                     bot_dir = os.path.dirname(DATA_FILE)
-                    subprocess.run(["git", "add", "live_trades.json", "live_bot.log"], cwd=bot_dir, capture_output=True, timeout=10)
+                    subprocess.run(["git", "add", "live_trades.json", "live_positions.json", "live_bot_status.json"], cwd=bot_dir, capture_output=True, timeout=10)
                     subprocess.run(["git", "commit", "-m", f"Live bot data update ({mode_label})"], cwd=bot_dir, capture_output=True, timeout=10)
                     subprocess.run(["git", "push"], cwd=bot_dir, capture_output=True, timeout=30)
                 except:

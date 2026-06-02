@@ -662,9 +662,18 @@ setInterval(checkLiveBot, 10000);
 // ── Live Positions & Trade Log ──
 async function loadLivePositions() {
   try {
-    const r = await fetch(BOT_API + '/positions');
-    if (!r.ok) return;
-    const data = await r.json();
+    let data;
+    try {
+      const r = await fetch(BOT_API + '/positions');
+      if (r.ok) data = await r.json();
+    } catch(e) {}
+    if (!data) {
+      try {
+        const r2 = await fetch('live_positions.json?t=' + Date.now());
+        if (r2.ok) data = await r2.json();
+      } catch(e2) {}
+    }
+    if (!data) return;
     const tbody = document.getElementById('livePositionsBody');
     if (!data.positions || data.positions.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#333">Keine offenen Positionen</td></tr>';
@@ -705,9 +714,18 @@ async function loadLivePositions() {
 
 async function loadLiveTrades() {
   try {
-    const r = await fetch(BOT_API + '/trades');
-    if (!r.ok) return;
-    const data = await r.json();
+    let data;
+    try {
+      const r = await fetch(BOT_API + '/trades');
+      if (r.ok) data = await r.json();
+    } catch(e) {}
+    if (!data) {
+      try {
+        const r2 = await fetch('live_trades.json?t=' + Date.now());
+        if (r2.ok) data = await r2.json();
+      } catch(e2) {}
+    }
+    if (!data) return;
     const tbody = document.getElementById('liveTradeLogBody');
     if (!data.trades || data.trades.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#333">Keine Trades vorhanden</td></tr>';
