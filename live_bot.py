@@ -1240,6 +1240,13 @@ def scan_and_trade(data, tf, limit, tf_key):
             if direction == "SHORT" and tp >= entry:
                 continue
 
+            # Cooldown: nach LIQ 30min Sperre fuer gleiche Richtung
+            if coin in recent_liqs:
+                liq_dir = recent_liqs[coin]["direction"]
+                if direction == liq_dir:
+                    log(f"  COOLDOWN: {coin} {direction} — gleiche Richtung wie LIQ vor <30min.")
+                    continue
+
             if probability >= CONFIG["min_probability"]:
                 signals_found += 1
                 log(f"  SIGNAL: {coin} {direction} | Prob: {probability}% | Bias: {result['coin_bias']} | BTC: {result['btc_trend']}")
