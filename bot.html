@@ -122,10 +122,13 @@
       <div class="stat-box"><div class="label">TP Range</div><div class="value white">80%</div></div>
       <div class="stat-box"><div class="label">Coins</div><div class="value white">51</div></div>
     </div>
-    <div style="font-size:.75rem;color:#555;line-height:1.6">
-      <b>Starten:</b> Terminal → <code style="background:#1a1a1a;padding:2px 6px;border-radius:4px;color:#00c8ff">python3 live_bot.py</code> (Dry-Run) · <code style="background:#1a1a1a;padding:2px 6px;border-radius:4px;color:#ef4444">python3 live_bot.py --live</code> (Echte Orders)<br>
-      <b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer (identisch mit Paper Bot)
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button onclick="startBot('dryrun')" style="background:#f59e0b;color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Dry-Run Start</button>
+      <button onclick="startBot('live')" style="background:#22c55e;color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">LIVE Start</button>
+      <button onclick="stopBot()" style="background:#ef4444;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Stop</button>
+      <span id="lbStatusMsg" style="color:#555;font-size:.8rem;margin-left:10px"></span>
     </div>
+    <div style="font-size:.7rem;color:#444;margin-top:8px"><b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer (identisch mit Paper Bot)</div>
   </div>
 
   <!-- KODA Bot (ER1) KPI Row -->
@@ -292,24 +295,57 @@ var KODA_TRADES = [];
 // Live Bot status check
 async function checkLiveBot() {
   try {
-    const r = await fetch('live_trades.json?t=' + Date.now());
+    const r = await fetch('live_bot_status.json?t=' + Date.now());
     if (r.ok) {
       const data = await r.json();
-      const mode = data.config && data.config.mode === 'live' ? 'LIVE' : 'Dry-Run';
-      document.getElementById('lbMode').textContent = mode;
-      document.getElementById('lbMode').style.color = mode === 'LIVE' ? '#22c55e' : '#f59e0b';
-      document.getElementById('lbApi').textContent = 'Verbunden';
-      document.getElementById('lbApi').style.color = '#22c55e';
-      document.getElementById('liveStatus').textContent = mode === 'LIVE' ? 'LIVE' : 'DRY-RUN';
-      document.getElementById('liveStatus').style.color = mode === 'LIVE' ? '#22c55e' : '#f59e0b';
-      document.getElementById('liveStatus').style.background = mode === 'LIVE' ? '#22c55e15' : '#f59e0b15';
+      document.getElementById('lbMode').textContent = data.mode || 'Dry-Run';
+      document.getElementById('lbMode').style.color = data.mode === 'LIVE' ? '#22c55e' : '#f59e0b';
+      document.getElementById('lbBalance').textContent = data.balance ? '$' + parseFloat(data.balance).toFixed(2) : '—';
+      document.getElementById('lbApi').textContent = data.api_ok ? 'Verbunden' : 'Fehler';
+      document.getElementById('lbApi').style.color = data.api_ok ? '#22c55e' : '#ef4444';
+      const status = data.running ? (data.mode === 'LIVE' ? 'LIVE' : 'DRY-RUN') : 'GESTOPPT';
+      document.getElementById('liveStatus').textContent = status;
+      document.getElementById('liveStatus').style.color = data.running ? '#22c55e' : '#ef4444';
+      document.getElementById('liveStatus').style.background = data.running ? '#22c55e15' : '#ef444415';
+    } else {
+      document.getElementById('lbApi').textContent = 'Nicht gestartet';
+      document.getElementById('lbApi').style.color = '#555';
+      document.getElementById('liveStatus').textContent = 'OFFLINE';
+      document.getElementById('liveStatus').style.color = '#555';
     }
   } catch(e) {
     document.getElementById('lbApi').textContent = 'Nicht gestartet';
     document.getElementById('lbApi').style.color = '#555';
+    document.getElementById('liveStatus').textContent = 'OFFLINE';
   }
 }
+
+function startBot(mode) {
+  const msg = mode === 'live'
+    ? 'ACHTUNG: Live Bot startet mit ECHTEN Orders auf Bybit! Sicher?'
+    : 'Dry-Run Bot startet (keine echten Orders). OK?';
+  if (!confirm(msg)) return;
+
+  // Write command file for the bot to pick up
+  fetch('live_bot_cmd.json', {
+    method: 'PUT',
+    body: JSON.stringify({cmd: 'start', mode: mode, time: new Date().toISOString()})
+  }).catch(()=>{});
+
+  document.getElementById('lbStatusMsg').textContent = mode === 'live'
+    ? 'LIVE Bot wird gestartet... Starte im Terminal: python3 live_bot.py --live'
+    : 'Dry-Run wird gestartet... Starte im Terminal: python3 live_bot.py';
+  document.getElementById('lbStatusMsg').style.color = mode === 'live' ? '#22c55e' : '#f59e0b';
+}
+
+function stopBot() {
+  if (!confirm('Bot stoppen?')) return;
+  document.getElementById('lbStatusMsg').textContent = 'Bot wird gestoppt... Im Terminal: Ctrl+C oder kill $(cat /tmp/live_bot.pid)';
+  document.getElementById('lbStatusMsg').style.color = '#ef4444';
+}
+
 checkLiveBot();
+setInterval(checkLiveBot, 10000);
 </script>
 
 </body>
