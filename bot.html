@@ -677,10 +677,10 @@ async function loadLivePositions() {
     if (!data) return;
     const tbody = document.getElementById('livePositionsBody');
     if (!data.positions || data.positions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#333">Keine offenen Positionen</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:#333">Keine offenen Positionen</td></tr>';
       return;
     }
-    tbody.innerHTML = '';
+    let rowsHtml = '';
     // Load trade open times from live_trades.json
     let tradeOpenTimes = {};
     try {
@@ -715,7 +715,7 @@ async function loadLivePositions() {
           : ((entry - mark) / entry) * lev * 100;
       }
       const roiClass = roi >= 0 ? 'pos' : 'neg';
-      tbody.innerHTML += `<tr>
+      rowsHtml += `<tr>
         <td><span class="coin">${coin}</span></td>
         <td><span class="badge ${dirClass}">${side}</span></td>
         <td style="text-align:right">${p.size}</td>
@@ -728,6 +728,7 @@ async function loadLivePositions() {
         <td style="color:#555;font-size:.7rem">${openTime}</td>
       </tr>`;
     });
+    tbody.innerHTML = rowsHtml;
   } catch(e) {}
 }
 
