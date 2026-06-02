@@ -350,8 +350,13 @@ async function renderOpenTrades(trades15mOrAll, trades1h) {
 function renderClosedTrades(trades15m, trades1h) {
   const allClosed = [...trades15m, ...trades1h]
     .filter(t => t.status === 'closed')
-    .sort((a, b) => new Date(b.close_time) - new Date(a.close_time))
-    .slice(0, 50);
+    .sort((a, b) => {
+      // Losses first, then by close_time desc
+      const aLoss = (a.pnl||0) <= 0 ? 0 : 1;
+      const bLoss = (b.pnl||0) <= 0 ? 0 : 1;
+      if (aLoss !== bLoss) return aLoss - bLoss;
+      return new Date(b.close_time) - new Date(a.close_time);
+    });
 
   document.getElementById('closedCount').textContent = allClosed.length;
 
