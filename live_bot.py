@@ -1142,6 +1142,23 @@ def update_stats(data):
 # SCAN & TRADE
 # ═══════════════════════════════════════════════════════════════
 
+def check_btc_spike():
+    """Check if BTC moved >1% in last 15min — fakeout protection."""
+    try:
+        url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=5m&limit=3"
+        req = urllib.request.Request(url, headers={"User-Agent": "LiveBot/1.0"})
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+            klines = json.loads(resp.read().decode())
+        if not klines or len(klines) < 3:
+            return False
+        open_price = float(klines[0][1])
+        close_price = float(klines[-1][4])
+        move_pct = abs(close_price - open_price) / open_price * 100
+        return move_pct > 1.0
+    except:
+        return False
+
+
 def scan_and_trade(data, tf, limit, tf_key):
     """Scan all coins and open trades where probability >= threshold."""
     now = datetime.now(TZ)
@@ -1149,6 +1166,11 @@ def scan_and_trade(data, tf, limit, tf_key):
     log(f"\n{'='*60}")
     log(f"SCAN {tf.upper()} [{mode_label}] | {now.strftime('%Y-%m-%d %H:%M ET')}")
     log(f"{'='*60}")
+
+    # Fakeout-Bremse
+    if check_btc_spike():
+        log(f"  BTC SPIKE erkannt (>1% in 15min) — Bremse aktiv, kein neuer Trade.")
+        return
 
     open_trades = [t for t in data[tf_key] if t["status"] == "open"]
     # Check ALL open trades across ALL timeframes — 1 coin = 1 trade max
