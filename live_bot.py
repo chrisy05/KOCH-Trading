@@ -35,6 +35,51 @@ CONFIG = {
     "max_open_4h": 3,
 }
 
+# Load overrides from config file (written by bot_server.py)
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "live_bot_config.json")
+STATUS_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "live_bot_status.json")
+
+def load_config_overrides():
+    """Load config overrides from live_bot_config.json if it exists."""
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                overrides = json.load(f)
+            for key in ("capital", "leverage", "min_probability", "tp_range_pct", "max_open_4h"):
+                if key in overrides:
+                    CONFIG[key] = overrides[key]
+        except Exception:
+            pass
+
+def write_bot_status():
+    """Write current bot status to live_bot_status.json for the dashboard."""
+    try:
+        balance_str = None
+        api_ok = False
+        if API_KEY and API_KEY != "YOUR_API_KEY_HERE":
+            bal = get_wallet_balance()
+            if bal:
+                balance_str = str(round(bal.get("wallet_balance", 0), 8))
+                api_ok = True
+
+        status = {
+            "running": True,
+            "mode": "LIVE" if LIVE_MODE else "DRY-RUN",
+            "pid": os.getpid(),
+            "balance": balance_str or "0",
+            "api_ok": api_ok,
+            "config": {k: CONFIG[k] for k in ("capital", "leverage", "min_probability", "tp_range_pct", "max_open_4h")},
+            "start_time": getattr(write_bot_status, '_start_time', datetime.now(TZ).isoformat()),
+            "last_scan": datetime.now(TZ).isoformat(),
+            "last_check": datetime.now(TZ).isoformat(),
+        }
+        with open(STATUS_FILE_PATH, "w") as f:
+            json.dump(status, f, indent=2)
+    except Exception:
+        pass
+
+load_config_overrides()
+
 # ═══════════════════════════════════════════════════════════════
 # MODE FLAG
 # ═══════════════════════════════════════════════════════════════
@@ -1255,6 +1300,22 @@ def main():
             log(f"  Starting in {i}...")
             time.sleep(1)
 
+    # Apply config overrides from file
+    load_config_overrides()
+
+    # Store start time for status reporting
+    write_bot_status._start_time = datetime.now(TZ).isoformat()
+
+    # Write PID file for bot_server.py
+    try:
+        with open("/tmp/live_bot.pid", "w") as f:
+            f.write(str(os.getpid()))
+    except Exception:
+        pass
+
+    # Initial status write
+    write_bot_status()
+
     data = load_data()
 
     # Track last scan times
@@ -1306,6 +1367,12 @@ def main():
                 save_data(data)
                 print_status(data)
 
+            # Reload config from file (allows bot_server.py to change settings)
+            load_config_overrides()
+
+            # Write status for dashboard every minute
+            write_bot_status()
+
             # Save periodically
             update_stats(data)
             save_data(data)
@@ -1330,6 +1397,13 @@ def main():
             log("\nShutting down...")
             update_stats(data)
             save_data(data)
+            # Write stopped status
+            try:
+                with open(STATUS_FILE_PATH, "w") as f:
+                    json.dump({"running": False, "mode": "Gestoppt", "last_check": datetime.now(TZ).isoformat()}, f, indent=2)
+                os.remove("/tmp/live_bot.pid")
+            except Exception:
+                pass
             log("Data saved. Goodbye.")
             sys.exit(0)
         except Exception as e:

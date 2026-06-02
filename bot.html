@@ -116,19 +116,35 @@
       <div class="stat-box"><div class="label">API</div><div class="value" id="lbApi" style="color:#555">Prüfe...</div></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
-      <div class="stat-box"><div class="label">Kapital/Trade</div><div class="value white">$100</div></div>
-      <div class="stat-box"><div class="label">Hebel</div><div class="value white">10x</div></div>
-      <div class="stat-box"><div class="label">Min Prob</div><div class="value white">60%</div></div>
-      <div class="stat-box"><div class="label">TP Range</div><div class="value white">80%</div></div>
-      <div class="stat-box"><div class="label">Coins</div><div class="value white">51</div></div>
+      <div class="stat-box">
+        <div class="label">Kapital/Trade</div>
+        <div><span style="color:#555;font-size:.8rem">$</span><input type="number" id="cfgCapital" value="100" min="10" max="10000" step="10" style="background:transparent;border:1px solid #333;color:#fff;padding:4px 8px;border-radius:6px;font-size:1.1rem;font-weight:700;width:70px;text-align:center"></div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Hebel</div>
+        <div><input type="number" id="cfgLeverage" value="10" min="1" max="100" step="1" style="background:transparent;border:1px solid #333;color:#fff;padding:4px 8px;border-radius:6px;font-size:1.1rem;font-weight:700;width:50px;text-align:center"><span style="color:#555;font-size:.8rem">x</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Min Prob</div>
+        <div><input type="number" id="cfgMinProb" value="60" min="50" max="90" step="5" style="background:transparent;border:1px solid #333;color:#fff;padding:4px 8px;border-radius:6px;font-size:1.1rem;font-weight:700;width:50px;text-align:center"><span style="color:#555;font-size:.8rem">%</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="label">TP Range</div>
+        <div><input type="number" id="cfgTpRange" value="80" min="50" max="100" step="5" style="background:transparent;border:1px solid #333;color:#fff;padding:4px 8px;border-radius:6px;font-size:1.1rem;font-weight:700;width:50px;text-align:center"><span style="color:#555;font-size:.8rem">%</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Max 4h Trades</div>
+        <div><input type="number" id="cfgMax4h" value="3" min="1" max="10" step="1" style="background:transparent;border:1px solid #333;color:#fff;padding:4px 8px;border-radius:6px;font-size:1.1rem;font-weight:700;width:50px;text-align:center"></div>
+      </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button onclick="updateConfig()" style="background:#58a6ff;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Settings Aktualisieren</button>
       <button onclick="startBot('dryrun')" style="background:#f59e0b;color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Dry-Run Start</button>
       <button onclick="startBot('live')" style="background:#22c55e;color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">LIVE Start</button>
       <button onclick="stopBot()" style="background:#ef4444;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Stop</button>
       <span id="lbStatusMsg" style="color:#555;font-size:.8rem;margin-left:10px"></span>
     </div>
-    <div style="font-size:.7rem;color:#444;margin-top:8px"><b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer (identisch mit Paper Bot)</div>
+    <div style="font-size:.7rem;color:#444;margin-top:8px"><b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer (identisch mit Paper Bot) · <b>Coins:</b> 51 (Viona)</div>
   </div>
 
   <!-- KODA Bot (ER1) KPI Row -->
@@ -292,13 +308,15 @@ function render(trades) {
 // Trade data will be injected here by the build script
 var KODA_TRADES = [];
 
-// Live Bot status check
+// ── Bot Control Server API ──
+const BOT_API = 'http://localhost:8099';
+
 async function checkLiveBot() {
   try {
-    const r = await fetch('live_bot_status.json?t=' + Date.now());
+    const r = await fetch(BOT_API + '/status');
     if (r.ok) {
       const data = await r.json();
-      document.getElementById('lbMode').textContent = data.mode || 'Dry-Run';
+      document.getElementById('lbMode').textContent = data.mode || 'Bereit';
       document.getElementById('lbMode').style.color = data.mode === 'LIVE' ? '#22c55e' : '#f59e0b';
       document.getElementById('lbBalance').textContent = data.balance ? '$' + parseFloat(data.balance).toFixed(2) : '—';
       document.getElementById('lbApi').textContent = data.api_ok ? 'Verbunden' : 'Fehler';
@@ -307,43 +325,152 @@ async function checkLiveBot() {
       document.getElementById('liveStatus').textContent = status;
       document.getElementById('liveStatus').style.color = data.running ? '#22c55e' : '#ef4444';
       document.getElementById('liveStatus').style.background = data.running ? '#22c55e15' : '#ef444415';
+      // Update config display if available
+      if (data.config) {
+        const cfg = data.config;
+        const cfgBoxes = document.querySelectorAll('.stat-box .value.white');
+        // Update the 5 config stat boxes (Capital, Leverage, Min Prob, TP Range, Coins)
+      }
+      if (data.uptime) {
+        document.getElementById('lbStatusMsg').textContent = 'Uptime: ' + data.uptime;
+        document.getElementById('lbStatusMsg').style.color = '#555';
+      }
     } else {
-      document.getElementById('lbApi').textContent = 'Nicht gestartet';
-      document.getElementById('lbApi').style.color = '#555';
-      document.getElementById('liveStatus').textContent = 'OFFLINE';
-      document.getElementById('liveStatus').style.color = '#555';
+      showOffline();
     }
   } catch(e) {
-    document.getElementById('lbApi').textContent = 'Nicht gestartet';
-    document.getElementById('lbApi').style.color = '#555';
-    document.getElementById('liveStatus').textContent = 'OFFLINE';
+    // Server not running — fall back to static status file
+    try {
+      const r2 = await fetch('live_bot_status.json?t=' + Date.now());
+      if (r2.ok) {
+        const data = await r2.json();
+        document.getElementById('lbBalance').textContent = data.balance ? '$' + parseFloat(data.balance).toFixed(2) : '—';
+        document.getElementById('lbApi').textContent = data.api_ok ? 'Verbunden' : 'Offline';
+        document.getElementById('lbApi').style.color = data.api_ok ? '#22c55e' : '#555';
+        document.getElementById('liveStatus').textContent = 'SERVER OFFLINE';
+        document.getElementById('liveStatus').style.color = '#f59e0b';
+        document.getElementById('liveStatus').style.background = '#f59e0b15';
+        document.getElementById('lbStatusMsg').textContent = 'Bot-Server nicht erreichbar. Starte: python3 bot_server.py';
+        document.getElementById('lbStatusMsg').style.color = '#f59e0b';
+      } else {
+        showOffline();
+      }
+    } catch(e2) {
+      showOffline();
+    }
   }
 }
 
-function startBot(mode) {
+function showOffline() {
+  document.getElementById('lbApi').textContent = 'Server offline';
+  document.getElementById('lbApi').style.color = '#555';
+  document.getElementById('liveStatus').textContent = 'OFFLINE';
+  document.getElementById('liveStatus').style.color = '#555';
+  document.getElementById('liveStatus').style.background = '#55555515';
+  document.getElementById('lbStatusMsg').textContent = 'Bot-Server nicht erreichbar. Starte: python3 bot_server.py';
+  document.getElementById('lbStatusMsg').style.color = '#555';
+}
+
+async function startBot(mode) {
   const msg = mode === 'live'
     ? 'ACHTUNG: Live Bot startet mit ECHTEN Orders auf Bybit! Sicher?'
     : 'Dry-Run Bot startet (keine echten Orders). OK?';
   if (!confirm(msg)) return;
 
-  // Write command file for the bot to pick up
-  fetch('live_bot_cmd.json', {
-    method: 'PUT',
-    body: JSON.stringify({cmd: 'start', mode: mode, time: new Date().toISOString()})
-  }).catch(()=>{});
+  document.getElementById('lbStatusMsg').textContent = 'Wird gestartet...';
+  document.getElementById('lbStatusMsg').style.color = '#f59e0b';
 
-  document.getElementById('lbStatusMsg').textContent = mode === 'live'
-    ? 'LIVE Bot wird gestartet... Starte im Terminal: python3 live_bot.py --live'
-    : 'Dry-Run wird gestartet... Starte im Terminal: python3 live_bot.py';
-  document.getElementById('lbStatusMsg').style.color = mode === 'live' ? '#22c55e' : '#f59e0b';
+  try {
+    const r = await fetch(BOT_API + '/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({mode: mode}),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      document.getElementById('lbStatusMsg').textContent = (mode === 'live' ? 'LIVE' : 'Dry-Run') + ' Bot gestartet (PID: ' + data.pid + ')';
+      document.getElementById('lbStatusMsg').style.color = mode === 'live' ? '#22c55e' : '#f59e0b';
+      setTimeout(checkLiveBot, 2000);
+    } else {
+      document.getElementById('lbStatusMsg').textContent = 'Fehler: ' + (data.error || 'Unbekannt');
+      document.getElementById('lbStatusMsg').style.color = '#ef4444';
+    }
+  } catch(e) {
+    document.getElementById('lbStatusMsg').textContent = 'Server nicht erreichbar. Starte: python3 bot_server.py';
+    document.getElementById('lbStatusMsg').style.color = '#ef4444';
+  }
 }
 
-function stopBot() {
+async function stopBot() {
   if (!confirm('Bot stoppen?')) return;
-  document.getElementById('lbStatusMsg').textContent = 'Bot wird gestoppt... Im Terminal: Ctrl+C oder kill $(cat /tmp/live_bot.pid)';
-  document.getElementById('lbStatusMsg').style.color = '#ef4444';
+
+  document.getElementById('lbStatusMsg').textContent = 'Wird gestoppt...';
+  document.getElementById('lbStatusMsg').style.color = '#f59e0b';
+
+  try {
+    const r = await fetch(BOT_API + '/stop', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+    });
+    const data = await r.json();
+    if (data.ok) {
+      document.getElementById('lbStatusMsg').textContent = 'Bot gestoppt' + (data.killed_pid ? ' (PID: ' + data.killed_pid + ')' : '');
+      document.getElementById('lbStatusMsg').style.color = '#ef4444';
+      setTimeout(checkLiveBot, 1000);
+    } else {
+      document.getElementById('lbStatusMsg').textContent = 'Fehler beim Stoppen';
+      document.getElementById('lbStatusMsg').style.color = '#ef4444';
+    }
+  } catch(e) {
+    document.getElementById('lbStatusMsg').textContent = 'Server nicht erreichbar';
+    document.getElementById('lbStatusMsg').style.color = '#ef4444';
+  }
 }
 
+async function updateConfig() {
+  const cfg = {
+    capital: parseInt(document.getElementById('cfgCapital').value) || 100,
+    leverage: parseInt(document.getElementById('cfgLeverage').value) || 10,
+    min_probability: parseInt(document.getElementById('cfgMinProb').value) || 60,
+    tp_range_pct: parseInt(document.getElementById('cfgTpRange').value) || 80,
+    max_open_4h: parseInt(document.getElementById('cfgMax4h').value) || 3,
+  };
+
+  try {
+    const r = await fetch(BOT_API + '/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(cfg),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      document.getElementById('lbStatusMsg').textContent = 'Settings aktualisiert' + (data.restarted ? ' + Bot neu gestartet' : '');
+      document.getElementById('lbStatusMsg').style.color = '#22c55e';
+    } else {
+      document.getElementById('lbStatusMsg').textContent = 'Fehler: ' + (data.error || 'Unbekannt');
+      document.getElementById('lbStatusMsg').style.color = '#ef4444';
+    }
+  } catch(e) {
+    document.getElementById('lbStatusMsg').textContent = 'Server nicht erreichbar';
+    document.getElementById('lbStatusMsg').style.color = '#ef4444';
+  }
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch(BOT_API + '/config');
+    if (r.ok) {
+      const data = await r.json();
+      if (data.capital) document.getElementById('cfgCapital').value = data.capital;
+      if (data.leverage) document.getElementById('cfgLeverage').value = data.leverage;
+      if (data.min_probability) document.getElementById('cfgMinProb').value = data.min_probability;
+      if (data.tp_range_pct) document.getElementById('cfgTpRange').value = data.tp_range_pct;
+      if (data.max_open_4h) document.getElementById('cfgMax4h').value = data.max_open_4h;
+    }
+  } catch(e) {}
+}
+
+loadConfig();
 checkLiveBot();
 setInterval(checkLiveBot, 10000);
 </script>
