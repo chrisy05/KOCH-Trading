@@ -362,13 +362,15 @@ function renderClosedTrades(trades15m, trades1h) {
   let html = '';
   for (const t of allClosed) {
     const dirClass = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
-    const reasonClass = t.close_reason === 'TP' ? 'badge-tp' : 'badge-liq';
-    const rowClass = (t.pnl || 0) >= 0 ? 'row-win' : 'row-loss';
+    const isLiq = t.close_reason === 'LIQ';
+    const reasonClass = isLiq ? 'badge-liq' : 'badge-tp';
+    const rowClass = isLiq ? 'row-loss' : ((t.pnl || 0) >= 0 ? 'row-win' : 'row-loss');
     const dur = duration(t.open_time, t.close_time);
     const closeDt = (t.close_time || '').replace('T', ' ').slice(0, 16);
+    const corrected = isLiq ? ' <span style="font-size:.6rem;color:#f59e0b;background:#f59e0b22;padding:1px 4px;border-radius:3px;">KORRIGIERT</span>' : '';
 
-    html += `<tr class="${rowClass}">
-      <td><b>${t.coin}</b></td>
+    html += `<tr class="${rowClass}" ${isLiq ? 'style="background:rgba(239,68,68,0.12);border-left:3px solid #ef4444;"' : ''}>
+      <td><b>${t.coin}</b>${corrected}</td>
       <td><span class="badge ${dirClass}">${t.direction}</span></td>
       <td>${t.tf}</td>
       <td class="num">${fmt(t.entry)}</td>
@@ -377,7 +379,7 @@ function renderClosedTrades(trades15m, trades1h) {
       <td class="num ${pnlColor(t.pnl || 0)}" style="font-weight:600">$${(t.pnl || 0).toFixed(2)}</td>
       <td class="num ${pnlColor(t.roi || 0)}">${(t.roi || 0).toFixed(1)}%</td>
       <td class="gray">${dur}</td>
-      <td><span class="badge ${reasonClass}">${t.close_reason || '--'}</span></td>
+      <td><span class="badge ${reasonClass}" ${isLiq ? 'style="background:rgba(239,68,68,0.3);color:#ef4444;font-weight:700"' : ''}>${isLiq ? 'LIQUIDIERT' : (t.close_reason || '--')}</span></td>
       <td class="gray" style="font-size:.72rem">${closeDt}</td>
     </tr>`;
   }
