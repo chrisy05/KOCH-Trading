@@ -9,30 +9,33 @@
 body{background:#0a0e17;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;padding:10px}
 h1{color:#58a6ff;text-align:center;font-size:1.3rem;margin-bottom:5px}
 
-/* Strategy Cards */
-.strat-card{background:#161b22;border-radius:10px;padding:16px;margin-bottom:10px;border:1px solid #21262d;border-left:3px solid #58a6ff}
+/* Strategy Cards — compact grid */
+.strat-container{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;max-width:1200px;margin-left:auto;margin-right:auto}
+@media(max-width:900px){.strat-container{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.strat-container{grid-template-columns:1fr}}
+.strat-card{background:#161b22;border-radius:10px;padding:12px;border:1px solid #21262d;border-left:3px solid #58a6ff;font-size:.82rem}
 .strat-card.a{border-left-color:#f59e0b}
 .strat-card.b{border-left-color:#22c55e}
 .strat-card.c{border-left-color:#8b5cf6}
 .strat-card.d{border-left-color:#3b82f6}
 .strat-card.e{border-left-color:#ef4444}
-.strat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.strat-name{font-size:1rem;font-weight:700}
+.strat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.strat-name{font-size:.85rem;font-weight:700}
 .strat-name.a{color:#f59e0b}
 .strat-name.b{color:#22c55e}
 .strat-name.c{color:#8b5cf6}
 .strat-name.d{color:#3b82f6}
 .strat-name.e{color:#ef4444}
-.strat-badge{font-size:0.7rem;padding:3px 8px;border-radius:12px;font-weight:600}
+.strat-badge{font-size:0.6rem;padding:2px 6px;border-radius:10px;font-weight:600}
 .badge-scalp{background:#f59e0b20;color:#f59e0b}
 .badge-swing{background:#22c55e20;color:#22c55e}
 .badge-copy{background:#3b82f620;color:#3b82f6}
 .badge-own{background:#ef444420;color:#ef4444}
-.strat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.strat-item{background:#0d1117;border-radius:6px;padding:8px 10px}
-.strat-item .lbl{font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px}
-.strat-item .val{font-size:0.85rem;font-weight:600;margin-top:2px}
-.strat-rule{font-size:0.78rem;color:#8b949e;margin-top:8px;padding:8px 10px;background:#0d1117;border-radius:6px;line-height:1.6}
+.strat-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.strat-item{background:#0d1117;border-radius:4px;padding:5px 8px}
+.strat-item .lbl{font-size:0.58rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px}
+.strat-item .val{font-size:0.75rem;font-weight:600;margin-top:1px}
+.strat-rule{font-size:0.68rem;color:#8b949e;margin-top:6px;padding:6px 8px;background:#0d1117;border-radius:4px;line-height:1.5}
 .strat-rule b{color:#c9d1d9}
 .green{color:#22c55e}.red{color:#ef4444}.orange{color:#ff9800}.blue{color:#58a6ff}.purple{color:#8b5cf6}
 
@@ -60,9 +63,8 @@ input:focus{border-color:#58a6ff;outline:none}
 <h1>Strategien & Kalkulator</h1>
 <div style="display:flex;justify-content:space-between;align-items:center;padding:0 10px;margin-bottom:12px"><a href="cockpit.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">← Cockpit</a><a href="index.html" style="color:#58a6ff;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Dashboard</a><a href="technik.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Technik →</a></div>
 
-<!-- ═══════════════════════════════════════════════════ -->
+<div class="strat-container">
 <!-- A) Signal Scalping -->
-<!-- ═══════════════════════════════════════════════════ -->
 <div class="strat-card a">
 <div class="strat-header">
   <span class="strat-name a">A) Signal Scalping</span>
@@ -192,12 +194,9 @@ input:focus{border-color:#58a6ff;outline:none}
   ✗ KEIN Nachkaufen einer Verlustposition ohne neue Analyse
 </div>
 </div>
+</div><!-- /strat-container -->
 
-<hr class="divider">
-
-<!-- ═══════════════════════════════════════════════════ -->
 <!-- Generelle Prinzipien -->
-<!-- ═══════════════════════════════════════════════════ -->
 <div class="strat-card" style="border-left-color:#58a6ff;background:#0d1117">
 <div class="strat-name blue" style="margin-bottom:10px">Generelle Prinzipien</div>
 <div style="font-size:0.8rem;line-height:1.8;">
