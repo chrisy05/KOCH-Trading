@@ -512,8 +512,66 @@ class BotHandler(BaseHTTPRequestHandler):
             self.handle_config()
         elif path.startswith("/paper-config/"):
             self.handle_paper_config(path.split("/")[-1])
+        elif path.startswith("/paper-control/"):
+            self.handle_paper_control(path.split("/")[-1])
         else:
             self.send_json({"error": "not found"}, 404)
+
+    def handle_paper_control(self, bot_name):
+        body = self.read_body()
+        action = body.get("action", "")
+        scripts = {"core": "paper_bot.py", "v2": "paper_bot_v2.py", "v3": "paper_bot_v3.py"}
+        pids = {"core": "/tmp/paper_bot.pid", "v2": "/tmp/paper_bot_v2.pid", "v3": "/tmp/paper_bot_v3.pid"}
+        logs = {"core": "/tmp/paper_bot.log", "v2": "/tmp/paper_bot_v2.log", "v3": "/tmp/paper_bot_v3.log"}
+
+        if bot_name not in scripts:
+            self.send_json({"ok": False, "error": "unknown bot"}, 400)
+            return
+
+        script = scripts[bot_name]
+        pid_file = pids[bot_name]
+        log_file = logs[bot_name]
+
+        if action == "start":
+            # Kill if already running
+            try:
+                with open(pid_file) as f:
+                    old_pid = int(f.read().strip())
+                os.kill(old_pid, signal.SIGTERM)
+                time.sleep(1)
+            except:
+                pass
+            proc = subprocess.Popen(
+                ["python3", script],
+                cwd=BOT_DIR,
+                stdout=open(log_file, "a"),
+                stderr=subprocess.STDOUT,
+                start_new_session=True
+            )
+            with open(pid_file, "w") as f:
+                f.write(str(proc.pid))
+            self.send_json({"ok": True, "action": "start", "pid": proc.pid})
+
+        elif action == "stop":
+            try:
+                with open(pid_file) as f:
+                    pid = int(f.read().strip())
+                os.kill(pid, signal.SIGTERM)
+                self.send_json({"ok": True, "action": "stop", "pid": pid})
+            except:
+                self.send_json({"ok": True, "action": "stop", "msg": "was not running"})
+
+        elif action == "pause":
+            # Pause = stop (no pause state in Python)
+            try:
+                with open(pid_file) as f:
+                    pid = int(f.read().strip())
+                os.kill(pid, signal.SIGTERM)
+                self.send_json({"ok": True, "action": "pause", "pid": pid})
+            except:
+                self.send_json({"ok": True, "action": "pause", "msg": "was not running"})
+        else:
+            self.send_json({"ok": False, "error": "unknown action"}, 400)
 
     def handle_start(self):
         body = self.read_body()

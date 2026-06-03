@@ -113,7 +113,11 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
   <div class="cfg-group"><span class="cfg-label">Min Prob</span><input type="number" id="cfgMinProb" value="60" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
   <div class="cfg-group"><span class="cfg-label">TP Range</span><input type="number" id="cfgTpRange" value="70" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
   <div class="cfg-group"><span class="cfg-label">SL Loss</span><input type="number" id="cfgSlPct" value="70" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
+  <div class="cfg-group"><span class="cfg-label">Budget</span><span class="cfg-unit">$</span><input type="number" id="cfgBudget" value="10000" min="0" max="1000000" step="100" class="cfg-input"></div>
   <button class="cfg-save-btn" onclick="saveConfig()">Aktualisieren</button>
+  <button class="cfg-save-btn" style="background:#22c55e;color:#000" onclick="controlBot('start')">Start</button>
+  <button class="cfg-save-btn" style="background:#f59e0b;color:#000" onclick="controlBot('pause')">Pause</button>
+  <button class="cfg-save-btn" style="background:#ef4444" onclick="controlBot('stop')">Beenden</button>
   <span class="cfg-status" id="cfgStatus"></span>
 </div>
 
@@ -272,6 +276,7 @@ function populateConfigFields(cfg) {
   document.getElementById('cfgMinProb').value = cfg.min_probability || cfg.min_prob || 60;
   document.getElementById('cfgTpRange').value = cfg.tp_range_pct || cfg.tp_pct || 70;
   document.getElementById('cfgSlPct').value = cfg.sl_pct || 70;
+  document.getElementById('cfgBudget').value = cfg.total_budget || 10000;
 }
 
 async function loadConfigFields() {
@@ -286,6 +291,34 @@ async function loadConfigFields() {
   }
 }
 
+async function controlBot(action) {
+  const statusEl = document.getElementById('cfgStatus');
+  const botNames = {'core': 'paper_bot.py', 'v2': 'paper_bot_v2.py', 'v3': 'paper_bot_v3.py'};
+  const botScript = botNames[activeBot];
+
+  if (action === 'stop' && !confirm('Bot ' + activeBot.toUpperCase() + ' beenden?')) return;
+
+  try {
+    const r = await fetch(BOT_API + '/paper-control/' + activeBot, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: action}),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      const msgs = {start: 'Gestartet', pause: 'Pausiert', stop: 'Beendet'};
+      statusEl.textContent = activeBot.toUpperCase() + ' ' + (msgs[action] || action);
+      statusEl.style.color = action === 'start' ? '#22c55e' : action === 'stop' ? '#ef4444' : '#f59e0b';
+    } else {
+      statusEl.textContent = 'Fehler: ' + (data.error || 'Unbekannt');
+      statusEl.style.color = '#ef4444';
+    }
+  } catch(e) {
+    statusEl.textContent = 'Server nicht erreichbar';
+    statusEl.style.color = '#ef4444';
+  }
+}
+
 async function saveConfig() {
   const cfg = {
     capital: parseInt(document.getElementById('cfgCapital').value) || 100,
@@ -293,6 +326,7 @@ async function saveConfig() {
     min_probability: parseInt(document.getElementById('cfgMinProb').value) || 60,
     tp_range_pct: parseInt(document.getElementById('cfgTpRange').value) || 70,
     sl_pct: parseInt(document.getElementById('cfgSlPct').value) || 70,
+    total_budget: parseInt(document.getElementById('cfgBudget').value) || 10000,
   };
   const statusEl = document.getElementById('cfgStatus');
   try {
