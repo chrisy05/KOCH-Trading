@@ -67,6 +67,17 @@ tbody td{padding:8px 12px}
 .bot-label{font-size:.7rem;color:#8b949e;margin-left:8px;background:#21262d;padding:2px 8px;border-radius:10px}
 
 footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1px solid #21262d;margin-top:12px}
+
+.settings-row{background:#161b22;border-bottom:1px solid #21262d;padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.settings-row .cfg-group{display:flex;align-items:center;gap:4px}
+.settings-row .cfg-label{font-size:.68rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.cfg-input{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;padding:5px 8px;border-radius:6px;font-size:.85rem;font-weight:600;width:70px;text-align:center;outline:none;transition:border-color .15s;-moz-appearance:textfield}
+.cfg-input:focus{border-color:#58a6ff}
+.cfg-input::-webkit-inner-spin-button,.cfg-input::-webkit-outer-spin-button{display:none}
+.cfg-unit{color:#8b949e;font-size:.75rem}
+.cfg-save-btn{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:.75rem;font-weight:600;transition:all .15s}
+.cfg-save-btn:hover{border-color:#58a6ff;background:#0d419d;color:#fff}
+.cfg-status{font-size:.72rem;color:#8b949e;margin-left:4px}
 </style>
 </head>
 <body>
@@ -94,6 +105,16 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
       <button onclick="loadData()">Refresh</button>
     </div>
   </div>
+</div>
+
+<div class="settings-row">
+  <div class="cfg-group"><span class="cfg-label">Capital</span><span class="cfg-unit">$</span><input type="number" id="cfgCapital" value="100" min="1" max="50000" step="1" class="cfg-input"></div>
+  <div class="cfg-group"><span class="cfg-label">Leverage</span><input type="number" id="cfgLeverage" value="10" min="1" max="125" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">x</span></div>
+  <div class="cfg-group"><span class="cfg-label">Min Prob</span><input type="number" id="cfgMinProb" value="60" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
+  <div class="cfg-group"><span class="cfg-label">TP Range</span><input type="number" id="cfgTpRange" value="70" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
+  <div class="cfg-group"><span class="cfg-label">SL Loss</span><input type="number" id="cfgSlPct" value="70" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
+  <button class="cfg-save-btn" onclick="saveConfig()">Aktualisieren</button>
+  <span class="cfg-status" id="cfgStatus"></span>
 </div>
 
 <div class="container">
@@ -222,6 +243,7 @@ let liveTimer = null;
 let priceCache = {};
 let cachedOpenTrades = [];
 
+const BOT_API = 'http://localhost:8099';
 let activeBot = 'core';
 const BOT_FILES = {
   'core': 'paper_trades.json',
@@ -239,7 +261,59 @@ function switchBot(bot) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab' + bot.charAt(0).toUpperCase() + bot.slice(1)).classList.add('active');
   document.getElementById('botLabel').textContent = BOT_LABELS[bot];
+  document.getElementById('cfgStatus').textContent = '';
+  loadConfigFields();
   loadData();
+}
+
+function populateConfigFields(cfg) {
+  document.getElementById('cfgCapital').value = cfg.capital || 100;
+  document.getElementById('cfgLeverage').value = cfg.leverage || 10;
+  document.getElementById('cfgMinProb').value = cfg.min_probability || cfg.min_prob || 60;
+  document.getElementById('cfgTpRange').value = cfg.tp_range_pct || cfg.tp_pct || 70;
+  document.getElementById('cfgSlPct').value = cfg.sl_pct || 70;
+}
+
+async function loadConfigFields() {
+  try {
+    const r = await fetch(BOT_API + '/paper-config/' + activeBot);
+    if (r.ok) {
+      const cfg = await r.json();
+      populateConfigFields(cfg);
+    }
+  } catch(e) {
+    // Server not running — fields will be populated from JSON data in loadData
+  }
+}
+
+async function saveConfig() {
+  const cfg = {
+    capital: parseInt(document.getElementById('cfgCapital').value) || 100,
+    leverage: parseInt(document.getElementById('cfgLeverage').value) || 10,
+    min_probability: parseInt(document.getElementById('cfgMinProb').value) || 60,
+    tp_range_pct: parseInt(document.getElementById('cfgTpRange').value) || 70,
+    sl_pct: parseInt(document.getElementById('cfgSlPct').value) || 70,
+  };
+  const statusEl = document.getElementById('cfgStatus');
+  try {
+    const r = await fetch(BOT_API + '/paper-config/' + activeBot, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(cfg),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      statusEl.textContent = 'Gespeichert';
+      statusEl.style.color = '#22c55e';
+    } else {
+      statusEl.textContent = 'Fehler: ' + (data.error || 'Unbekannt');
+      statusEl.style.color = '#ef4444';
+    }
+  } catch(e) {
+    statusEl.textContent = 'Server nicht erreichbar (bot_server.py)';
+    statusEl.style.color = '#ef4444';
+  }
+  setTimeout(() => { statusEl.textContent = ''; }, 4000);
 }
 
 function toggleAutoRefresh() {
@@ -352,9 +426,12 @@ function renderConfig(config) {
   el.innerHTML = `
     <span>Capital <b style="color:#c9d1d9">$${config.capital || 100}</b></span>
     <span>Leverage <b style="color:#c9d1d9">${config.leverage || 10}x</b></span>
-    <span>Min Prob <b style="color:#c9d1d9">${config.min_probability || 60}%</b></span>
-    <span>TP <b style="color:#c9d1d9">${config.tp_pct || 80}%</b></span>
+    <span>Min Prob <b style="color:#c9d1d9">${config.min_probability || config.min_prob || 60}%</b></span>
+    <span>TP <b style="color:#c9d1d9">${config.tp_range_pct || config.tp_pct || 70}%</b></span>
+    <span>SL <b style="color:#c9d1d9">${config.sl_pct || 70}%</b></span>
   `;
+  // Populate input fields from JSON data as fallback
+  populateConfigFields(config);
 }
 
 function calcPnl(direction, entry, currentPrice, size) {
@@ -594,6 +671,7 @@ async function loadData() {
 }
 
 loadData();
+loadConfigFields();
 </script>
 </body>
 </html>

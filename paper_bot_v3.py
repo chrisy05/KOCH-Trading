@@ -29,6 +29,15 @@ CONFIG = {
     "total_budget": 10000,    # Virtuelles Gesamtkapital
 }
 
+# Load config overrides from JSON file (written by dashboard settings)
+_CFG_OVERRIDE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "paper_bot_v3_config.json")
+if os.path.exists(_CFG_OVERRIDE):
+    try:
+        with open(_CFG_OVERRIDE, "r") as _f:
+            CONFIG.update(json.load(_f))
+    except Exception:
+        pass
+
 COINS = [
     "BANANAS31", "TON", "XLM", "SOL", "BCH", "BAT", "LINK", "DOGE",
     "FIDA", "NEO", "DYDX", "ADA", "HYPE", "FIL", "ICP", "LTC",
@@ -549,8 +558,11 @@ def load_data():
         "config": {
             "capital": CONFIG["capital"],
             "leverage": CONFIG["leverage"],
+            "min_probability": CONFIG["min_probability"],
             "min_prob": CONFIG["min_probability"],
+            "tp_range_pct": CONFIG["tp_range_pct"],
             "tp_pct": CONFIG["tp_range_pct"],
+            "sl_pct": CONFIG.get("sl_pct", 0),
             "start_date": datetime.now(TZ).strftime("%Y-%m-%d"),
             "end_date": (datetime.now(TZ) + timedelta(days=7)).strftime("%Y-%m-%d"),
         },

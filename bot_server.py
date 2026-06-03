@@ -32,6 +32,16 @@ BOT_DIR = os.path.dirname(os.path.abspath(__file__))
 LIVE_BOT = os.path.join(BOT_DIR, "live_bot.py")
 PID_FILE = "/tmp/live_bot.pid"
 CONFIG_FILE = os.path.join(BOT_DIR, "live_bot_config.json")
+PAPER_CONFIG_FILES = {
+    "core": os.path.join(BOT_DIR, "paper_bot_config.json"),
+    "v2": os.path.join(BOT_DIR, "paper_bot_v2_config.json"),
+    "v3": os.path.join(BOT_DIR, "paper_bot_v3_config.json"),
+}
+PAPER_CONFIG_DEFAULTS = {
+    "core": {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 70},
+    "v2":   {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 40},
+    "v3":   {"capital": 100, "leverage": 10, "min_probability": 65, "tp_range_pct": 60, "sl_pct": 40},
+}
 CREDS_FILE = os.path.join(BOT_DIR, "bybit_credentials.json")
 STATUS_FILE = os.path.join(BOT_DIR, "live_bot_status.json")
 TRADES_FILE = os.path.join(BOT_DIR, "live_trades.json")
@@ -76,6 +86,31 @@ def save_config(cfg):
     with open(CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=2)
     log(f"Config saved: {cfg}")
+
+
+def load_paper_config(bot):
+    """Load paper bot config override, return defaults if missing."""
+    defaults = dict(PAPER_CONFIG_DEFAULTS.get(bot, PAPER_CONFIG_DEFAULTS["core"]))
+    cfg_file = PAPER_CONFIG_FILES.get(bot)
+    if cfg_file and os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg = json.load(f)
+            defaults.update(cfg)
+        except Exception as e:
+            log(f"Warning: could not load paper config {bot}: {e}")
+    return defaults
+
+
+def save_paper_config(bot, cfg):
+    """Write paper bot config override to JSON file."""
+    cfg_file = PAPER_CONFIG_FILES.get(bot)
+    if not cfg_file:
+        return False
+    with open(cfg_file, "w") as f:
+        json.dump(cfg, f, indent=2)
+    log(f"Paper config [{bot}] saved: {cfg}")
+    return True
 
 
 def load_credentials():
@@ -398,6 +433,12 @@ class BotHandler(BaseHTTPRequestHandler):
             self.handle_balance()
         elif path == "/config":
             self.handle_get_config()
+        elif path.startswith("/paper-config/"):
+            bot = path.split("/")[-1]
+            if bot in PAPER_CONFIG_FILES:
+                self.send_json(load_paper_config(bot))
+            else:
+                self.send_json({"error": "unknown bot"}, 400)
         elif path == "/positions":
             self.handle_positions()
         elif path == "/trades":
@@ -469,6 +510,8 @@ class BotHandler(BaseHTTPRequestHandler):
             self.handle_stop()
         elif path == "/config":
             self.handle_config()
+        elif path.startswith("/paper-config/"):
+            self.handle_paper_config(path.split("/")[-1])
         else:
             self.send_json({"error": "not found"}, 404)
 
@@ -524,6 +567,27 @@ class BotHandler(BaseHTTPRequestHandler):
             restarted = True
 
         self.send_json({"ok": True, "config": config, "restarted": restarted})
+
+    def handle_paper_config(self, bot):
+        if bot not in PAPER_CONFIG_FILES:
+            self.send_json({"ok": False, "error": "unknown bot"}, 400)
+            return
+        body = self.read_body()
+        if not body:
+            self.send_json({"ok": False, "error": "empty body"}, 400)
+            return
+
+        config = load_paper_config(bot)
+        allowed_keys = {"capital", "leverage", "min_probability", "tp_range_pct", "sl_pct"}
+        for k, v in body.items():
+            if k in allowed_keys:
+                try:
+                    config[k] = int(v) if isinstance(v, (int, float)) else int(v)
+                except (ValueError, TypeError):
+                    pass
+
+        save_paper_config(bot, config)
+        self.send_json({"ok": True, "config": config})
 
 
 # ── Main ────────────────────────────────────────────────────────
