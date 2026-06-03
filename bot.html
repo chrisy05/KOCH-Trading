@@ -121,7 +121,7 @@
       .cfg-input::-webkit-inner-spin-button,.cfg-input::-webkit-outer-spin-button{opacity:1;height:36px;width:20px;cursor:pointer}
       .cfg-unit{color:#555;font-size:1rem;margin-left:6px}
     </style>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px">
       <div class="stat-box" style="padding:14px">
         <div class="label">Kapital/Trade</div>
         <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><span class="cfg-unit">$</span><input type="number" id="cfgCapital" value="100" min="0" max="50000" step="1" class="cfg-input" style="width:110px"></div>
@@ -137,6 +137,10 @@
       <div class="stat-box" style="padding:14px">
         <div class="label">TP Range</div>
         <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTpRange" value="80" min="0" max="100" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
+      </div>
+      <div class="stat-box" style="padding:14px">
+        <div class="label">SL Loss</div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgSlPct" value="70" min="0" max="100" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
       </div>
       <div class="stat-box" style="padding:14px">
         <div class="label">Max 4h Trades</div>
@@ -617,6 +621,7 @@ async function updateConfig() {
     leverage: parseInt(document.getElementById('cfgLeverage').value) || 10,
     min_probability: parseInt(document.getElementById('cfgMinProb').value) || 60,
     tp_range_pct: parseInt(document.getElementById('cfgTpRange').value) || 80,
+    sl_pct: parseInt(document.getElementById('cfgSlPct').value) || 70,
     max_open_4h: parseInt(document.getElementById('cfgMax4h').value) || 3,
   };
 
@@ -649,6 +654,7 @@ async function loadConfig() {
       if (data.leverage) document.getElementById('cfgLeverage').value = data.leverage;
       if (data.min_probability) document.getElementById('cfgMinProb').value = data.min_probability;
       if (data.tp_range_pct) document.getElementById('cfgTpRange').value = data.tp_range_pct;
+      if (data.sl_pct !== undefined) document.getElementById('cfgSlPct').value = data.sl_pct;
       if (data.max_open_4h) document.getElementById('cfgMax4h').value = data.max_open_4h;
     }
   } catch(e) {}
