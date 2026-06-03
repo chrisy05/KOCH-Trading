@@ -22,6 +22,7 @@ CONFIG = {
     "leverage": 10,
     "min_probability": 60,
     "tp_range_pct": 70,       # 70% of expected move (was 80%, changed 02.06. — saves ~7/9 liqs)
+    "sl_pct": 70,             # SL bei 70% Verlust der Margin (0 = aus, nur Liq)
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
@@ -696,10 +697,27 @@ def check_open_trades(data):
                 continue
             current_price, recent_high, recent_low = price_data[coin]
 
+            # SL check: close at sl_pct% loss before liquidation
+            sl_pct = CONFIG.get("sl_pct", 0)
+            sl_price = None
+            if sl_pct > 0:
+                margin = trade.get("margin", CONFIG["capital"])
+                size = trade.get("size", 0)
+                if size > 0:
+                    sl_loss = margin * (sl_pct / 100.0)
+                    if trade["direction"] == "LONG":
+                        sl_price = trade["entry"] - sl_loss / size
+                    else:
+                        sl_price = trade["entry"] + sl_loss / size
+
             if trade["direction"] == "LONG":
                 # Check TP hit (using high — wick up counts)
                 if recent_high >= trade["tp"]:
                     close_trade(trade, trade["tp"], "TP")
+                # Check SL hit before LIQ
+                elif sl_price is not None and recent_low <= sl_price:
+                    close_trade(trade, sl_price, "SL")
+                    log(f"  SL HIT: {coin} LONG | Low {recent_low:.6f} <= SL {sl_price:.6f} ({sl_pct}%)")
                 # Check LIQ hit (using low — wick down counts)
                 elif recent_low <= trade["liq"]:
                     close_trade(trade, trade["liq"], "LIQ")
@@ -708,6 +726,10 @@ def check_open_trades(data):
                 # Check TP hit (using low — wick down counts)
                 if recent_low <= trade["tp"]:
                     close_trade(trade, trade["tp"], "TP")
+                # Check SL hit before LIQ
+                elif sl_price is not None and recent_high >= sl_price:
+                    close_trade(trade, sl_price, "SL")
+                    log(f"  SL HIT: {coin} SHORT | High {recent_high:.6f} >= SL {sl_price:.6f} ({sl_pct}%)")
                 # Check LIQ hit (using high — wick up counts)
                 elif recent_high >= trade["liq"]:
                     close_trade(trade, trade["liq"], "LIQ")
