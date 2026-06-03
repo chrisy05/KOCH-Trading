@@ -60,6 +60,12 @@ tbody td{padding:8px 12px}
 
 .empty-state{text-align:center;padding:40px 20px;color:#8b949e;font-size:.9rem}
 
+.tab-bar{display:flex;gap:6px;margin-left:20px}
+.tab-btn{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .15s}
+.tab-btn:hover{border-color:#58a6ff;color:#c9d1d9}
+.tab-btn.active{background:#0d419d;border-color:#58a6ff;color:#fff}
+.bot-label{font-size:.7rem;color:#8b949e;margin-left:8px;background:#21262d;padding:2px 8px;border-radius:10px}
+
 footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1px solid #21262d;margin-top:12px}
 </style>
 </head>
@@ -68,6 +74,12 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
 <div class="header">
   <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
     <h1>Paper Trading Bot</h1>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabCore" onclick="switchBot('core')">Core</button>
+      <button class="tab-btn" id="tabV2" onclick="switchBot('v2')">V2 (SL 40%)</button>
+      <button class="tab-btn" id="tabV3" onclick="switchBot('v3')">V3</button>
+    </div>
+    <span class="bot-label" id="botLabel">Core: SL 70%, TP 70%, Min 60%</span>
     <nav class="nav">
       <a href="bot.html">&larr; BOT</a>
       <a href="cockpit.html">Cockpit</a>
@@ -209,6 +221,26 @@ let autoRefreshTimer = null;
 let liveTimer = null;
 let priceCache = {};
 let cachedOpenTrades = [];
+
+let activeBot = 'core';
+const BOT_FILES = {
+  'core': 'paper_trades.json',
+  'v2': 'paper_trades_v2.json',
+  'v3': 'paper_trades_v3.json'
+};
+const BOT_LABELS = {
+  'core': 'Core: SL 70%, TP 70%, Min 60%',
+  'v2': 'V2: SL 40%, TP 70%, Min 60%',
+  'v3': 'V3: SL 40%, TP 60%, Min 65%'
+};
+
+function switchBot(bot) {
+  activeBot = bot;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab' + bot.charAt(0).toUpperCase() + bot.slice(1)).classList.add('active');
+  document.getElementById('botLabel').textContent = BOT_LABELS[bot];
+  loadData();
+}
 
 function toggleAutoRefresh() {
   autoRefresh = !autoRefresh;
@@ -532,7 +564,7 @@ function renderGesamt(data) {
 
 async function loadData() {
   try {
-    const r = await fetch('paper_trades.json?t=' + Date.now());
+    const r = await fetch(BOT_FILES[activeBot] + '?t=' + Date.now());
     const data = await r.json();
 
     renderConfig(data.config || {});
