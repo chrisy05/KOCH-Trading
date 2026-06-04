@@ -300,6 +300,7 @@ def set_take_profit(symbol, tp_price, position_idx=0):
         "takeProfit": str(tp_price),
         "tpTriggerBy": "LastPrice",
         "positionIdx": position_idx,
+        "tpslMode": "Full",
     }
     result = bybit_request("POST", "/v5/position/trading-stop", params)
     if result and result.get("retCode") == 0:
@@ -318,6 +319,7 @@ def set_stop_loss(symbol, sl_price, position_idx=0):
         "stopLoss": str(sl_price),
         "slTriggerBy": "LastPrice",
         "positionIdx": position_idx,
+        "tpslMode": "Full",
     }
     result = bybit_request("POST", "/v5/position/trading-stop", params)
     if result and result.get("retCode") == 0:
