@@ -34,6 +34,11 @@ CONFIG = {
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
+    "total_budget": 10000,    # Virtuelles Gesamtkapital
+    "tf_budget_15m": 50,      # % of total budget for 15m trades
+    "tf_budget_30m": 30,      # % of total budget for 30m trades
+    "tf_budget_1h": 20,       # % of total budget for 1h trades
+    "tf_budget_4h": 0,        # % of total budget for 4h trades (0 = disabled)
 }
 
 # Load overrides from config file (written by bot_server.py)
@@ -46,7 +51,8 @@ def load_config_overrides():
         try:
             with open(CONFIG_FILE, "r") as f:
                 overrides = json.load(f)
-            for key in ("capital", "leverage", "min_probability", "tp_range_pct", "sl_pct", "max_open_4h"):
+            for key in ("capital", "leverage", "min_probability", "tp_range_pct", "sl_pct", "max_open_4h",
+                        "total_budget", "tf_budget_15m", "tf_budget_30m", "tf_budget_1h", "tf_budget_4h"):
                 if key in overrides:
                     CONFIG[key] = overrides[key]
         except Exception:
@@ -1235,6 +1241,18 @@ def scan_and_trade(data, tf, limit, tf_key):
 
     if tf_key == "trades_4h" and len(open_trades) >= CONFIG["max_open_4h"]:
         log(f"  Max open 4h trades reached ({CONFIG['max_open_4h']}). Skipping scan.")
+        return
+
+    # Per-TF budget allocation
+    tf_budget_key = f"tf_budget_{tf}"  # tf_budget_15m, tf_budget_30m, etc.
+    tf_budget_pct = CONFIG.get(tf_budget_key, 25)
+    tf_budget_limit = CONFIG.get("total_budget", 10000) * (tf_budget_pct / 100.0)
+    tf_margin_used = sum(t.get("margin", CONFIG["capital"]) for t in open_trades)
+    if tf_budget_pct == 0:
+        log(f"  TF Budget {tf}: deaktiviert (0%).")
+        return
+    if tf_margin_used >= tf_budget_limit:
+        log(f"  TF Budget {tf}: ${tf_margin_used:.0f} / ${tf_budget_limit:.0f} ({tf_budget_pct}%) — voll.")
         return
 
     today = now.strftime("%Y-%m-%d")

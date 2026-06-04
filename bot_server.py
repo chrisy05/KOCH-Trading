@@ -38,9 +38,9 @@ PAPER_CONFIG_FILES = {
     "v3": os.path.join(BOT_DIR, "paper_bot_v3_config.json"),
 }
 PAPER_CONFIG_DEFAULTS = {
-    "core": {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 70},
-    "v2":   {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 40},
-    "v3":   {"capital": 100, "leverage": 10, "min_probability": 65, "tp_range_pct": 60, "sl_pct": 40},
+    "core": {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 70, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
+    "v2":   {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 40, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
+    "v3":   {"capital": 100, "leverage": 10, "min_probability": 65, "tp_range_pct": 60, "sl_pct": 40, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
 }
 CREDS_FILE = os.path.join(BOT_DIR, "bybit_credentials.json")
 STATUS_FILE = os.path.join(BOT_DIR, "live_bot_status.json")
@@ -604,7 +604,8 @@ class BotHandler(BaseHTTPRequestHandler):
 
         # Merge with existing config
         config = load_config()
-        allowed_keys = {"capital", "leverage", "min_probability", "tp_range_pct", "max_open_4h"}
+        allowed_keys = {"capital", "leverage", "min_probability", "tp_range_pct", "sl_pct", "max_open_4h",
+                        "total_budget", "tf_budget_15m", "tf_budget_30m", "tf_budget_1h", "tf_budget_4h"}
         for k, v in body.items():
             if k in allowed_keys:
                 # Validate numeric
@@ -636,7 +637,8 @@ class BotHandler(BaseHTTPRequestHandler):
             return
 
         config = load_paper_config(bot)
-        allowed_keys = {"capital", "leverage", "min_probability", "tp_range_pct", "sl_pct"}
+        allowed_keys = {"capital", "leverage", "min_probability", "tp_range_pct", "sl_pct",
+                        "total_budget", "tf_budget_15m", "tf_budget_30m", "tf_budget_1h", "tf_budget_4h"}
         for k, v in body.items():
             if k in allowed_keys:
                 try:

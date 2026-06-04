@@ -147,6 +147,24 @@
         <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgMax4h" value="3" min="0" max="20" step="1" class="cfg-input" style="width:80px"></div>
       </div>
     </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+      <div class="stat-box" style="padding:14px">
+        <div class="label">15m Budget</div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf15" value="50" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
+      </div>
+      <div class="stat-box" style="padding:14px">
+        <div class="label">30m Budget</div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf30" value="30" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
+      </div>
+      <div class="stat-box" style="padding:14px">
+        <div class="label">1h Budget</div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf1h" value="20" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
+      </div>
+      <div class="stat-box" style="padding:14px">
+        <div class="label">4h Budget</div>
+        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf4h" value="0" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <button onclick="updateConfig()" style="background:#58a6ff;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Settings Aktualisieren</button>
       <button onclick="startBot('live')" style="background:#22c55e;color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Start</button>
@@ -651,6 +669,10 @@ async function updateConfig() {
     tp_range_pct: parseInt(document.getElementById('cfgTpRange').value) || 80,
     sl_pct: parseInt(document.getElementById('cfgSlPct').value) || 70,
     max_open_4h: parseInt(document.getElementById('cfgMax4h').value) || 3,
+    tf_budget_15m: parseInt(document.getElementById('cfgTf15').value) || 50,
+    tf_budget_30m: parseInt(document.getElementById('cfgTf30').value) || 30,
+    tf_budget_1h: parseInt(document.getElementById('cfgTf1h').value) || 20,
+    tf_budget_4h: parseInt(document.getElementById('cfgTf4h').value) || 0,
   };
 
   try {
@@ -684,6 +706,10 @@ async function loadConfig() {
       if (data.tp_range_pct) document.getElementById('cfgTpRange').value = data.tp_range_pct;
       if (data.sl_pct !== undefined) document.getElementById('cfgSlPct').value = data.sl_pct;
       if (data.max_open_4h) document.getElementById('cfgMax4h').value = data.max_open_4h;
+      if (data.tf_budget_15m != null) document.getElementById('cfgTf15').value = data.tf_budget_15m;
+      if (data.tf_budget_30m != null) document.getElementById('cfgTf30').value = data.tf_budget_30m;
+      if (data.tf_budget_1h != null) document.getElementById('cfgTf1h').value = data.tf_budget_1h;
+      if (data.tf_budget_4h != null) document.getElementById('cfgTf4h').value = data.tf_budget_4h;
     }
   } catch(e) {}
 }

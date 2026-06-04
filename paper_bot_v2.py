@@ -27,6 +27,10 @@ CONFIG = {
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
     "total_budget": 10000,    # Virtuelles Gesamtkapital
+    "tf_budget_15m": 50,      # % of total budget for 15m trades
+    "tf_budget_30m": 30,      # % of total budget for 30m trades
+    "tf_budget_1h": 20,       # % of total budget for 1h trades
+    "tf_budget_4h": 0,        # % of total budget for 4h trades (0 = disabled)
 }
 
 # Load config overrides from JSON file (written by dashboard settings)
@@ -846,6 +850,18 @@ def scan_and_trade(data, tf, limit, tf_key):
     # For 4h: check max open trades limit
     if tf_key == "trades_4h" and len(open_trades) >= CONFIG["max_open_4h"]:
         log(f"  Max open 4h trades reached ({CONFIG['max_open_4h']}). Skipping scan.")
+        return
+
+    # Per-TF budget allocation
+    tf_budget_key = f"tf_budget_{tf}"  # tf_budget_15m, tf_budget_30m, etc.
+    tf_budget_pct = CONFIG.get(tf_budget_key, 25)
+    tf_budget_limit = CONFIG.get("total_budget", 10000) * (tf_budget_pct / 100.0)
+    tf_margin_used = sum(t.get("margin", CONFIG["capital"]) for t in open_trades)
+    if tf_budget_pct == 0:
+        log(f"  TF Budget {tf}: deaktiviert (0%).")
+        return
+    if tf_margin_used >= tf_budget_limit:
+        log(f"  TF Budget {tf}: ${tf_margin_used:.0f} / ${tf_budget_limit:.0f} ({tf_budget_pct}%) — voll.")
         return
 
     # Budget check: starting budget + realized PnL - margin in open trades
