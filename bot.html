@@ -218,10 +218,12 @@
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">ROI</th>
               <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Dauer</th>
               <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Status</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Opened</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Closed</th>
             </tr>
           </thead>
           <tbody id="liveTradeLogBody">
-            <tr><td colspan="8" style="text-align:center;padding:30px;color:#333">Keine Trades vorhanden</td></tr>
+            <tr><td colspan="10" style="text-align:center;padding:30px;color:#333">Keine Trades vorhanden</td></tr>
           </tbody>
         </table>
       </div>
@@ -822,6 +824,8 @@ async function loadLiveTrades() {
         else duration = Math.floor(mins/1440) + 'd ' + Math.floor((mins%1440)/60) + 'h';
       }
       const status = t.close_reason || t.status || '—';
+      const openDt = (t.open_time || '').replace('T',' ').slice(0,16);
+      const closeDt = (t.close_time || '').replace('T',' ').slice(0,16);
       tradeHtml += `<tr>
         <td><span class="coin">${coin}</span></td>
         <td><span class="badge ${dirClass}">${side}</span></td>
@@ -831,6 +835,8 @@ async function loadLiveTrades() {
         <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
         <td>${duration}</td>
         <td>${status}</td>
+        <td style="color:#555;font-size:.7rem">${openDt}</td>
+        <td style="color:#555;font-size:.7rem">${closeDt}</td>
       </tr>`;
     });
     if (tradeHtml !== _lastTradeHtml) {
