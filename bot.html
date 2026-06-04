@@ -212,6 +212,7 @@
             <tr style="border-bottom:1px solid #21262d">
               <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Coin</th>
               <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Richtung</th>
+              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">TF</th>
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Entry</th>
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Close</th>
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">PnL</th>
@@ -826,9 +827,11 @@ async function loadLiveTrades() {
       const status = t.close_reason || t.status || '—';
       const openDt = (t.open_time || '').replace('T',' ').slice(0,16);
       const closeDt = (t.close_time || '').replace('T',' ').slice(0,16);
+      const tf = t.tf || '—';
       tradeHtml += `<tr>
         <td><span class="coin">${coin}</span></td>
         <td><span class="badge ${dirClass}">${side}</span></td>
+        <td style="color:#8b949e">${tf}</td>
         <td style="text-align:right">$${(t.entry||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
         <td style="text-align:right">$${(t.close_price||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
         <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(4)}</td>
