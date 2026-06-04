@@ -304,6 +304,24 @@ def set_take_profit(symbol, tp_price, position_idx=0):
         return None
 
 
+def set_stop_loss(symbol, sl_price, position_idx=0):
+    """Set stop loss on an existing position."""
+    params = {
+        "category": "linear",
+        "symbol": symbol,
+        "stopLoss": str(sl_price),
+        "slTriggerBy": "LastPrice",
+        "positionIdx": position_idx,
+    }
+    result = bybit_request("POST", "/v5/position/trading-stop", params)
+    if result and result.get("retCode") == 0:
+        log(f"  SL SET: {symbol} @ {sl_price}")
+        return result
+    else:
+        log(f"  SL FAILED: {symbol} @ {sl_price} | Response: {result}")
+        return None
+
+
 def get_positions():
     """Get all open positions from Bybit."""
     result = bybit_request("GET", "/v5/position/list", {
@@ -939,6 +957,19 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
         tp_result = set_take_profit(bybit_symbol, str(tp_rounded))
         if not tp_result or tp_result.get("retCode") != 0:
             log(f"  [LIVE] WARNING: TP not set for {coin}. Manual intervention needed!")
+
+        # 4. Set stop loss on Bybit (if sl_pct configured)
+        sl_pct = CONFIG.get("sl_pct", 0)
+        if sl_pct > 0 and entry > 0:
+            margin_trade = CONFIG["capital"]
+            size_trade = margin_trade * leverage / entry
+            sl_loss = margin_trade * (sl_pct / 100.0)
+            if direction == "LONG":
+                sl_price = entry - sl_loss / size_trade
+            else:
+                sl_price = entry + sl_loss / size_trade
+            sl_rounded = round_price(sl_price)
+            set_stop_loss(bybit_symbol, str(sl_rounded))
 
         log(f"  [LIVE] Trade opened successfully: {direction} {coin} | OrderID: {order_id}")
     else:
