@@ -176,7 +176,7 @@
     <!-- KODA Bot Stats -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
       <div style="background:#111;border:1px solid #21262d;border-radius:10px;padding:14px">
-        <h3 style="color:#22c55e;font-size:.8rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">Live — Offene Positionen</h3>
+        <h3 style="color:#22c55e;font-size:.8rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">Live — Offene Positionen <span id="kodaLiveSince" style="color:#484f58;font-size:.65rem;font-weight:400;text-transform:none"></span></h3>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center" id="kodaLiveStats">
           <div><div style="font-size:.65rem;color:#8b949e;text-transform:uppercase">Positionen</div><div style="font-size:1.3rem;font-weight:700;color:#58a6ff" id="kodaOpenCount">0</div></div>
           <div><div style="font-size:.65rem;color:#8b949e;text-transform:uppercase">Unrealized PnL</div><div style="font-size:1.3rem;font-weight:700" id="kodaUnrealPnl">$0</div></div>
@@ -185,7 +185,7 @@
         </div>
       </div>
       <div style="background:#111;border:1px solid #21262d;border-radius:10px;padding:14px">
-        <h3 style="color:#f59e0b;font-size:.8rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">Abgeschlossen</h3>
+        <h3 style="color:#f59e0b;font-size:.8rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">Abgeschlossen <span id="kodaClosedSince" style="color:#484f58;font-size:.65rem;font-weight:400;text-transform:none"></span></h3>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center" id="kodaClosedStats">
           <div><div style="font-size:.65rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.3rem;font-weight:700;color:#58a6ff" id="kodaClosedCount">0</div></div>
           <div><div style="font-size:.65rem;color:#8b949e;text-transform:uppercase">W / L</div><div style="font-size:1.3rem;font-weight:700" id="kodaWL">0/0</div></div>
@@ -954,6 +954,16 @@ async function updateKodaStats() {
       const pnlEl = document.getElementById('kodaTotalPnl');
       pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
       pnlEl.style.color = totalPnl >= 0 ? '#22c55e' : '#ef4444';
+
+      // Find earliest trade date
+      let earliest = '';
+      closed.forEach(t => {
+        const ot = t.open_time || '';
+        if (ot && (!earliest || ot < earliest)) earliest = ot;
+      });
+      const sinceStr = earliest ? 'Daten seit: ' + earliest.slice(0,10) : '';
+      document.getElementById('kodaClosedSince').textContent = sinceStr;
+      document.getElementById('kodaLiveSince').textContent = sinceStr;
     }
   } catch(e) {}
 }
