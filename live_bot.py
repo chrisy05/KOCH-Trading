@@ -292,42 +292,66 @@ def place_market_order(symbol, side, qty):
         return None
 
 
-def set_take_profit(symbol, tp_price, position_idx=0):
-    """Set take profit on an existing position."""
+def set_tp_sl(symbol, tp_price=None, sl_price=None, position_idx=0):
+    """Set TP and/or SL on an existing position in a SINGLE call.
+    Bybit tpslMode=Full overwrites on each call, so both must be set together."""
     params = {
         "category": "linear",
         "symbol": symbol,
-        "takeProfit": str(tp_price),
-        "tpTriggerBy": "LastPrice",
         "positionIdx": position_idx,
         "tpslMode": "Full",
     }
+    if tp_price is not None:
+        params["takeProfit"] = str(tp_price)
+        params["tpTriggerBy"] = "LastPrice"
+    if sl_price is not None:
+        params["stopLoss"] = str(sl_price)
+        params["slTriggerBy"] = "LastPrice"
     result = bybit_request("POST", "/v5/position/trading-stop", params)
     if result and result.get("retCode") == 0:
-        log(f"  TP SET: {symbol} @ {tp_price}")
+        parts = []
+        if tp_price is not None:
+            parts.append(f"TP={tp_price}")
+        if sl_price is not None:
+            parts.append(f"SL={sl_price}")
+        log(f"  TP/SL SET: {symbol} @ {', '.join(parts)}")
         return result
     else:
-        log(f"  TP FAILED: {symbol} @ {tp_price} | Response: {result}")
+        log(f"  TP/SL FAILED: {symbol} | Response: {result}")
         return None
+
+
+def set_take_profit(symbol, tp_price, position_idx=0):
+    """Set take profit on an existing position."""
+    return set_tp_sl(symbol, tp_price=tp_price, position_idx=position_idx)
 
 
 def set_stop_loss(symbol, sl_price, position_idx=0):
     """Set stop loss on an existing position."""
-    params = {
-        "category": "linear",
-        "symbol": symbol,
-        "stopLoss": str(sl_price),
-        "slTriggerBy": "LastPrice",
-        "positionIdx": position_idx,
-        "tpslMode": "Full",
-    }
-    result = bybit_request("POST", "/v5/position/trading-stop", params)
-    if result and result.get("retCode") == 0:
-        log(f"  SL SET: {symbol} @ {sl_price}")
-        return result
-    else:
-        log(f"  SL FAILED: {symbol} @ {sl_price} | Response: {result}")
-        return None
+    return set_tp_sl(symbol, sl_price=sl_price, position_idx=position_idx)
+
+
+def get_bybit_close_data(symbol):
+    """Fetch the most recent close data for a symbol from Bybit closed-pnl."""
+    try:
+        result = bybit_request("GET", "/v5/position/closed-pnl", {
+            "category": "linear",
+            "symbol": symbol,
+            "limit": "1",
+        })
+        if result and result.get("retCode") == 0:
+            records = result.get("result", {}).get("list", [])
+            if records:
+                r = records[0]
+                return {
+                    "exit_price": float(r.get("avgExitPrice", "0")),
+                    "pnl": float(r.get("closedPnl", "0")),
+                    "exec_type": r.get("execType", "Trade"),
+                    "order_type": r.get("orderType", ""),
+                }
+    except Exception as e:
+        log(f"  Warning: Could not fetch closed-pnl for {symbol}: {e}")
+    return None
 
 
 def get_positions():
@@ -961,13 +985,9 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
         order_id = order_result.get("result", {}).get("orderId")
         time.sleep(0.5)
 
-        # 3. Set take profit
-        tp_result = set_take_profit(bybit_symbol, str(tp_rounded))
-        if not tp_result or tp_result.get("retCode") != 0:
-            log(f"  [LIVE] WARNING: TP not set for {coin}. Manual intervention needed!")
-
-        # 4. Set stop loss on Bybit (if sl_pct configured)
+        # 3. Set TP + SL in a SINGLE call (Bybit tpslMode=Full overwrites on separate calls)
         sl_pct = CONFIG.get("sl_pct", 0)
+        sl_rounded = None
         if sl_pct > 0 and entry > 0:
             margin_trade = CONFIG["capital"]
             size_trade = margin_trade * leverage / entry
@@ -977,7 +997,10 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
             else:
                 sl_price = entry + sl_loss / size_trade
             sl_rounded = round_price(sl_price)
-            set_stop_loss(bybit_symbol, str(sl_rounded))
+
+        tpsl_result = set_tp_sl(bybit_symbol, tp_price=str(tp_rounded), sl_price=str(sl_rounded) if sl_rounded else None)
+        if not tpsl_result or tpsl_result.get("retCode") != 0:
+            log(f"  [LIVE] WARNING: TP/SL not set for {coin}. Manual intervention needed!")
 
         log(f"  [LIVE] Trade opened successfully: {direction} {coin} | OrderID: {order_id}")
     else:
@@ -1097,22 +1120,37 @@ def check_open_trades(data):
             # In LIVE mode: check if position still exists on Bybit
             if LIVE_MODE and trade.get("mode") == "LIVE":
                 if bybit_sym not in bybit_positions:
-                    # Position gone from Bybit — either TP filled or liquidated
-                    if trade["direction"] == "LONG":
-                        if recent_high >= trade["tp"]:
-                            close_trade(trade, trade["tp"], "TP")
-                            log(f"  [LIVE] Position {coin} closed by TP on Bybit")
-                        else:
-                            # Likely liquidated
-                            close_trade(trade, trade["liq"], "LIQ")
-                            log(f"  [LIVE] Position {coin} liquidated on Bybit")
-                    else:  # SHORT
-                        if recent_low <= trade["tp"]:
-                            close_trade(trade, trade["tp"], "TP")
-                            log(f"  [LIVE] Position {coin} closed by TP on Bybit")
-                        else:
-                            close_trade(trade, trade["liq"], "LIQ")
-                            log(f"  [LIVE] Position {coin} liquidated on Bybit")
+                    # Position gone — fetch REAL close data from Bybit
+                    real_close = get_bybit_close_data(bybit_sym)
+                    if real_close:
+                        close_price = real_close["exit_price"]
+                        bybit_pnl = real_close["pnl"]
+                        exec_type = real_close["exec_type"]
+                        entry = trade["entry"]
+                        direction = trade["direction"]
+
+                        if exec_type == "BustTrade":
+                            reason = "LIQ"
+                        elif direction == "LONG":
+                            if close_price >= trade["tp"] * 0.998:
+                                reason = "TP"
+                            elif close_price <= entry:
+                                reason = "SL"
+                            else:
+                                reason = "TP"
+                        else:  # SHORT
+                            if close_price <= trade["tp"] * 1.002:
+                                reason = "TP"
+                            elif close_price >= entry:
+                                reason = "SL"
+                            else:
+                                reason = "TP"
+
+                        close_trade(trade, close_price, reason)
+                        log(f"  [LIVE] Position {coin} closed on Bybit | {reason} @ {close_price:.6f} | Bybit PnL: ${bybit_pnl:.2f} ({exec_type})")
+                    else:
+                        # API nicht erreichbar — Trade offen lassen, nächsten Scan abwarten
+                        log(f"  [LIVE] Position {coin} gone but Bybit closed-pnl unavailable. Retrying next scan.")
                     continue
 
             # SL check
