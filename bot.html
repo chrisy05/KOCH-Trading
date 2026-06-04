@@ -891,8 +891,12 @@ async function updateKodaStats() {
 
     if (tradeData) {
       let closed = [];
-      for (const key of ['trades_15m','trades_30m','trades_1h','trades_4h']) {
-        if (tradeData[key]) closed.push(...tradeData[key].filter(t => t.status === 'closed'));
+      if (tradeData.trades) {
+        closed = tradeData.trades.filter(t => t.status === 'closed');
+      } else {
+        for (const key of ['trades_15m','trades_30m','trades_1h','trades_4h']) {
+          if (tradeData[key]) closed.push(...tradeData[key].filter(t => t.status === 'closed'));
+        }
       }
 
       const wins = closed.filter(t => (t.pnl || 0) > 0).length;
