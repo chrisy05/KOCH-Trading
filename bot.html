@@ -173,6 +173,24 @@
     </div>
     <div style="font-size:.7rem;color:#444;margin-top:8px"><b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer · <b>Coins:</b> 51 (Viona) · <span id="lbConfigDate" style="color:#484f58">Stand: —</span><br><b>TF Budget:</b> % vom Gesamtkapital das pro Timeframe maximal in offenen Trades gebunden sein darf (0% = TF deaktiviert)</div>
 
+    <!-- Aktive Einstellungen (read-only, vom laufenden Bot) -->
+    <div id="activeConfig" style="display:none;background:#0d1b0d;border:1px solid #1a3a1a;border-radius:10px;padding:12px 16px;margin-top:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;animation:pulse 2s infinite"></span>
+        <span style="color:#22c55e;font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase">Aktive Einstellungen</span>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:#8b9ab0">
+        <span>Kapital: <b id="acCapital" style="color:#fff">—</b></span>
+        <span>Hebel: <b id="acLeverage" style="color:#fff">—</b></span>
+        <span>Min Prob: <b id="acMinProb" style="color:#fff">—</b></span>
+        <span>TP: <b id="acTpRange" style="color:#fff">—</b></span>
+        <span>SL: <b id="acSlPct" style="color:#fff">—</b></span>
+        <span>Max 4h: <b id="acMax4h" style="color:#fff">—</b></span>
+        <span>Budget: <b id="acBudget" style="color:#fff">—</b></span>
+      </div>
+    </div>
+    <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+
     <!-- KODA Bot Stats -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
       <div style="background:#111;border:1px solid #21262d;border-radius:10px;padding:14px">
@@ -710,6 +728,20 @@ async function loadConfig() {
       if (data.tf_budget_30m != null) document.getElementById('cfgTf30').value = data.tf_budget_30m;
       if (data.tf_budget_1h != null) document.getElementById('cfgTf1h').value = data.tf_budget_1h;
       if (data.tf_budget_4h != null) document.getElementById('cfgTf4h').value = data.tf_budget_4h;
+
+      // Aktive Einstellungen anzeigen (read-only)
+      document.getElementById('acCapital').textContent = '$' + (data.capital || '—');
+      document.getElementById('acLeverage').textContent = (data.leverage || '—') + 'x';
+      document.getElementById('acMinProb').textContent = (data.min_probability || '—') + '%';
+      document.getElementById('acTpRange').textContent = (data.tp_range_pct || '—') + '%';
+      document.getElementById('acSlPct').textContent = (data.sl_pct !== undefined ? data.sl_pct : '—') + '%';
+      document.getElementById('acMax4h').textContent = data.max_open_4h || '—';
+      const b15 = data.tf_budget_15m != null ? data.tf_budget_15m : 50;
+      const b30 = data.tf_budget_30m != null ? data.tf_budget_30m : 30;
+      const b1h = data.tf_budget_1h != null ? data.tf_budget_1h : 20;
+      const b4h = data.tf_budget_4h != null ? data.tf_budget_4h : 0;
+      document.getElementById('acBudget').textContent = b15+'/'+b30+'/'+b1h+'/'+b4h;
+      document.getElementById('activeConfig').style.display = 'block';
     }
   } catch(e) {}
 }
