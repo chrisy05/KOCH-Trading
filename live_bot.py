@@ -134,13 +134,13 @@ BYBIT_SYMBOL_MAP = {
 }
 
 COINS = [
-    "BANANAS31", "TON", "XLM", "SOL", "BCH", "BAT", "LINK", "DOGE",
+    "TON", "XLM", "SOL", "BCH", "LINK", "DOGE",
     "FIDA", "NEO", "DYDX", "ADA", "HYPE", "FIL", "ICP", "LTC",
-    "JASMY", "EIGEN", "IP", "OP", "SEI", "IMX", "AVAX",
-    "SUSHI", "GLM", "CFX", "ENA", "BNT", "CRV", "TRX", "SUI",
+    "JASMY", "EIGEN", "IP", "OP", "SEI", "ONE", "IMX", "AVAX",
+    "GLM", "CFX", "ENA", "BNT", "CRV", "TRX", "SUI",
     "JUP", "MEME", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
-    "APT", "DOT", "XRP", "WIF", "XMR", "BNB", "RUNE",
-    "XTZ", "METIS", "AAVE", "UNI", "INJ",
+    "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
+    "XTZ", "METIS", "AAVE", "UNI", "BGB",
 ]
 
 # Bybit quantity precision per symbol (decimals for qty rounding)

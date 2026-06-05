@@ -43,13 +43,13 @@ if os.path.exists(_CFG_OVERRIDE):
         pass
 
 COINS = [
-    "BANANAS31", "TON", "XLM", "SOL", "BCH", "BAT", "LINK", "DOGE",
+    "TON", "XLM", "SOL", "BCH", "LINK", "DOGE",
     "FIDA", "NEO", "DYDX", "ADA", "HYPE", "FIL", "ICP", "LTC",
     "JASMY", "EIGEN", "IP", "OP", "SEI", "ONE", "IMX", "AVAX",
-    "SUSHI", "GLM", "CFX", "ENA", "BNT", "CRV", "TRX", "SUI",
+    "GLM", "CFX", "ENA", "BNT", "CRV", "TRX", "SUI",
     "JUP", "MEME", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
-    "APT", "DOT", "XRP", "WIF", "XMR", "PEPE", "BNB", "RUNE",
-    "XTZ", "METIS", "AAVE", "UNI", "INJ", "BGB",
+    "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
+    "XTZ", "METIS", "AAVE", "UNI", "BGB",
 ]
 
 TZ = timezone(timedelta(hours=-4))
