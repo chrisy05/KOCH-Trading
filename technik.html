@@ -31,6 +31,10 @@ td{padding:6px;border-bottom:1px solid #161f30}
 <h1>Knowledge Base</h1>
 <div style="display:flex;justify-content:space-between;align-items:center;padding:0 10px;margin-bottom:10px"><a href="cockpit.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">← Cockpit</a><a href="index.html" style="color:#58a6ff;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Dashboard</a><a href="bot.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Bot →</a></div>
 
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div style="color:#8b949e;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 14px 4px;border-bottom:1px solid #21262d;margin-bottom:8px">1 — Indikatoren & Grundlagen</div>
+<!-- ══════════════════════════════════════════════════════════════ -->
+
 <div class="topic open" onclick="this.classList.toggle('open')">
 <div class="topic-header"><span class="topic-title">Risk-Reward Verhaeltnis (R:R)</span><span class="topic-arrow">▶</span></div>
 <div class="topic-body">
@@ -114,18 +118,9 @@ td{padding:6px;border-bottom:1px solid #161f30}
 </div>
 </div>
 
-<div class="topic" onclick="this.classList.toggle('open')">
-<div class="topic-header"><span class="topic-title">Bitget Hebel-Aenderung</span><span class="topic-arrow">▶</span></div>
-<div class="topic-body">
-<p><b>Bei offener Isolated Position:</b></p>
-<p>1. Hebel erhoehen (z.B. 5x → 10x) — Positionsgroesse bleibt GLEICH</p>
-<p>2. Margin wird NICHT automatisch freigegeben</p>
-<p>3. Manuell "Marge verringern" klicken → Ueberschuss rausnehmen</p>
-<p>4. Freigewordenes Geld fuer Nachkauf oder andere Trades nutzen</p>
-<p>5. Liq verschiebt sich erst NACH dem manuellen Rausnehmen</p>
-<p style="font-size:0.75rem;color:#484f58;">Quelle: Bitget Tutorial 2024, ab Min 14:40</p>
-</div>
-</div>
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div style="color:#8b949e;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 14px 4px;border-bottom:1px solid #21262d;margin-bottom:8px">2 — Marktstruktur & On-Chain</div>
+<!-- ══════════════════════════════════════════════════════════════ -->
 
 <div class="topic" onclick="this.classList.toggle('open')">
 <div class="topic-header"><span class="topic-title">Market Maker & Taker</span><span class="topic-arrow">▶</span></div>
@@ -331,8 +326,53 @@ Fuer Bullenmarkt-Start: OI muss auf $60B+ steigen
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
-<!-- STRATEGIE: Liq-Level Scalp -->
+<div style="color:#8b949e;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 14px 4px;border-bottom:1px solid #21262d;margin-bottom:8px">3 — Strategien & Systeme</div>
 <!-- ══════════════════════════════════════════════════════════════ -->
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">KODA Signal Engine</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>KODA Signal Engine v1.0 — Autonomes Signal-System</b></p>
+<p>Generiert automatisch Trading-Signale basierend auf Multi-TF Analyse und postet sie in den Telegram-Kanal.</p>
+
+<p style="margin-top:12px;"><b>Pipeline:</b></p>
+<ol>
+<li><b>Scanner</b> (alle 30 Min) — er1_quality_scanner.py, 49 Coins, TMO-Sync auf 4 TFs</li>
+<li><b>Poster</b> (2 Min nach Scanner) — signal_poster.py, postet A-Signale in den Kanal</li>
+<li><b>Tracker</b> (alle 2 Min) — signal_tracker.py, prueft TP/SL und postet Abschluss</li>
+</ol>
+
+<p style="margin-top:12px;"><b>Score-Faktoren (0-100):</b></p>
+<table>
+<tr><th>Faktor</th><th>Punkte</th><th>Beschreibung</th></tr>
+<tr><td>TMO-Sync</td><td>0-25</td><td>4/4 TFs aligned = 25, 3/4 = 15</td></tr>
+<tr><td>EE Setup</td><td>0-25</td><td>EE-Gap Naehe, Golden Wick, Steilheit</td></tr>
+<tr><td>Markt-Kontext</td><td>0-25</td><td>BTC Alignment, Volume, Funding Rate</td></tr>
+<tr><td>Timing & Coin</td><td>0-25</td><td>Session-Zeit, Top Performer Bonus</td></tr>
+</table>
+
+<p style="margin-top:12px;"><b>TP / SL Berechnung:</b></p>
+<div class="formula">Expected Move = ATR14 × sqrt(bars_per_day) × 0.5<br>TP = 20% der Expected Move<br>SL = 40% der Expected Move<br>R:R = 1:0.5 | Hebel: 10x</div>
+
+<p style="margin-top:12px;"><b>Analyse pro Coin:</b></p>
+<ul>
+<li>TMO 14/3/5/3 Multi-TF Sync (15m/30m/1h/4h)</li>
+<li>EE Momentum Shift 15/3/5/3</li>
+<li>Trendscape EMA50 Slope (3 Bars)</li>
+<li>Volume Ratio, Funding Rate</li>
+<li>HH/LL Struktur, Golden Wick</li>
+<li>BTC Trend Alignment</li>
+</ul>
+
+<p style="margin-top:12px;"><b>Coinliste (49 Coins, Stand 05.06.2026):</b></p>
+<p style="font-size:.8rem;color:#8b949e;">TON, XLM, SOL, BCH, LINK, DOGE, FIDA, NEO, DYDX, ADA, HYPE, FIL, ICP, LTC, JASMY, EIGEN, IP, OP, SEI, ONE, IMX, AVAX, GLM, CFX, ENA, BNT, CRV, TRX, SUI, JUP, MEME, TAO, HBAR, OGN, LPT, ETH, THETA, APT, DOT, XRP, WIF, PEPE, BNB, RUNE, XTZ, METIS, AAVE, UNI, BGB</p>
+<p style="font-size:.75rem;color:#484f58;">Entfernt (schlechte Performance): SUSHI, XMR, BANANAS31, BAT, INJ</p>
+
+<p style="margin-top:12px;"><b>Signalliste:</b> docs/KODA_Signal_Liste.md (automatisch aktualisiert)</p>
+</div>
+</div>
+
+<!-- STRATEGIE: Liq-Level Scalp -->
 <div class="topic" onclick="this.classList.toggle('open')">
 <div class="topic-header"><span class="topic-title">Strategie: "Liq Magnet Scalp"</span><span class="topic-arrow">▶</span></div>
 <div class="topic-body">
@@ -459,8 +499,22 @@ Taker (0-1) + POC Position (0-1)
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
-<!-- MANUAL: AlgoAlpha Chart lesen -->
+<div style="color:#8b949e;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 14px 4px;border-bottom:1px solid #21262d;margin-bottom:8px">4 — Anleitungen & Praxis</div>
 <!-- ══════════════════════════════════════════════════════════════ -->
+
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">Bitget Hebel-Aenderung</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>Bei offener Isolated Position:</b></p>
+<p>1. Hebel erhoehen (z.B. 5x → 10x) — Positionsgroesse bleibt GLEICH</p>
+<p>2. Margin wird NICHT automatisch freigegeben</p>
+<p>3. Manuell "Marge verringern" klicken → Ueberschuss rausnehmen</p>
+<p>4. Freigewordenes Geld fuer Nachkauf oder andere Trades nutzen</p>
+<p>5. Liq verschiebt sich erst NACH dem manuellen Rausnehmen</p>
+<p style="font-size:0.75rem;color:#484f58;">Quelle: Bitget Tutorial 2024, ab Min 14:40</p>
+</div>
+</div>
+
 <div class="topic" onclick="this.classList.toggle('open')">
 <div class="topic-header"><span class="topic-title">Manual: AlgoAlpha Chart lesen (Schritt fuer Schritt)</span><span class="topic-arrow">▶</span></div>
 <div class="topic-body">
