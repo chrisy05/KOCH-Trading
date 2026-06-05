@@ -325,6 +325,47 @@ Fuer Bullenmarkt-Start: OI muss auf $60B+ steigen
 </div>
 </div>
 
+<!-- CryptoQuant On-Chain Daten -->
+<div class="topic" onclick="this.classList.toggle('open')">
+<div class="topic-header"><span class="topic-title">CryptoQuant — On-Chain Datenquellen</span><span class="topic-arrow">▶</span></div>
+<div class="topic-body">
+<p><b>API:</b> https://api.cryptoquant.com/v1/ | Auth: Bearer Token | Plan: Professional ($99/Mo)</p>
+<p style="margin-top:8px;"><b>30 Endpoints in 7 Kategorien. Top-Prioritaet fuer Signal-Generierung:</b></p>
+
+<p style="margin-top:12px;"><b>TIER 1 — Hoechster Signal-Wert:</b></p>
+<table>
+<tr><th>Endpoint</th><th>Was es misst</th><th>Trading Signal</th></tr>
+<tr><td>Taker Buy/Sell Stats</td><td>Aggressiver Kauf/Verkauf (CVD)</td><td class="green">Echtzeit-Kaufdruck. Ratio >1.1 = bullish</td></tr>
+<tr><td>Funding Rates</td><td>Longs vs Shorts Kosten</td><td>Extreme Werte = zuverlaessige Reversal-Signale</td></tr>
+<tr><td>Exchange Netflow</td><td>BTC rein/raus Boersen</td><td class="red">Positiv = bearish (Verkauf). Negativ = bullish (Akkumulation)</td></tr>
+<tr><td>Estimated Leverage Ratio</td><td>OI / Exchange Reserve</td><td class="red">Steigend = mehr Hebel = Liquidations-Kaskade wahrscheinlich</td></tr>
+<tr><td>Coinbase Premium</td><td>Coinbase vs Binance Preisdiff</td><td class="green">Positiv = US-institutioneller Kaufdruck</td></tr>
+<tr><td>Open Interest</td><td>Offene Kontrakte</td><td>Steigend + Preis = neue Positionen. Fallend = Abbau</td></tr>
+<tr><td>Liquidations</td><td>Zwangs-Schliessungen</td><td>Spikes = Squeeze/Kapitulation → Reversal</td></tr>
+</table>
+
+<p style="margin-top:12px;"><b>TIER 2 — Bestaetigung:</b></p>
+<table>
+<tr><th>Endpoint</th><th>Was es misst</th><th>Trading Signal</th></tr>
+<tr><td>Whale Ratio</td><td>Top10 Inflow / Total Inflow</td><td>Hoch = Wal-Verkauf imminent. Bester kurzfristiger Reversal</td></tr>
+<tr><td>Exchange Reserve</td><td>BTC-Bestand auf Boersen</td><td>Sinkend = Akkumulation (bullish). Steigend = Verkaufsdruck</td></tr>
+<tr><td>SOPR</td><td>Spent Output Profit Ratio</td><td>&lt;1 = Verkauf unter Einstandspreis = Kapitulation = Boden</td></tr>
+<tr><td>MVRV</td><td>Marktwert vs realisierter Wert</td><td>&lt;1 = unterbewertet. &gt;3.5 = ueberhitzt</td></tr>
+<tr><td>Stablecoins Ratio</td><td>BTC MCap / Stablecoin Supply</td><td>Niedrig = viel Kaufkraft wartet = bullish</td></tr>
+</table>
+
+<p style="margin-top:12px;"><b>TIER 3 — Makro/Zyklus:</b></p>
+<ul>
+<li><b>Puell Multiple:</b> Miner Revenue vs 365d Avg → Boden/Top Erkennung</li>
+<li><b>Miner Outflow/Reserve:</b> Miner-Kapitulation = historischer Boden</li>
+<li><b>Fund Holdings (14 ETFs):</b> IBIT, GBTC, FBTC etc. → Institutionelle Flows</li>
+<li><b>NVT Golden Cross:</b> &gt;2.2 = ueberkauft, &lt;-1.6 = ueberverkauft</li>
+</ul>
+
+<p style="font-size:.75rem;color:#484f58;margin-top:8px;">Vollstaendige Doku: docs/CryptoQuant_API_Endpoints.md (30 Endpoints)</p>
+</div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════════ -->
 <div style="color:#8b949e;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 14px 4px;border-bottom:1px solid #21262d;margin-bottom:8px">3 — Strategien & Systeme</div>
 <!-- ══════════════════════════════════════════════════════════════ -->
