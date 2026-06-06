@@ -700,6 +700,16 @@ async function loadData() {
     const data = await r.json();
 
     renderConfig(data.config || {});
+    // Enrich stats with open count from trade arrays
+    for (const [tfKey, statsKey] of [['trades_15m','stats_15m'],['trades_30m','stats_30m'],['trades_1h','stats_1h'],['trades_4h','stats_4h']]) {
+      if (!data[statsKey]) data[statsKey] = {};
+      const trades = data[tfKey] || [];
+      data[statsKey].open = trades.filter(t => t.status === 'open').length;
+      if (!data[statsKey].total && !data[statsKey].wins) {
+        // No closed trades yet — show open count
+        data[statsKey].total = 0;
+      }
+    }
     renderStats('stats15m', data.stats_15m || {});
     renderStats('stats30m', data.stats_30m || {});
     renderStats('stats1h', data.stats_1h || {});
