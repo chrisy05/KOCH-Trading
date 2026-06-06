@@ -1042,6 +1042,7 @@ def update_stats(data):
             data[stats_key] = {
                 "total": 0, "wins": 0, "losses": 0, "winrate": 0.0,
                 "total_pnl": 0.0, "avg_pnl": 0.0, "avg_duration": "0m",
+                "open": len([t for t in data[tf_key] if t["status"] == "open"]),
             }
             continue
 
