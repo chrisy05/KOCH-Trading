@@ -137,8 +137,8 @@ COINS = [
     "TON", "XLM", "SOL", "BCH", "LINK", "DOGE",
     "FIDA", "NEO", "DYDX", "ADA", "HYPE", "FIL", "ICP", "LTC",
     "JASMY", "EIGEN", "IP", "OP", "SEI", "ONE", "IMX", "AVAX",
-    "GLM", "CFX", "ENA", "BNT", "CRV", "TRX", "SUI",
-    "JUP", "MEME", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
+    "GLM", "CFX", "BNT", "CRV", "TRX", "SUI",
+    "JUP", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
     "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
     "XTZ", "METIS", "AAVE", "UNI", "BGB",
 ]
