@@ -664,6 +664,41 @@ def get_btc_sma_leverage(direction):
         return CONFIG["leverage"]
 
 
+def check_coin_sma(coin, direction):
+    """Coin-eigener SMA-Filter auf 1H.
+    Prüft ob der Coin selbst gegen die Trade-Richtung läuft.
+    Returns: (skip: bool, penalty: int, reason: str)
+    """
+    try:
+        sym = f"{coin}USDT"
+        url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+            klines = json.loads(r.read())
+        if len(klines) < 50:
+            return False, 0, "OK (zu wenig Daten)"
+
+        closes = [float(k[4]) for k in klines]
+        c = closes[-1]
+        sma20 = sum(closes[-20:]) / 20
+        sma50 = sum(closes[-50:]) / 50
+
+        if direction == "SHORT":
+            if c > sma50:
+                return True, 0, f"{coin} ${c:.4f} > SMA50 ${sma50:.4f} — Coin bullish"
+            if c > sma20:
+                return False, 5, f"{coin} > SMA20 — leicht bullish"
+            return False, 0, "OK"
+        else:  # LONG
+            if c < sma50:
+                return True, 0, f"{coin} ${c:.4f} < SMA50 ${sma50:.4f} — Coin bearish"
+            if c < sma20:
+                return False, 5, f"{coin} < SMA20 — leicht bearish"
+            return False, 0, "OK"
+    except:
+        return False, 0, "OK (Error)"
+
+
 def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
     """Open a new paper trade with SMA-Stufen leverage."""
     capital = CONFIG["capital"]
@@ -673,6 +708,15 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
     if leverage == 0:
         log(f"  STUFE 4: {coin} {direction} übersprungen — BTC Trendwende")
         return None
+
+    # Coin-eigener SMA-Filter
+    coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
+    if coin_skip:
+        log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
+        return None
+    if coin_penalty > 0 and leverage >= 10:
+        leverage = 7
+        log(f"  COIN-SMA: {coin} {direction} gebremst auf 7x — {coin_reason}")
 
     margin = capital
     size = capital * leverage / entry
