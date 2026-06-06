@@ -1017,29 +1017,98 @@ def check_coin_sma(coin, direction):
 
 
 def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
-    """Open a new paper trade with SMA-Cross Alignment leverage."""
+    """Open a new paper trade with Regime-aware leverage.
+    V2K3: BTC-Regime-Detektor + MTF-Alignment.
+    """
     capital = CONFIG["capital"]
 
-    # SMA-Cross Alignment: Hebel basierend auf BTC Trendstärke
-    leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
-    if leverage == 0:
-        log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
-        return None
+    # BTC Regime erkennen
+    btc_data = get_btc_sma_cached()
+    regime, regime_conf, regime_detail = detect_btc_regime(btc_data)
 
-    # 12x nur für 15m erlauben, sonst auf 10x begrenzen
-    if leverage > 10 and tf != "15m":
-        leverage = 10
+    if regime == "SIDEWAYS":
+        # ═══ SIDEWAYS MODE ═══
+        # BTC-SMA-Bremse LOCKERN — Coin-eigener Trend + MTF-Alignment entscheidet
+        log(f"  REGIME: SIDEWAYS ({regime_conf}/7) | {regime_detail}")
 
-    log(f"  SMA-Alignment: {alignment}/4 | {leverage}x | {sma_reason}")
+        # Coin-SMA ist jetzt der Hauptfilter
+        coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
+        if coin_skip:
+            log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
+            return None
 
-    # Coin-eigener SMA-Filter
-    coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
-    if coin_skip:
-        log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
-        return None
-    if coin_penalty > 0 and leverage >= 10:
-        leverage = max(7, leverage - 3)
-        log(f"  COIN-SMA: {coin} {direction} gebremst auf {leverage}x — {coin_reason}")
+        # MTF-Alignment: Kleine TFs müssen ausgerichtet sein
+        sym = f"{coin}USDT"
+        mtf_aligned, mtf_total, mtf_detail = check_mtf_alignment(sym, direction)
+        log(f"  MTF-Alignment: {mtf_aligned}/{mtf_total} | {mtf_detail}")
+
+        if mtf_aligned == 0:
+            log(f"  MTF-SKIP: {coin} {direction} — kein TF aligned")
+            return None
+
+        # Hebel basierend auf MTF-Alignment (nicht BTC)
+        if mtf_aligned >= 4:
+            leverage = 12 if tf == "15m" else 10
+            log(f"  SIDEWAYS-VOLLGAS: {coin} {direction} {leverage}x — alle TFs aligned")
+        elif mtf_aligned >= 3:
+            leverage = 10
+        elif mtf_aligned >= 2:
+            leverage = 7
+        else:
+            leverage = 5
+
+        if coin_penalty > 0:
+            leverage = max(5, leverage - 2)
+            log(f"  COIN-SMA Bremse: {leverage}x — {coin_reason}")
+
+    elif regime == "TRANSITIONING":
+        # ═══ ÜBERGANGSPHASE ═══
+        # BTC entscheidet sich gerade — vorsichtiger, beide Filter aktiv
+        log(f"  REGIME: TRANSITIONING ({regime_conf}/7) | {regime_detail}")
+
+        leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
+        if leverage == 0:
+            # Im Übergang: MTF-Alignment kann Override geben
+            sym = f"{coin}USDT"
+            mtf_aligned, _, mtf_detail = check_mtf_alignment(sym, direction)
+            if mtf_aligned >= 3:
+                leverage = 5
+                log(f"  TRANSITION-OVERRIDE: BTC blockiert, aber MTF {mtf_aligned}/4 → 5x | {mtf_detail}")
+            else:
+                log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
+                return None
+        else:
+            if leverage > 10 and tf != "15m":
+                leverage = 10
+            log(f"  SMA-Alignment: {alignment}/4 | {leverage}x | {sma_reason}")
+
+        coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
+        if coin_skip:
+            log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
+            return None
+        if coin_penalty > 0 and leverage >= 10:
+            leverage = max(7, leverage - 3)
+            log(f"  COIN-SMA: {leverage}x — {coin_reason}")
+
+    else:
+        # ═══ TRENDING MODE (wie V2K2) ═══
+        leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
+        if leverage == 0:
+            log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
+            return None
+
+        if leverage > 10 and tf != "15m":
+            leverage = 10
+
+        log(f"  REGIME: TRENDING | SMA-Alignment: {alignment}/4 | {leverage}x | {sma_reason}")
+
+        coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
+        if coin_skip:
+            log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
+            return None
+        if coin_penalty > 0 and leverage >= 10:
+            leverage = max(7, leverage - 3)
+            log(f"  COIN-SMA: {leverage}x — {coin_reason}")
 
     margin = capital
     size = capital * leverage / entry
