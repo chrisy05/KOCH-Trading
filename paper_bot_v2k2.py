@@ -1045,8 +1045,8 @@ def update_stats(data):
             }
             continue
 
-        wins = [t for t in closed if t["pnl"] and t["pnl"] > 0]
-        losses = [t for t in closed if t["pnl"] and t["pnl"] <= 0]
+        wins = [t for t in closed if t.get("close_reason") == "TP"]
+        losses = [t for t in closed if t.get("close_reason") in ("SL", "LIQ", "SMA_RISK", "SW_RISK")]
         total_pnl = sum(t["pnl"] for t in closed if t["pnl"])
 
         # Average duration
@@ -1076,6 +1076,7 @@ def update_stats(data):
             "total_pnl": round(total_pnl, 2),
             "avg_pnl": round(total_pnl / len(closed), 2) if closed else 0.0,
             "avg_duration": avg_dur_str,
+                "open": len([t for t in data[tf_key] if t["status"] == "open"]),
         }
 
         # Also count open trades
@@ -1378,3 +1379,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+        "open": len([t for t in data[tf_key] if t["status"] == "open"]),
