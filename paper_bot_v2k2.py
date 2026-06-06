@@ -737,40 +737,69 @@ def get_btc_sma_leverage(direction):
     return leverage
 
 
+# Cooldown-Tracker für SMA-Risk: {direction: {"triggered_at": timestamp, "count": int}}
+_sma_risk_cooldown = {}
+
 def manage_open_risk(data, price_cache=None):
     """Dynamischer Risk Manager — schließt offene Trades bei BTC-Trendwechsel.
 
     Nutzt price_cache aus check_open_trades um doppelte API-Calls zu vermeiden.
+    Sortiert NUR nach Verlustgröße (kleinste zuerst).
+    5-Min-Cooldown bei kurzem Stufen-Berührung, max 2x — danach wird sofort geschlossen.
 
-    Logik:
-    - Prüft BTC SMA-Alignment (cached, max 1x/min)
-    - Bei Verschlechterung: Trades mit kleinstem Verlust zuerst schließen
-    - Stufe 0 (kein Cross aligned): ALLE Trades der Gegenrichtung schließen
-    - Stufe 1 (1 Cross): Trades mit >5% Verlust schließen
-    - Stufe 2 (2 Crosses): Trades mit >15% Verlust schließen
-    - Stufe 3+ (voll aligned): Nichts schließen — Trend bestätigt
+    Stufen:
+    - 0 (kein Cross aligned): ALLE schließen
+    - 1 (1 Cross): Trades mit >5% Verlust schließen
+    - 2 (2 Crosses): Trades mit >15% Verlust schließen
+    - 3+ (voll aligned): Nichts schließen
     """
+    global _sma_risk_cooldown
+
     btc = get_btc_sma_cached()
     if not btc:
         return
 
+    now = time.time()
+
     for direction in ["SHORT", "LONG"]:
-        # Berechne aktuelle Alignment für diese Richtung (nutzt Cache)
         _, alignment, reason = get_btc_sma_alignment(direction)
 
-        # Stufe 3+ = alles OK, nicht eingreifen
+        # Stufe 3+ = alles OK, Cooldown zurücksetzen
         if alignment >= 3:
+            _sma_risk_cooldown.pop(direction, None)
             continue
+
+        # Cooldown-Logik: 5 Min Pause, max 2x bevor Force-Close
+        cd = _sma_risk_cooldown.get(direction)
+        if cd:
+            elapsed = now - cd["triggered_at"]
+            if elapsed < 300 and cd["count"] < 2:
+                # Noch im Cooldown und unter 2x → warten
+                continue
+            elif elapsed >= 300 and cd["count"] < 2:
+                # Cooldown abgelaufen, aber Stufe immer noch schlecht → zählen
+                _sma_risk_cooldown[direction] = {"triggered_at": now, "count": cd["count"] + 1}
+                log(f"  SMA-RISK Cooldown #{cd['count']+1} für {direction} | Alignment {alignment} | {reason}")
+                continue
+            # count >= 2 → kein Cooldown mehr, sofort schließen
+        else:
+            # Erstes Mal diese Stufe → Cooldown starten
+            _sma_risk_cooldown[direction] = {"triggered_at": now, "count": 1}
+            log(f"  SMA-RISK Cooldown #1 für {direction} | Alignment {alignment} | {reason}")
+            continue
+
+        # Ab hier: Cooldown 2x überschritten → Force Close
+        log(f"  SMA-RISK FORCE: {direction} Alignment {alignment} nach 2x Cooldown | {reason}")
 
         # Verlust-Schwelle je nach Stufe
         if alignment == 0:
-            max_loss_pct = 0      # ALLE schließen (egal ob Gewinn oder Verlust)
+            max_loss_pct = 0      # ALLE schließen
         elif alignment == 1:
-            max_loss_pct = -5     # Trades mit >5% Verlust schließen
+            max_loss_pct = -5     # >5% Verlust schließen
         elif alignment == 2:
-            max_loss_pct = -15    # Trades mit >15% Verlust schließen
+            max_loss_pct = -15    # >15% Verlust schließen
 
-        # Finde betroffene offene Trades
+        closed_count = 0
         for tf_key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
             open_trades = [t for t in data[tf_key]
                           if t["status"] == "open" and t["direction"] == direction]
@@ -781,27 +810,29 @@ def manage_open_risk(data, price_cache=None):
             trades_with_pnl = []
             for trade in open_trades:
                 coin = trade["coin"]
-                # Nutze Cache wenn vorhanden, sonst Skip (kein extra API-Call)
                 if price_cache and coin in price_cache:
-                    price = price_cache[coin][0]  # (current, high, low)
+                    price = price_cache[coin][0]
                 else:
-                    continue  # Kein Preis im Cache = nächste Runde
+                    continue
 
                 pnl = calc_pnl(direction, trade["entry"], price, trade.get("size", 0))
                 margin = trade.get("margin", CONFIG["capital"])
                 pnl_pct = (pnl / margin * 100) if margin > 0 else 0
                 trades_with_pnl.append((trade, price, pnl, pnl_pct))
 
-            # Sortiere: kleinste Verluste zuerst (die einfachsten zum Schließen)
+            # Sortiere NUR nach Verlustgröße (kleinste Verluste zuerst)
             trades_with_pnl.sort(key=lambda x: x[3])
 
             for trade, price, pnl, pnl_pct in trades_with_pnl:
-                if alignment == 0:
+                if alignment == 0 or pnl_pct < max_loss_pct:
                     close_trade(trade, price, "SMA_RISK")
-                    log(f"  SMA-RISK: {trade['coin']} {direction} geschlossen | PnL: ${pnl:.2f} ({pnl_pct:+.1f}%) | {reason}")
-                elif pnl_pct < max_loss_pct:
-                    close_trade(trade, price, "SMA_RISK")
-                    log(f"  SMA-RISK: {trade['coin']} {direction} geschlossen | PnL: ${pnl:.2f} ({pnl_pct:+.1f}%) > {max_loss_pct}% Limit | Alignment {alignment}")
+                    log(f"  SMA-RISK: {trade['coin']} {direction} closed | PnL: ${pnl:.2f} ({pnl_pct:+.1f}%) | Alignment {alignment}")
+                    closed_count += 1
+
+        if closed_count > 0:
+            log(f"  SMA-RISK: {closed_count} {direction} Trades geschlossen")
+            # Cooldown zurücksetzen nach Aktion
+            _sma_risk_cooldown.pop(direction, None)
 
 
 def check_coin_sma(coin, direction):
