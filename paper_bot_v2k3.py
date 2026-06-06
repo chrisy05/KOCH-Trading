@@ -701,41 +701,83 @@ def detect_btc_regime(btc_data):
     dist_to_sma20 = abs(price - sma20) / price * 100
     dist_to_sma50 = abs(price - sma50) / price * 100
 
-    # Regime-Erkennung
-    signals_sideways = 0
-    details = []
+    # ═══ TRENDING-Erkennung (Divergenz / Auffächern) ═══
+    # Preis bereits auf einer Seite + SMAs fächern auf = Trend OHNE Cross
+    signals_trending = 0
+    trend_details = []
 
-    # 1. Slopes flach (alle unter 0.1% pro 5h)
+    # 1. Slopes steil und gleichgerichtet (alle in gleiche Richtung)
+    slopes_same_dir = (slope10 > 0 and slope20 > 0 and slope50 > 0) or \
+                      (slope10 < 0 and slope20 < 0 and slope50 < 0)
+    if slopes_same_dir and (abs(slope10) > 0.15 or abs(slope20) > 0.10):
+        signals_trending += 2
+        trend_details.append(f"Slopes gleichgerichtet+steil ({slope10:.3f}/{slope20:.3f}/{slope50:.3f})")
+
+    # 2. Gaps wachsen (Preis entfernt sich von SMAs)
+    if dist_to_sma10 > 0.5 and dist_to_sma20 > 0.8:
+        signals_trending += 2
+        trend_details.append(f"Preis entfernt (10:{dist_to_sma10:.2f}% 20:{dist_to_sma20:.2f}%)")
+
+    # 3. SMAs fächern auf (Gap 10/20 wächst)
+    if gap_10_20 > 0.3:
+        signals_trending += 1
+        trend_details.append(f"SMA10/20 fächern auf ({gap_10_20:.2f}%)")
+
+    # 4. Gap 20/50 groß (etablierter Trend)
+    if gap_20_50 > 1.0:
+        signals_trending += 1
+        trend_details.append(f"SMA20/50 weit ({gap_20_50:.2f}%)")
+
+    # 5. Slope-Differenz groß (SMAs divergieren)
+    if slope_diff > 0.3:
+        signals_trending += 1
+        trend_details.append(f"Slopes divergent ({slope_diff:.3f}%)")
+
+    # ═══ SIDEWAYS-Erkennung (Konvergenz / Zusammenlaufen) ═══
+    signals_sideways = 0
+    sw_details = []
+
+    # 1. Slopes flach
     if abs(slope10) < 0.15 and abs(slope20) < 0.10:
         signals_sideways += 2
-        details.append(f"Slopes flach (10:{slope10:.3f}% 20:{slope20:.3f}%)")
+        sw_details.append(f"Slopes flach (10:{slope10:.3f}% 20:{slope20:.3f}%)")
 
-    # 2. Slopes konvergieren (Differenz klein)
+    # 2. Slopes konvergieren
     if slope_diff < 0.15:
         signals_sideways += 2
-        details.append(f"Slopes konvergent ({slope_diff:.3f}%)")
+        sw_details.append(f"Slopes konvergent ({slope_diff:.3f}%)")
 
     # 3. SMAs nahe beieinander
     if gap_10_20 < 0.3:
         signals_sideways += 1
-        details.append(f"SMA10/20 eng ({gap_10_20:.2f}%)")
+        sw_details.append(f"SMA10/20 eng ({gap_10_20:.2f}%)")
 
     # 4. Preis nahe SMA10 und SMA20
     if dist_to_sma10 < 0.3 and dist_to_sma20 < 0.5:
         signals_sideways += 1
-        details.append(f"Preis nahe SMAs (10:{dist_to_sma10:.2f}% 20:{dist_to_sma20:.2f}%)")
+        sw_details.append(f"Preis nahe SMAs (10:{dist_to_sma10:.2f}% 20:{dist_to_sma20:.2f}%)")
 
-    # 5. Kein klarer Cross zwischen SMA10/20 (sie tanzen umeinander)
+    # 5. SMA10/20 quasi gleich
     if gap_10_20 < 0.15:
         signals_sideways += 1
-        details.append("SMA10/20 quasi gleich")
+        sw_details.append("SMA10/20 quasi gleich")
 
-    if signals_sideways >= 5:
-        return "SIDEWAYS", signals_sideways, " | ".join(details)
+    # ═══ ENTSCHEIDUNG ═══
+    # Trending gewinnt über Sideways wenn beide Signale stark
+    if signals_trending >= 4:
+        return "TRENDING", signals_trending, " | ".join(trend_details)
+    elif signals_sideways >= 5:
+        return "SIDEWAYS", signals_sideways, " | ".join(sw_details)
+    elif signals_trending >= 3:
+        return "TRENDING", signals_trending, " | ".join(trend_details)
     elif signals_sideways >= 3:
-        return "TRANSITIONING", signals_sideways, " | ".join(details)
+        return "TRANSITIONING", signals_sideways, " | ".join(sw_details)
     else:
-        return "TRENDING", signals_sideways, f"Trend aktiv (Slopes:{slope10:.3f}/{slope20:.3f}/{slope50:.3f})"
+        # Default: Schaue ob eher trending oder sideways
+        if signals_trending > signals_sideways:
+            return "TRENDING", signals_trending, " | ".join(trend_details) if trend_details else "Leicht trending"
+        else:
+            return "TRANSITIONING", signals_sideways, " | ".join(sw_details) if sw_details else "Unklar"
 
 
 def check_mtf_alignment(sym, direction):
@@ -887,22 +929,46 @@ def get_btc_sma_leverage(direction):
 _sma_risk_cooldown = {}
 
 def manage_open_risk(data, price_cache=None):
-    """Dynamischer Risk Manager — schließt offene Trades bei BTC-Trendwechsel.
+    """Regime-aware Risk Manager.
 
-    Nutzt price_cache aus check_open_trades um doppelte API-Calls zu vermeiden.
+    TRENDING: BTC-SMA-Alignment entscheidet (wie V2K2)
+    SIDEWAYS: BTC-Bremse AUS — stattdessen Coin-eigener SMA-Check
+    TRANSITIONING: BTC-Bremse aktiv, aber milder
+
     Sortiert NUR nach Verlustgröße (kleinste zuerst).
-    5-Min-Cooldown bei kurzem Stufen-Berührung, max 2x — danach wird sofort geschlossen.
-
-    Stufen:
-    - 0 (kein Cross aligned): ALLE schließen
-    - 1 (1 Cross): Trades mit >5% Verlust schließen
-    - 2 (2 Crosses): Trades mit >15% Verlust schließen
-    - 3+ (voll aligned): Nichts schließen
+    5-Min-Cooldown, max 2x, dann Force Close.
     """
     global _sma_risk_cooldown
 
     btc = get_btc_sma_cached()
     if not btc:
+        return
+
+    # Regime bestimmt ob BTC-Bremse greift
+    regime, regime_conf, _ = detect_btc_regime(btc)
+
+    if regime == "SIDEWAYS":
+        # In Seitwärts: BTC-Bremse NICHT anwenden auf offene Trades
+        # Stattdessen: Coin-eigenen SMA prüfen für offene Trades
+        # Nur bei extremen Verlusten (>25%) eingreifen
+        if not price_cache:
+            return
+        for tf_key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+            for trade in [t for t in data[tf_key] if t["status"] == "open"]:
+                coin = trade["coin"]
+                direction = trade["direction"]
+                if coin not in price_cache:
+                    continue
+                price = price_cache[coin][0]
+                pnl = calc_pnl(direction, trade["entry"], price, trade.get("size", 0))
+                margin = trade.get("margin", CONFIG["capital"])
+                pnl_pct = (pnl / margin * 100) if margin > 0 else 0
+                # Nur bei >25% Verlust schließen (Schutz vor Totalverlust)
+                if pnl_pct < -25:
+                    close_trade(trade, price, "SW_RISK")
+                    log(f"  SW-RISK: {coin} {direction} closed | PnL: ${pnl:.2f} ({pnl_pct:+.1f}%) | >25% Verlust in Sideways")
+        # Cooldown zurücksetzen in Sideways
+        _sma_risk_cooldown.clear()
         return
 
     now = time.time()
