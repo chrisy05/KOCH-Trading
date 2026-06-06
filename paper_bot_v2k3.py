@@ -1112,14 +1112,41 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
             log(f"  MTF-SKIP: {coin} {direction} — kein TF aligned")
             return None
 
-        # Hebel basierend auf MTF-Alignment (nicht BTC)
-        if mtf_aligned >= 4:
+        # Coin-eigenes SMA-Alignment prüfen (1H: SMA10/20/50 Anordnung)
+        coin_alignment = 0
+        try:
+            curl = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
+            req = urllib.request.Request(curl)
+            with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+                ck = json.loads(r.read())
+            cc = [float(k[4]) for k in ck]
+            c_sma10 = sum(cc[-10:]) / 10
+            c_sma20 = sum(cc[-20:]) / 20
+            c_sma50 = sum(cc[-50:]) / 50
+            cp = cc[-1]
+            if direction == "SHORT":
+                if cp < c_sma10: coin_alignment += 1
+                if c_sma10 < c_sma20: coin_alignment += 1
+                if c_sma20 < c_sma50: coin_alignment += 1
+            else:
+                if cp > c_sma10: coin_alignment += 1
+                if c_sma10 > c_sma20: coin_alignment += 1
+                if c_sma20 > c_sma50: coin_alignment += 1
+            log(f"  Coin-SMA Alignment: {coin_alignment}/3 ({coin} 1H)")
+        except:
+            coin_alignment = 0
+
+        # Hebel: MTF-Alignment + Coin-SMA-Alignment zusammen
+        # 12x nur wenn BEIDE voll aligned (MTF 4/4 + Coin 3/3)
+        if mtf_aligned >= 4 and coin_alignment >= 3:
             leverage = 12 if tf == "15m" else 10
-            log(f"  SIDEWAYS-VOLLGAS: {coin} {direction} {leverage}x — alle TFs aligned")
-        elif mtf_aligned >= 3:
+            log(f"  SIDEWAYS-VOLLGAS: {coin} {direction} {leverage}x — MTF 4/4 + Coin 3/3")
+        elif mtf_aligned >= 3 and coin_alignment >= 2:
             leverage = 10
-        elif mtf_aligned >= 2:
+        elif mtf_aligned >= 2 and coin_alignment >= 1:
             leverage = 7
+        elif mtf_aligned >= 2:
+            leverage = 5
         else:
             leverage = 5
 
