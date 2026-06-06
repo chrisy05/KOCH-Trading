@@ -489,8 +489,8 @@ function render(trades) {
   document.getElementById('empty-msg').style.display = 'none';
 
   const closed = trades.filter(t => t.status !== 'OPEN');
-  const wins = closed.filter(t => t.net_pnl > 0);
-  const losses = closed.filter(t => t.net_pnl <= 0);
+  const wins = closed.filter(t => t.close_reason === 'TP' || (t.net_pnl > 0 && !t.close_reason));
+  const losses = closed.filter(t => t.close_reason === 'SL' || t.close_reason === 'LIQ' || (t.net_pnl <= 0 && !t.close_reason));
   const totalPnl = closed.reduce((s, t) => s + t.net_pnl, 0);
   const avgPnl = closed.length > 0 ? totalPnl / closed.length : 0;
   const wr = closed.length > 0 ? (wins.length / closed.length * 100) : 0;
@@ -510,7 +510,7 @@ function render(trades) {
   closed.forEach(t => {
     if (!coinMap[t.coin]) coinMap[t.coin] = {wins: 0, total: 0, pnl: 0};
     coinMap[t.coin].total++;
-    if (t.net_pnl > 0) coinMap[t.coin].wins++;
+    if (t.close_reason === 'TP' || (t.net_pnl > 0 && !t.close_reason)) coinMap[t.coin].wins++;
     coinMap[t.coin].pnl += t.net_pnl;
   });
 
@@ -593,7 +593,7 @@ async function checkLiveBot() {
   } catch(e) {
     // Server not running — fall back to static status file
     try {
-      const r2 = await fetch('live_bot_status.json?t=' + Date.now());
+      const r2 = await fetch('live_bot_status.json?t=' + Date.now(), {cache:'no-store'});
       if (r2.ok) {
         const data = await r2.json();
         document.getElementById('lbBalance').textContent = data.balance ? '$' + parseFloat(data.balance).toFixed(2) : '—';
@@ -764,7 +764,7 @@ async function loadLivePositions() {
     } catch(e) {}
     if (!data) {
       try {
-        const r2 = await fetch('live_positions.json?t=' + Date.now());
+        const r2 = await fetch('live_positions.json?t=' + Date.now(), {cache:'no-store'});
         if (r2.ok) data = await r2.json();
       } catch(e2) {}
     }
@@ -778,7 +778,7 @@ async function loadLivePositions() {
     // Load trade open times from live_trades.json
     let tradeOpenTimes = {};
     try {
-      const tr = await fetch('live_trades.json?t=' + Date.now());
+      const tr = await fetch('live_trades.json?t=' + Date.now(), {cache:'no-store'});
       if (tr.ok) {
         const td = await tr.json();
         for (const key of ['trades_15m','trades_30m','trades_1h','trades_4h']) {
