@@ -211,7 +211,7 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
       <table>
         <thead>
           <tr>
-            <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Entry</th><th class="num">Current</th><th class="num">TP</th><th class="num">Liq</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Opened</th>
+            <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Lev</th><th class="num">Entry</th><th class="num">Current</th><th class="num">TP</th><th class="num">Liq</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Opened</th>
           </tr>
         </thead>
         <tbody id="openBody"><tr><td colspan="12" class="empty-state">Loading...</td></tr></tbody>
@@ -233,7 +233,7 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
         <table>
           <thead>
             <tr>
-              <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Entry</th><th class="num">Close</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Reason</th><th>Closed</th>
+              <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Lev</th><th class="num">Entry</th><th class="num">Close</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Reason</th><th>Closed</th>
             </tr>
           </thead>
           <tbody id="closedBody"><tr><td colspan="11" class="empty-state">No closed trades</td></tr></tbody>
@@ -521,10 +521,13 @@ async function renderOpenTrades(...tradeLists) {
     const dur = duration(t.open_time);
     const openDt = t.open_time.replace('T', ' ').slice(0, 16);
 
+    const lev = t.leverage || 10;
+    const levColor = lev < 10 ? 'color:#f59e0b' : '';
     html += `<tr>
       <td><b>${t.coin}</b></td>
       <td><span class="badge ${dirClass}">${t.direction}</span></td>
       <td>${t.tf}</td>
+      <td class="num" style="${levColor};font-weight:600">${lev}x</td>
       <td class="num">${fmt(t.entry)}</td>
       <td class="num">${priceStr}</td>
       <td class="num">${fmt(t.tp)}</td>
