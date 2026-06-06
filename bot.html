@@ -844,14 +844,25 @@ async function loadLiveTrades() {
     }
     if (!data) return;
     const tbody = document.getElementById('liveTradeLogBody');
-    if (!data.trades || data.trades.length === 0) {
+
+    // Combine all TF trades into one array
+    let allTrades = [];
+    if (data.trades) {
+      allTrades = data.trades;
+    } else {
+      for (const tf of ['trades_15m','trades_30m','trades_1h','trades_4h']) {
+        if (data[tf]) allTrades = allTrades.concat(data[tf]);
+      }
+    }
+
+    if (allTrades.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#333">Keine Trades vorhanden</td></tr>';
       return;
     }
 
     // Separate closed and open trades
-    const closed = data.trades.filter(t => t.status !== 'open');
-    const open = data.trades.filter(t => t.status === 'open');
+    const closed = allTrades.filter(t => t.status !== 'open');
+    const open = allTrades.filter(t => t.status === 'open');
 
     if (closed.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#333">Keine geschlossenen Trades</td></tr>';
