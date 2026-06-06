@@ -36,11 +36,15 @@ PAPER_CONFIG_FILES = {
     "core": os.path.join(BOT_DIR, "paper_bot_config.json"),
     "v2": os.path.join(BOT_DIR, "paper_bot_v2_config.json"),
     "v3": os.path.join(BOT_DIR, "paper_bot_v3_config.json"),
+    "v2k1": os.path.join(BOT_DIR, "paper_bot_v2k1_config.json"),
+    "v2k2": os.path.join(BOT_DIR, "paper_bot_v2k2_config.json"),
 }
 PAPER_CONFIG_DEFAULTS = {
     "core": {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 70, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
     "v2":   {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 40, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
     "v3":   {"capital": 100, "leverage": 10, "min_probability": 65, "tp_range_pct": 60, "sl_pct": 40, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
+    "v2k1": {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 40, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
+    "v2k2": {"capital": 100, "leverage": 10, "min_probability": 60, "tp_range_pct": 70, "sl_pct": 40, "tf_budget_15m": 50, "tf_budget_30m": 30, "tf_budget_1h": 20, "tf_budget_4h": 0},
 }
 CREDS_FILE = os.path.join(BOT_DIR, "bybit_credentials.json")
 STATUS_FILE = os.path.join(BOT_DIR, "live_bot_status.json")

@@ -89,6 +89,8 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
       <button class="tab-btn active" id="tabCore" onclick="switchBot('core')">Core</button>
       <button class="tab-btn" id="tabV2" onclick="switchBot('v2')">V2 (SL 40%)</button>
       <button class="tab-btn" id="tabV3" onclick="switchBot('v3')">V3</button>
+      <button class="tab-btn" id="tabV2k1" onclick="switchBot('v2k1')">V2K1</button>
+      <button class="tab-btn" id="tabV2k2" onclick="switchBot('v2k2')">V2K2 (SMA)</button>
     </div>
     <span class="bot-label" id="botLabel">Core: SL 70%, TP 70%, Min 60%</span>
     <nav class="nav">
@@ -256,18 +258,23 @@ let activeBot = 'core';
 const BOT_FILES = {
   'core': 'paper_trades.json',
   'v2': 'paper_trades_v2.json',
-  'v3': 'paper_trades_v3.json'
+  'v3': 'paper_trades_v3.json',
+  'v2k1': 'paper_trades_v2k1.json',
+  'v2k2': 'paper_trades_v2k2.json'
 };
 const BOT_LABELS = {
   'core': 'Core: SL 70%, TP 70%, Min 60%',
   'v2': 'V2: SL 40%, TP 70%, Min 60%',
-  'v3': 'V3: SL 40%, TP 60%, Min 65%'
+  'v3': 'V3: SL 40%, TP 60%, Min 65%',
+  'v2k1': 'V2K1: Basis (= V2, frisch gestartet)',
+  'v2k2': 'V2K2: V2 + SMA-Stufen Hebelbremse'
 };
 
 function switchBot(bot) {
   activeBot = bot;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab' + bot.charAt(0).toUpperCase() + bot.slice(1)).classList.add('active');
+  const tabIds = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2'};
+  document.getElementById(tabIds[bot]).classList.add('active');
   document.getElementById('botLabel').textContent = BOT_LABELS[bot];
   document.getElementById('cfgStatus').textContent = '';
   loadConfigFields();
@@ -301,7 +308,7 @@ async function loadConfigFields() {
 
 async function controlBot(action) {
   const statusEl = document.getElementById('cfgStatus');
-  const botNames = {'core': 'paper_bot.py', 'v2': 'paper_bot_v2.py', 'v3': 'paper_bot_v3.py'};
+  const botNames = {'core': 'paper_bot.py', 'v2': 'paper_bot_v2.py', 'v3': 'paper_bot_v3.py', 'v2k1': 'paper_bot_v2k1.py', 'v2k2': 'paper_bot_v2k2.py'};
   const botScript = botNames[activeBot];
 
   if (action === 'stop' && !confirm('Bot ' + activeBot.toUpperCase() + ' beenden?')) return;
