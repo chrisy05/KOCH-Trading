@@ -214,7 +214,7 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
             <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Lev</th><th class="num">Entry</th><th class="num">Current</th><th class="num">TP</th><th class="num">Liq</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Opened</th>
           </tr>
         </thead>
-        <tbody id="openBody"><tr><td colspan="12" class="empty-state">Loading...</td></tr></tbody>
+        <tbody id="openBody"><tr><td colspan="13" class="empty-state">Loading...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -236,7 +236,7 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
               <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Lev</th><th class="num">Entry</th><th class="num">Close</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Reason</th><th>Closed</th>
             </tr>
           </thead>
-          <tbody id="closedBody"><tr><td colspan="11" class="empty-state">No closed trades</td></tr></tbody>
+          <tbody id="closedBody"><tr><td colspan="12" class="empty-state">No closed trades</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -501,7 +501,7 @@ async function renderOpenTrades(...tradeLists) {
   document.getElementById('openCount').textContent = allOpen.length;
 
   if (allOpen.length === 0) {
-    document.getElementById('openBody').innerHTML = '<tr><td colspan="12" class="empty-state">No open trades</td></tr>';
+    document.getElementById('openBody').innerHTML = '<tr><td colspan="13" class="empty-state">No open trades</td></tr>';
     return;
   }
 
@@ -556,7 +556,7 @@ function renderClosedTrades(...tradeLists) {
   document.getElementById('closedCount').textContent = allClosed.length;
 
   if (allClosed.length === 0) {
-    document.getElementById('closedBody').innerHTML = '<tr><td colspan="11" class="empty-state">No closed trades yet</td></tr>';
+    document.getElementById('closedBody').innerHTML = '<tr><td colspan="12" class="empty-state">No closed trades yet</td></tr>';
     return;
   }
 
@@ -570,10 +570,13 @@ function renderClosedTrades(...tradeLists) {
     const closeDt = (t.close_time || '').replace('T', ' ').slice(0, 16);
     const corrected = isLiq ? ' <span style="font-size:.6rem;color:#f59e0b;background:#f59e0b22;padding:1px 4px;border-radius:3px;">KORRIGIERT</span>' : '';
 
+    const cLev = t.leverage || 10;
+    const cLevColor = cLev < 10 ? 'color:#f59e0b' : '';
     html += `<tr class="${rowClass}" ${isLiq ? 'style="background:rgba(239,68,68,0.12);border-left:3px solid #ef4444;"' : ''}>
       <td><b>${t.coin}</b>${corrected}</td>
       <td><span class="badge ${dirClass}">${t.direction}</span></td>
       <td>${t.tf}</td>
+      <td class="num" style="${cLevColor};font-weight:600">${cLev}x</td>
       <td class="num">${fmt(t.entry)}</td>
       <td class="num">${fmt(t.close_price)}</td>
       <td class="num">${t.probability}%</td>
