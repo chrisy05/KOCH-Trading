@@ -978,8 +978,8 @@ async function updateKodaStats() {
         }
       }
 
-      const wins = closed.filter(t => (t.pnl || 0) > 0).length;
-      const losses = closed.length - wins;
+      const wins = closed.filter(t => t.close_reason === 'TP').length;
+      const losses = closed.filter(t => t.close_reason === 'SL' || t.close_reason === 'LIQ').length;
       const totalPnl = closed.reduce((s,t) => s + (t.pnl || 0), 0);
       const wr = closed.length > 0 ? (wins/closed.length*100) : 0;
 
