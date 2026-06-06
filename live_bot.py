@@ -953,10 +953,259 @@ def calc_pnl(direction, entry, close_price, size):
         return (entry - close_price) * size
 
 
+## ═══════════════════════════════════════════════════════════════
+## V2K3 REGIME + MTF LOGIC
+## ═══════════════════════════════════════════════════════════════
+
+def get_btc_sma_data():
+    """Holt BTC 1H Klines und berechnet SMAs + Slopes."""
+    try:
+        url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=105"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+            klines = json.loads(r.read())
+        if len(klines) < 105:
+            return None
+        closes = [float(k[4]) for k in klines]
+        sma10 = sum(closes[-10:]) / 10
+        sma20 = sum(closes[-20:]) / 20
+        sma50 = sum(closes[-50:]) / 50
+        sma100 = sum(closes[-100:]) / 100
+        sma10_prev = sum(closes[-15:-5]) / 10
+        sma20_prev = sum(closes[-25:-5]) / 20
+        sma50_prev = sum(closes[-55:-5]) / 50
+        price = closes[-1]
+        slope10 = (sma10 - sma10_prev) / price * 100
+        slope20 = (sma20 - sma20_prev) / price * 100
+        slope50 = (sma50 - sma50_prev) / price * 100
+        gap_10_20 = abs(sma10 - sma20) / price * 100
+        gap_20_50 = abs(sma20 - sma50) / price * 100
+        slope_diff_all = abs(slope10 - slope20) + abs(slope20 - slope50)
+        return {
+            "price": price, "sma10": sma10, "sma20": sma20, "sma50": sma50, "sma100": sma100,
+            "slope10": slope10, "slope20": slope20, "slope50": slope50,
+            "gap_10_20": gap_10_20, "gap_20_50": gap_20_50, "slope_diff_all": slope_diff_all,
+        }
+    except:
+        return None
+
+_btc_sma_cache = {"data": None, "ts": 0}
+def get_btc_sma_cached():
+    now = time.time()
+    if _btc_sma_cache["data"] and now - _btc_sma_cache["ts"] < 60:
+        return _btc_sma_cache["data"]
+    data = get_btc_sma_data()
+    if data:
+        _btc_sma_cache["data"] = data
+        _btc_sma_cache["ts"] = now
+    return data
+
+def detect_btc_regime(btc_data):
+    """Erkennt TRENDING / SIDEWAYS / TRANSITIONING."""
+    if not btc_data:
+        return "UNKNOWN", 0, "Keine Daten"
+    slope10, slope20, slope50 = btc_data["slope10"], btc_data["slope20"], btc_data["slope50"]
+    gap_10_20, gap_20_50 = btc_data["gap_10_20"], btc_data["gap_20_50"]
+    slope_diff = btc_data["slope_diff_all"]
+    price, sma10, sma20, sma50 = btc_data["price"], btc_data["sma10"], btc_data["sma20"], btc_data["sma50"]
+    dist_to_sma10 = abs(price - sma10) / price * 100
+    dist_to_sma20 = abs(price - sma20) / price * 100
+
+    signals_trending = 0
+    slopes_same_dir = (slope10 > 0 and slope20 > 0 and slope50 > 0) or (slope10 < 0 and slope20 < 0 and slope50 < 0)
+    if slopes_same_dir and (abs(slope10) > 0.15 or abs(slope20) > 0.10): signals_trending += 2
+    if dist_to_sma10 > 0.5 and dist_to_sma20 > 0.8: signals_trending += 2
+    if gap_10_20 > 0.3: signals_trending += 1
+    if gap_20_50 > 1.0: signals_trending += 1
+    if slope_diff > 0.3: signals_trending += 1
+
+    signals_sideways = 0
+    sw_details = []
+    if abs(slope10) < 0.15 and abs(slope20) < 0.10: signals_sideways += 2; sw_details.append("Slopes flach")
+    if slope_diff < 0.15: signals_sideways += 2; sw_details.append("Slopes konvergent")
+    if gap_10_20 < 0.3: signals_sideways += 1; sw_details.append("SMA eng")
+    if dist_to_sma10 < 0.3 and dist_to_sma20 < 0.5: signals_sideways += 1; sw_details.append("Preis nahe")
+    if gap_10_20 < 0.15: signals_sideways += 1; sw_details.append("SMA10/20 gleich")
+
+    if signals_trending >= 4: return "TRENDING", signals_trending, "Trend aktiv"
+    elif signals_sideways >= 5: return "SIDEWAYS", signals_sideways, " | ".join(sw_details)
+    elif signals_trending >= 3: return "TRENDING", signals_trending, "Trend aktiv"
+    elif signals_sideways >= 3: return "TRANSITIONING", signals_sideways, " | ".join(sw_details)
+    elif signals_trending > signals_sideways: return "TRENDING", signals_trending, "Leicht trending"
+    else: return "TRANSITIONING", signals_sideways, " | ".join(sw_details) if sw_details else "Unklar"
+
+def get_btc_sma_alignment(direction):
+    """SMA-Cross Alignment für Hebel."""
+    btc = get_btc_sma_data()
+    if not btc:
+        return CONFIG["leverage"], 0, "Keine Daten"
+    c, sma10, sma20, sma50, sma100 = btc["price"], btc["sma10"], btc["sma20"], btc["sma50"], btc["sma100"]
+
+    if direction == "SHORT":
+        if c > sma100: return 0, 0, f"SKIP: BTC > SMA100"
+        if c > sma50: return 5, 0, f"Übergang: BTC > SMA50"
+        crosses = int(sma10 < sma20) + int(sma20 < sma50) + int(sma50 < sma100)
+        if crosses == 0: return 0, 0, "SKIP: Kein bärisches Cross"
+        elif crosses == 1: return 5, 1, "1 Cross"
+        elif crosses == 2: return 7, 2, "2 Crosses"
+        else: return (12 if c < sma10 else 10), (4 if c < sma10 else 3), "Voll aligned"
+    else:
+        if c < sma100:
+            if c > sma50: return 5, 0, "Übergang: BTC zwischen SMA50/100"
+            return 0, 0, f"SKIP: BTC < SMA50"
+        crosses = int(sma10 > sma20) + int(sma20 > sma50) + int(sma50 > sma100)
+        if crosses == 0: return 0, 0, "SKIP: Kein bullisches Cross"
+        elif crosses == 1: return 5, 1, "1 Cross"
+        elif crosses == 2: return 7, 2, "2 Crosses"
+        else: return (12 if c > sma10 else 10), (4 if c > sma10 else 3), "Voll aligned"
+
+def check_coin_sma(coin, direction):
+    """Coin-eigener SMA-Filter auf 1H."""
+    try:
+        sym = f"{coin}USDT"
+        url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+            klines = json.loads(r.read())
+        if len(klines) < 50: return False, 0, "OK"
+        closes = [float(k[4]) for k in klines]
+        c, sma20, sma50 = closes[-1], sum(closes[-20:])/20, sum(closes[-50:])/50
+        if direction == "SHORT":
+            if c > sma50: return True, 0, f"{coin} > SMA50 (bullish)"
+            if c > sma20: return False, 3, f"{coin} > SMA20"
+            return False, 0, "OK"
+        else:
+            if c < sma50: return True, 0, f"{coin} < SMA50 (bearish)"
+            if c < sma20: return False, 3, f"{coin} < SMA20"
+            return False, 0, "OK"
+    except:
+        return False, 0, "OK"
+
+def check_mtf_alignment(sym, direction):
+    """MTF-Alignment: 5m→15m→30m→1h."""
+    tfs = [('5m', 50), ('15m', 50), ('30m', 50), ('1h', 50)]
+    aligned = 0
+    details = []
+    for tf_check, limit in tfs:
+        try:
+            url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval={tf_check}&limit={limit}"
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=8, context=ctx) as r:
+                klines = json.loads(r.read())
+            closes = [float(k[4]) for k in klines]
+            if len(closes) < 20: continue
+            sma10 = sum(closes[-10:]) / 10
+            sma20 = sum(closes[-20:]) / 20
+            price = closes[-1]
+            if direction == "LONG" and price > sma10 > sma20:
+                aligned += 1; details.append(f"{tf_check}✓")
+            elif direction == "SHORT" and price < sma10 < sma20:
+                aligned += 1; details.append(f"{tf_check}✓")
+            else:
+                details.append(f"{tf_check}✗"); break
+        except:
+            details.append(f"{tf_check}?"); continue
+    return aligned, len(tfs), " ".join(details)
+
+## ═══════════════════════════════════════════════════════════════
+
 def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
-    """Open a trade — real on Bybit (LIVE) or logged only (DRY-RUN)."""
+    """Open a trade with V2K3 Regime-aware logic."""
     capital = CONFIG["capital"]
-    leverage = CONFIG["leverage"]
+
+    # ═══ V2K3 REGIME + BTC FILTER ═══
+    btc_data = get_btc_sma_cached()
+    regime, regime_conf, regime_detail = detect_btc_regime(btc_data)
+
+    # BTC 1H Grundrichtung
+    btc_bearish = btc_data and btc_data["price"] < btc_data["sma20"] and btc_data["sma10"] < btc_data["sma50"]
+    btc_bullish = btc_data and btc_data["price"] > btc_data["sma20"] and btc_data["sma10"] > btc_data["sma50"]
+    with_btc = (direction == "SHORT" and btc_bearish) or (direction == "LONG" and btc_bullish)
+    against_btc = (direction == "LONG" and btc_bearish) or (direction == "SHORT" and btc_bullish)
+
+    if regime == "SIDEWAYS":
+        log(f"  REGIME: SIDEWAYS ({regime_conf}/7) | {regime_detail}")
+        if against_btc:
+            sym = f"{coin}USDT"
+            mtf_a, _, mtf_d = check_mtf_alignment(sym, direction)
+            if mtf_a < 4:
+                log(f"  SKIP: Gegen BTC + MTF nur {mtf_a}/4")
+                return None
+            leverage = 5
+            log(f"  Gegen BTC erlaubt mit 5x — MTF 4/4")
+        else:
+            coin_skip, coin_pen, coin_rsn = check_coin_sma(coin, direction)
+            if coin_skip:
+                log(f"  COIN-SMA: {coin} {direction} skip — {coin_rsn}")
+                return None
+            sym = f"{coin}USDT"
+            mtf_a, _, mtf_d = check_mtf_alignment(sym, direction)
+            log(f"  MTF: {mtf_a}/4 | {mtf_d}")
+            if mtf_a == 0:
+                log(f"  MTF-SKIP: kein TF aligned")
+                return None
+            # Coin-SMA Alignment auf 1H
+            coin_al = 0
+            try:
+                url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
+                req = urllib.request.Request(url)
+                with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+                    ck = json.loads(r.read())
+                cc = [float(k[4]) for k in ck]
+                cs10, cs20, cs50 = sum(cc[-10:])/10, sum(cc[-20:])/20, sum(cc[-50:])/50
+                cp = cc[-1]
+                if direction == "SHORT":
+                    coin_al = int(cp<cs10) + int(cs10<cs20) + int(cs20<cs50)
+                else:
+                    coin_al = int(cp>cs10) + int(cs10>cs20) + int(cs20>cs50)
+            except: pass
+            if mtf_a >= 4 and coin_al >= 3: leverage = 12 if tf == "15m" else 10
+            elif mtf_a >= 3 and coin_al >= 2: leverage = 10
+            elif mtf_a >= 2 and coin_al >= 1: leverage = 7
+            else: leverage = 5
+            if coin_pen > 0: leverage = max(5, leverage - 2)
+
+    elif regime == "TRANSITIONING":
+        log(f"  REGIME: TRANSITIONING ({regime_conf}/7)")
+        lev, alignment, sma_rsn = get_btc_sma_alignment(direction)
+        if lev == 0:
+            if against_btc:
+                log(f"  SMA-SKIP: {coin} {direction} — {sma_rsn}")
+                return None
+            sym = f"{coin}USDT"
+            mtf_a, _, mtf_d = check_mtf_alignment(sym, direction)
+            if mtf_a >= 3:
+                leverage = 5
+                log(f"  TRANSITION-OVERRIDE: MTF {mtf_a}/4 → 5x")
+            else:
+                log(f"  SMA-SKIP: {coin} {direction} — {sma_rsn}")
+                return None
+        else:
+            leverage = min(lev, 10) if tf != "15m" else lev
+            log(f"  SMA-Alignment: {alignment}/4 | {leverage}x")
+        coin_skip, coin_pen, coin_rsn = check_coin_sma(coin, direction)
+        if coin_skip:
+            log(f"  COIN-SMA: {coin} {direction} skip — {coin_rsn}")
+            return None
+        if coin_pen > 0 and leverage >= 10:
+            leverage = max(7, leverage - 3)
+
+    else:  # TRENDING
+        lev, alignment, sma_rsn = get_btc_sma_alignment(direction)
+        if lev == 0:
+            log(f"  SMA-SKIP: {coin} {direction} — {sma_rsn}")
+            return None
+        leverage = min(lev, 10) if tf != "15m" else lev
+        log(f"  REGIME: TRENDING | {alignment}/4 | {leverage}x | {sma_rsn}")
+        coin_skip, coin_pen, coin_rsn = check_coin_sma(coin, direction)
+        if coin_skip:
+            log(f"  COIN-SMA: {coin} {direction} skip — {coin_rsn}")
+            return None
+        if coin_pen > 0 and leverage >= 10:
+            leverage = max(7, leverage - 3)
+
+    # ═══ END V2K3 ═══
+
     margin = capital
     size = capital * leverage / entry
     liq = calc_liquidation(entry, direction, margin, size)
