@@ -1213,10 +1213,18 @@ def scan_and_trade(data, tf, limit, tf_key):
 # LOGGING
 # ═══════════════════════════════════════════════════════════════
 
+_LOG_FILE = "/tmp/paper_bot_v2k2.log"
+
 def log(msg):
-    """Print timestamped log message."""
+    """Print timestamped log message to stdout and file."""
     ts = datetime.now(TZ).strftime("%H:%M:%S")
-    print(f"[{ts}] [V2] {msg}", flush=True)
+    line = f"[{ts}] [V2] {msg}"
+    print(line, flush=True)
+    try:
+        with open(_LOG_FILE, 'a') as f:
+            f.write(line + '\n')
+    except:
+        pass
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1253,16 +1261,12 @@ def main():
 
     while True:
         try:
+            # Zeitpunkt ZUERST merken, bevor check_open_trades die Minute verbraucht
             now = datetime.now(TZ)
             minute = now.minute
             hour = now.hour
 
-            # Check open trades for TP/Liq every minute
-            price_cache = check_open_trades(data)
-
-            # Dynamischer Risk Manager — nutzt price_cache, keine extra API-Calls
-            manage_open_risk(data, price_cache)
-
+            # Scans ZUERST ausführen (zeitkritisch, verpassen sonst den Slot)
             # 15min scan: run at 0, 15, 30, 45
             current_15m_slot = (hour * 60 + minute) // 15
             if minute % 15 == 0 and current_15m_slot != last_15m_scan:
@@ -1297,8 +1301,13 @@ def main():
                 save_data(data)
                 print_status(data)
 
-            # Save periodically (every check cycle) if any trades were closed
-            # (check_open_trades may have closed trades)
+            # Check open trades for TP/Liq (nach Scans, da zeitintensiv ~30s)
+            price_cache = check_open_trades(data)
+
+            # Dynamischer Risk Manager — nutzt price_cache, keine extra API-Calls
+            manage_open_risk(data, price_cache)
+
+            # Save after all checks
             update_stats(data)
             save_data(data)
 
