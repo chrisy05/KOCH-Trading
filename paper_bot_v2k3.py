@@ -1687,4 +1687,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-        "open": len([t for t in data[tf_key] if t["status"] == "open"]),
