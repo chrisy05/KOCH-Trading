@@ -669,9 +669,12 @@ def get_btc_sma_alignment(direction):
     sma10, sma20, sma50, sma100 = btc["sma10"], btc["sma20"], btc["sma50"], btc["sma100"]
 
     if direction == "SHORT":
-        # Preis-Check: Wenn BTC über SMA100, komplett SKIP
+        # Preis-Check: Über SMA100 = komplett SKIP
         if c > sma100:
             return 0, 0, f"SKIP: BTC ${c:.0f} > SMA100 ${sma100:.0f}"
+        # Zwischen SMA50 und SMA100 = erlaubt mit 5x (Übergangszone)
+        if c > sma50:
+            return 5, 0, f"Übergang: BTC ${c:.0f} > SMA50 ${sma50:.0f} — 5x erlaubt"
 
         # Cross-Alignment zählen (bärisch = kleiner SMA unter größerem)
         crosses = 0
@@ -694,8 +697,12 @@ def get_btc_sma_alignment(direction):
             return 10, 3, f"3 Crosses aligned (10<20<50<100)"
 
     else:  # LONG
+        # Über SMA100 = komplett SKIP
         if c < sma100:
-            return 0, 0, f"SKIP: BTC ${c:.0f} < SMA100 ${sma100:.0f}"
+            # Zwischen SMA50 und SMA100 = erlaubt mit 5x (Übergangszone)
+            if c > sma50:
+                return 5, 0, f"Übergang: BTC ${c:.0f} zwischen SMA50 ${sma50:.0f} und SMA100 ${sma100:.0f} — 5x"
+            return 0, 0, f"SKIP: BTC ${c:.0f} < SMA50 ${sma50:.0f}"
 
         crosses = 0
         if sma10 > sma20: crosses += 1
