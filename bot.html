@@ -893,10 +893,12 @@ async function loadLiveTrades() {
         else duration = Math.floor(mins/1440) + 'd ' + Math.floor((mins%1440)/60) + 'h';
       }
       const status = t.close_reason || t.status || '—';
+      const isSL = status === 'SL' || status === 'LIQ' || pnl < 0;
+      const rowStyle = isSL ? 'background:rgba(239,68,68,0.15);border-left:3px solid #ef4444' : '';
       const openDt = (t.open_time || '').replace('T',' ').slice(0,16);
       const closeDt = (t.close_time || '').replace('T',' ').slice(0,16);
       const tf = t.tf || '—';
-      tradeHtml += `<tr>
+      tradeHtml += `<tr style="${rowStyle}">
         <td><span class="coin">${coin}</span></td>
         <td><span class="badge ${dirClass}">${side}</span></td>
         <td style="color:#8b949e">${tf}</td>
