@@ -929,11 +929,10 @@ def get_btc_sma_leverage(direction):
 _sma_risk_cooldown = {}
 
 def manage_open_risk(data, price_cache=None):
-    """Regime-aware Risk Manager.
+    """BTC-basierter Risk Manager — gilt IMMER, unabhängig vom Regime.
 
-    TRENDING: BTC-SMA-Alignment entscheidet (wie V2K2)
-    SIDEWAYS: BTC-Bremse AUS — stattdessen Coin-eigener SMA-Check
-    TRANSITIONING: BTC-Bremse aktiv, aber milder
+    Einstieg darf coin-basiert sein (Sideways), aber die Bremse ist IMMER BTC.
+    Wenn BTC dreht, werden ALLE Trades gegen die neue Richtung gebremst/geschlossen.
 
     Sortiert NUR nach Verlustgröße (kleinste zuerst).
     5-Min-Cooldown, max 2x, dann Force Close.
@@ -947,29 +946,10 @@ def manage_open_risk(data, price_cache=None):
     # Regime bestimmt ob BTC-Bremse greift
     regime, regime_conf, _ = detect_btc_regime(btc)
 
-    if regime == "SIDEWAYS":
-        # In Seitwärts: BTC-Bremse NICHT anwenden auf offene Trades
-        # Stattdessen: Coin-eigenen SMA prüfen für offene Trades
-        # Nur bei extremen Verlusten (>25%) eingreifen
-        if not price_cache:
-            return
-        for tf_key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
-            for trade in [t for t in data[tf_key] if t["status"] == "open"]:
-                coin = trade["coin"]
-                direction = trade["direction"]
-                if coin not in price_cache:
-                    continue
-                price = price_cache[coin][0]
-                pnl = calc_pnl(direction, trade["entry"], price, trade.get("size", 0))
-                margin = trade.get("margin", CONFIG["capital"])
-                pnl_pct = (pnl / margin * 100) if margin > 0 else 0
-                # Nur bei >25% Verlust schließen (Schutz vor Totalverlust)
-                if pnl_pct < -25:
-                    close_trade(trade, price, "SW_RISK")
-                    log(f"  SW-RISK: {coin} {direction} closed | PnL: ${pnl:.2f} ({pnl_pct:+.1f}%) | >25% Verlust in Sideways")
-        # Cooldown zurücksetzen in Sideways
-        _sma_risk_cooldown.clear()
-        return
+    # ═══ BTC-BREMSE GILT IMMER — auch für Sideways-Trades ═══
+    # Einstieg darf coin-basiert sein (Sideways), aber Exit/Bremse ist IMMER BTC-basiert.
+    # Wenn BTC aus Sideways in Trending wechselt, greift die volle Bremse sofort.
+    # In Sideways: Bremse trotzdem aktiv, aber nur für Trades GEGEN die BTC-1H-Richtung.
 
     now = time.time()
 
@@ -1094,61 +1074,88 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
 
     if regime == "SIDEWAYS":
         # ═══ SIDEWAYS MODE ═══
-        # BTC-SMA-Bremse LOCKERN — Coin-eigener Trend + MTF-Alignment entscheidet
+        # BTC 1H Grundrichtung bleibt die Basis!
+        # Sideways = BTC entscheidet sich gerade, aber die 1H-Richtung gilt weiter.
+        # Auf 2-15m scannen wir nach Breakout/Coiling in eine Richtung.
         log(f"  REGIME: SIDEWAYS ({regime_conf}/7) | {regime_detail}")
 
-        # Coin-SMA ist jetzt der Hauptfilter
+        # BTC 1H Grundrichtung bestimmen (SMA-Anordnung auf 1H)
+        sma10 = btc_data["sma10"]
+        sma20 = btc_data["sma20"]
+        sma50 = btc_data["sma50"]
+        btc_price = btc_data["price"]
+
+        btc_bearish = btc_price < sma20 and sma10 < sma50
+        btc_bullish = btc_price > sma20 and sma10 > sma50
+
+        # MIT BTC-Grundrichtung = normal erlaubt
+        # GEGEN BTC-Grundrichtung = max 5x, nur bei starker Bestätigung
+        with_btc = (direction == "SHORT" and btc_bearish) or (direction == "LONG" and btc_bullish)
+        against_btc = (direction == "LONG" and btc_bearish) or (direction == "SHORT" and btc_bullish)
+
+        if against_btc:
+            log(f"  SIDEWAYS gegen BTC-1H-Richtung: {direction} vs {'BEARISH' if btc_bearish else 'BULLISH'}")
+
+        # Coin-SMA Filter
         coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
         if coin_skip:
             log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
             return None
 
-        # MTF-Alignment: Kleine TFs müssen ausgerichtet sein
+        # MTF-Alignment auf kleinen TFs (2-15m Breakout/Coiling)
         sym = f"{coin}USDT"
         mtf_aligned, mtf_total, mtf_detail = check_mtf_alignment(sym, direction)
         log(f"  MTF-Alignment: {mtf_aligned}/{mtf_total} | {mtf_detail}")
 
-        if mtf_aligned == 0:
-            log(f"  MTF-SKIP: {coin} {direction} — kein TF aligned")
-            return None
-
-        # Coin-eigenes SMA-Alignment prüfen (1H: SMA10/20/50 Anordnung)
-        coin_alignment = 0
-        try:
-            curl = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
-            req = urllib.request.Request(curl)
-            with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
-                ck = json.loads(r.read())
-            cc = [float(k[4]) for k in ck]
-            c_sma10 = sum(cc[-10:]) / 10
-            c_sma20 = sum(cc[-20:]) / 20
-            c_sma50 = sum(cc[-50:]) / 50
-            cp = cc[-1]
-            if direction == "SHORT":
-                if cp < c_sma10: coin_alignment += 1
-                if c_sma10 < c_sma20: coin_alignment += 1
-                if c_sma20 < c_sma50: coin_alignment += 1
-            else:
-                if cp > c_sma10: coin_alignment += 1
-                if c_sma10 > c_sma20: coin_alignment += 1
-                if c_sma20 > c_sma50: coin_alignment += 1
-            log(f"  Coin-SMA Alignment: {coin_alignment}/3 ({coin} 1H)")
-        except:
-            coin_alignment = 0
-
-        # Hebel: MTF-Alignment + Coin-SMA-Alignment zusammen
-        # 12x nur wenn BEIDE voll aligned (MTF 4/4 + Coin 3/3)
-        if mtf_aligned >= 4 and coin_alignment >= 3:
-            leverage = 12 if tf == "15m" else 10
-            log(f"  SIDEWAYS-VOLLGAS: {coin} {direction} {leverage}x — MTF 4/4 + Coin 3/3")
-        elif mtf_aligned >= 3 and coin_alignment >= 2:
-            leverage = 10
-        elif mtf_aligned >= 2 and coin_alignment >= 1:
-            leverage = 7
-        elif mtf_aligned >= 2:
+        if against_btc:
+            # Gegen BTC: Nur bei MTF 4/4 erlaubt, max 5x
+            if mtf_aligned < 4:
+                log(f"  SKIP: Gegen BTC-Richtung + MTF nur {mtf_aligned}/4 — zu schwach")
+                return None
             leverage = 5
+            log(f"  Gegen BTC erlaubt mit 5x — MTF 4/4 bestätigt")
         else:
-            leverage = 5
+            # Mit BTC: MTF bestimmt den Hebel
+            if mtf_aligned == 0:
+                log(f"  MTF-SKIP: {coin} {direction} — kein TF aligned")
+                return None
+
+            # Coin-eigenes SMA-Alignment prüfen (1H: SMA10/20/50 Anordnung)
+            coin_alignment = 0
+            try:
+                curl = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
+                req = urllib.request.Request(curl)
+                with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+                    ck = json.loads(r.read())
+                cc = [float(k[4]) for k in ck]
+                c_sma10 = sum(cc[-10:]) / 10
+                c_sma20 = sum(cc[-20:]) / 20
+                c_sma50 = sum(cc[-50:]) / 50
+                cp = cc[-1]
+                if direction == "SHORT":
+                    if cp < c_sma10: coin_alignment += 1
+                    if c_sma10 < c_sma20: coin_alignment += 1
+                    if c_sma20 < c_sma50: coin_alignment += 1
+                else:
+                    if cp > c_sma10: coin_alignment += 1
+                    if c_sma10 > c_sma20: coin_alignment += 1
+                    if c_sma20 > c_sma50: coin_alignment += 1
+                log(f"  Coin-SMA Alignment: {coin_alignment}/3 ({coin} 1H)")
+            except:
+                coin_alignment = 0
+
+            # Hebel: MTF + Coin-Alignment, MIT BTC-Richtung
+            if mtf_aligned >= 4 and coin_alignment >= 3:
+                leverage = 12 if tf == "15m" else 10
+                log(f"  SIDEWAYS+BTC: {coin} {direction} {leverage}x — MTF 4/4 + Coin 3/3")
+            elif mtf_aligned >= 3 and coin_alignment >= 2:
+                leverage = 10
+            elif mtf_aligned >= 2 and coin_alignment >= 1:
+                leverage = 7
+            elif mtf_aligned >= 1:
+                leverage = 5
+            else:
+                leverage = 5
 
         if coin_penalty > 0:
             leverage = max(5, leverage - 2)
