@@ -869,12 +869,8 @@ async function loadLiveTrades() {
       return;
     }
 
-    // Sort: losses first, then by close_time desc
+    // Sort chronologisch nach close_time (neueste zuerst)
     closed.sort((a, b) => {
-      const aPnl = a.pnl || 0, bPnl = b.pnl || 0;
-      if (aPnl < 0 && bPnl >= 0) return -1;
-      if (aPnl >= 0 && bPnl < 0) return 1;
-      // Within same group: by close_time desc
       const aTime = a.close_time || '', bTime = b.close_time || '';
       return bTime.localeCompare(aTime);
     });
