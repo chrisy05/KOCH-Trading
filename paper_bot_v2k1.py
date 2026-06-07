@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Paper Trading Bot V2 — SL 40% Test
-Same logic as paper_bot.py but with sl_pct=40 instead of 70.
+Paper Trading Bot V2K1 — Market Scan Winners
+V2 Strategie auf Top-Coins aus 14-Tage Market Scan.
+$2.000 Kapital, $200/Trade, 10x Hebel.
+24 Coins: GLM, AVAX, KAS, MINA, XRP, FLOW, etc.
+Start: 07.06.2026
 """
 
 import json
@@ -18,7 +21,7 @@ from datetime import datetime, timezone, timedelta
 # ═══════════════════════════════════════════════════════════════
 
 CONFIG = {
-    "capital": 100,
+    "capital": 200,
     "leverage": 10,
     "min_probability": 60,
     "tp_range_pct": 70,       # 70% of expected move
@@ -26,7 +29,7 @@ CONFIG = {
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
-    "total_budget": 10000,    # Virtuelles Gesamtkapital
+    "total_budget": 2000,     # Gesamtkapital $2.000
     "tf_budget_15m": 50,      # % of total budget for 15m trades
     "tf_budget_30m": 30,      # % of total budget for 30m trades
     "tf_budget_1h": 20,       # % of total budget for 1h trades
@@ -42,14 +45,13 @@ if os.path.exists(_CFG_OVERRIDE):
     except Exception:
         pass
 
+# V2K1 Coinliste: Top-Performer aus 14-Tage Market Scan (07.06.2026)
+# Kriterien: WR >= 95%, 10+ Trades, ATR 4-8%, TON-Similarity >= 75
 COINS = [
-    "TON", "XLM", "SOL", "BCH", "LINK", "DOGE",
-    "FIDA", "NEO", "DYDX", "ADA", "HYPE", "FIL", "ICP", "LTC",
-    "JASMY", "EIGEN", "IP", "OP", "SEI", "ONE", "IMX", "AVAX",
-    "GLM", "CFX", "BNT", "CRV", "TRX", "SUI",
-    "JUP", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
-    "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
-    "XTZ", "METIS", "AAVE", "UNI", "BGB",
+    "GLM", "AVAX", "KAS", "MINA", "XRP", "FLOW",
+    "AXL", "CELR", "CYS", "IOST", "CAKE", "KAITO",
+    "TRX", "SUN", "GRT", "DUSK", "BAT", "SYN",
+    "TON", "HBAR", "DOT", "LTC", "LINK", "SOL",
 ]
 
 TZ = timezone(timedelta(hours=-4))
