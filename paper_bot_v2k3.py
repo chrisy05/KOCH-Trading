@@ -1173,16 +1173,10 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
         log(f"  REGIME: TRANSITIONING ({regime_conf}/7) | {regime_detail}")
 
         leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
-        if leverage == 0:
-            # Im Übergang: MTF-Alignment kann Override geben
-            sym = f"{coin}USDT"
-            mtf_aligned, _, mtf_detail = check_mtf_alignment(sym, direction)
-            if mtf_aligned >= 3:
-                leverage = 5
-                log(f"  TRANSITION-OVERRIDE: BTC blockiert, aber MTF {mtf_aligned}/4 → 5x | {mtf_detail}")
-            else:
-                log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
-                return None
+        if leverage == 0 or alignment == 0:
+            # Übergangszone oder kein Alignment → SKIP
+            log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
+            return None
         else:
             if leverage > 10 and tf != "15m":
                 leverage = 10
@@ -1199,7 +1193,7 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
     else:
         # ═══ TRENDING MODE (wie V2K2) ═══
         leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
-        if leverage == 0:
+        if leverage == 0 or alignment == 0:
             log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
             return None
 

@@ -884,7 +884,7 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
 
     # SMA-Cross Alignment: Hebel basierend auf BTC Trendstärke
     leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
-    if leverage == 0:
+    if leverage == 0 or alignment == 0:
         log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
         return None
 
