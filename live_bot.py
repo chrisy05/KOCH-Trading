@@ -140,7 +140,8 @@ COINS = [
     "GLM", "CFX", "BNT", "CRV", "TRX", "SUI",
     "JUP", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
     "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
-    "XTZ", "METIS", "AAVE", "UNI", "BGB", "NEAR", "WLD"]
+    "XTZ", "METIS", "AAVE", "UNI", "BGB", "NEAR", "WLD",
+]  # XLM entfernt am 07.06.2026
 
 # Bybit quantity precision per symbol (decimals for qty rounding)
 # Default is 0 (whole numbers). Override for specific coins.
