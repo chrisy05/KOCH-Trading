@@ -49,7 +49,7 @@ COINS = [
     "GLM", "CFX", "BNT", "CRV", "TRX", "SUI",
     "JUP", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
     "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
-    "XTZ", "METIS", "AAVE", "UNI", "BGB"]
+    "XTZ", "METIS", "AAVE", "UNI", "BGB", "NEAR", "WLD"]
 
 TZ = timezone(timedelta(hours=-4))
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "paper_trades_v3.json")
