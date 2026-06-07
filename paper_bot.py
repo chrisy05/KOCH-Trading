@@ -43,14 +43,13 @@ if os.path.exists(_CFG_OVERRIDE):
         pass
 
 COINS = [
-    "TON", "XLM", "SOL", "BCH", "LINK", "DOGE",
+    "TON", "SOL", "BCH", "LINK", "DOGE",
     "FIDA", "NEO", "DYDX", "ADA", "HYPE", "FIL", "ICP", "LTC",
     "JASMY", "EIGEN", "IP", "OP", "SEI", "ONE", "IMX", "AVAX",
     "GLM", "CFX", "BNT", "CRV", "TRX", "SUI",
     "JUP", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
     "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
-    "XTZ", "METIS", "AAVE", "UNI", "BGB",
-]
+    "XTZ", "METIS", "AAVE", "UNI", "BGB"]
 
 TZ = timezone(timedelta(hours=-4))
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "paper_trades.json")
