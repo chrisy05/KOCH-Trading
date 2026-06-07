@@ -953,6 +953,14 @@ def scan_and_trade(data, tf, limit, tf_key):
                         log(f"  Max open 4h trades reached. Stopping scan.")
                         break
 
+                # Budget-Check: aktuelle Margin über ALLE TFs berechnen
+                current_margin = sum(t.get("margin", CONFIG["capital"])
+                    for tfk in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]
+                    for t in data.get(tfk, []) if t["status"] == "open")
+                if current_margin + CONFIG["capital"] > CONFIG["total_budget"]:
+                    log(f"  BUDGET VOLL: ${current_margin:.0f} / ${CONFIG['total_budget']:.0f} — kein Platz.")
+                    break
+
                 open_trade(data, tf_key, coin, direction, entry, tp, probability, tf)
                 trades_opened += 1
 
