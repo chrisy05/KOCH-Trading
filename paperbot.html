@@ -551,13 +551,7 @@ async function renderOpenTrades(...tradeLists) {
 function renderClosedTrades(...tradeLists) {
   const allClosed = tradeLists.flat()
     .filter(t => t.status === 'closed')
-    .sort((a, b) => {
-      // Losses first, then by close_time desc
-      const aLoss = (a.pnl||0) <= 0 ? 0 : 1;
-      const bLoss = (b.pnl||0) <= 0 ? 0 : 1;
-      if (aLoss !== bLoss) return aLoss - bLoss;
-      return new Date(b.close_time) - new Date(a.close_time);
-    });
+    .sort((a, b) => new Date(b.close_time) - new Date(a.close_time));
 
   document.getElementById('closedCount').textContent = allClosed.length;
 
@@ -570,15 +564,17 @@ function renderClosedTrades(...tradeLists) {
   for (const t of allClosed) {
     const dirClass = t.direction === 'LONG' ? 'badge-long' : 'badge-short';
     const isLiq = t.close_reason === 'LIQ';
-    const reasonClass = isLiq ? 'badge-liq' : 'badge-tp';
-    const rowClass = isLiq ? 'row-loss' : ((t.pnl || 0) >= 0 ? 'row-win' : 'row-loss');
+    const isSL = t.close_reason === 'SL' || isLiq || (t.pnl || 0) < 0;
+    const reasonClass = isLiq ? 'badge-liq' : (isSL ? 'badge-liq' : 'badge-tp');
+    const rowClass = isSL ? 'row-loss' : 'row-win';
     const dur = duration(t.open_time, t.close_time);
     const closeDt = (t.close_time || '').replace('T', ' ').slice(0, 16);
     const corrected = isLiq ? ' <span style="font-size:.6rem;color:#f59e0b;background:#f59e0b22;padding:1px 4px;border-radius:3px;">KORRIGIERT</span>' : '';
 
     const cLev = t.leverage || 10;
     const cLevColor = cLev < 10 ? 'color:#f59e0b' : '';
-    html += `<tr class="${rowClass}" ${isLiq ? 'style="background:rgba(239,68,68,0.12);border-left:3px solid #ef4444;"' : ''}>
+    const slStyle = isSL ? 'style="background:rgba(239,68,68,0.12);border-left:3px solid #ef4444;"' : '';
+    html += `<tr class="${rowClass}" ${slStyle}>
       <td><b>${t.coin}</b>${corrected}</td>
       <td><span class="badge ${dirClass}">${t.direction}</span></td>
       <td>${t.tf}</td>
