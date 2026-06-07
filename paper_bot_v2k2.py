@@ -765,10 +765,15 @@ def manage_open_risk(data, price_cache=None):
     now = time.time()
 
     for direction in ["SHORT", "LONG"]:
-        _, alignment, reason = get_btc_sma_alignment(direction)
+        leverage, alignment, reason = get_btc_sma_alignment(direction)
 
         # Stufe 3+ = alles OK, Cooldown zurücksetzen
         if alignment >= 3:
+            _sma_risk_cooldown.pop(direction, None)
+            continue
+
+        # Übergangszone (leverage=5, alignment=0): Trade wurde bewusst eröffnet → tolerieren
+        if leverage > 0 and alignment == 0 and "Übergang" in reason:
             _sma_risk_cooldown.pop(direction, None)
             continue
 
