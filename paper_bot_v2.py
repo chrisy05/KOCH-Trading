@@ -22,7 +22,8 @@ CONFIG = {
     "leverage": 10,
     "min_probability": 60,
     "tp_range_pct": 70,       # 70% of expected move
-    "sl_pct": 40,             # V2: SL bei 40% Verlust der Margin
+    "sl_pct": 40,             # V2: SL bei 40% Verlust der Margin (15m/30m)
+    "sl_pct_1h": 15,          # 1H: SL bei 15% Verlust der Margin
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
@@ -714,8 +715,9 @@ def check_open_trades(data):
                 continue
             current_price, recent_high, recent_low = price_data[coin]
 
-            # SL check: close at sl_pct% loss before liquidation
-            sl_pct = CONFIG.get("sl_pct", 0)
+            # SL check: TF-spezifischer SL (1H = 15%, Rest = 40%)
+            tf_sl_key = "sl_pct_" + tf_key.replace("trades_", "")  # sl_pct_1h etc.
+            sl_pct = CONFIG.get(tf_sl_key, CONFIG.get("sl_pct", 0))
             sl_price = None
             if sl_pct > 0:
                 margin = trade.get("margin", CONFIG["capital"])

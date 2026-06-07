@@ -113,23 +113,20 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
   </div>
 </div>
 
-<div class="settings-row">
-  <div class="cfg-group"><span class="cfg-label">Capital</span><span class="cfg-unit">$</span><input type="number" id="cfgCapital" value="100" min="1" max="50000" step="1" class="cfg-input"></div>
-  <div class="cfg-group"><span class="cfg-label">Leverage</span><input type="number" id="cfgLeverage" value="10" min="1" max="125" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">x</span></div>
-  <div class="cfg-group"><span class="cfg-label">Min Prob</span><input type="number" id="cfgMinProb" value="60" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
-  <div class="cfg-group"><span class="cfg-label">TP Range</span><input type="number" id="cfgTpRange" value="70" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
-  <div class="cfg-group"><span class="cfg-label">SL Loss</span><input type="number" id="cfgSlPct" value="70" min="0" max="100" step="1" class="cfg-input" style="width:50px"><span class="cfg-unit">%</span></div>
-  <div class="cfg-group"><span class="cfg-label">Budget</span><span class="cfg-unit">$</span><input type="number" id="cfgBudget" value="10000" min="0" max="1000000" step="100" class="cfg-input"></div>
-  <div class="cfg-group"><span class="cfg-label">15m</span><input type="number" id="cfgTf15" value="50" min="0" max="100" step="5" class="cfg-input" style="width:40px"><span class="cfg-unit">%</span></div>
-  <div class="cfg-group"><span class="cfg-label">30m</span><input type="number" id="cfgTf30" value="30" min="0" max="100" step="5" class="cfg-input" style="width:40px"><span class="cfg-unit">%</span></div>
-  <div class="cfg-group"><span class="cfg-label">1h</span><input type="number" id="cfgTf1h" value="20" min="0" max="100" step="5" class="cfg-input" style="width:40px"><span class="cfg-unit">%</span></div>
-  <div class="cfg-group"><span class="cfg-label">4h</span><input type="number" id="cfgTf4h" value="0" min="0" max="100" step="5" class="cfg-input" style="width:40px"><span class="cfg-unit">%</span></div>
-  <button class="cfg-save-btn" onclick="saveConfig()">Aktualisieren</button>
-  <button class="cfg-save-btn" style="background:#22c55e;color:#000" onclick="controlBot('start')">Start</button>
-  <button class="cfg-save-btn" style="background:#f59e0b;color:#000" onclick="controlBot('pause')">Pause</button>
-  <button class="cfg-save-btn" style="background:#ef4444" onclick="controlBot('stop')">Beenden</button>
-  <span class="cfg-status" id="cfgStatus"></span>
+<div class="settings-row" style="gap:12px;flex-wrap:wrap">
+  <div class="cfg-group"><span class="cfg-label">Capital</span><span class="cfg-val" id="cfgCapital">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">Leverage</span><span class="cfg-val" id="cfgLeverage">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">Min Prob</span><span class="cfg-val" id="cfgMinProb">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">TP Range</span><span class="cfg-val" id="cfgTpRange">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">SL 15m/30m</span><span class="cfg-val" id="cfgSlPct">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">SL 1h</span><span class="cfg-val" id="cfgSl1h">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">Budget</span><span class="cfg-val" id="cfgBudget">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">15m</span><span class="cfg-val" id="cfgTf15">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">30m</span><span class="cfg-val" id="cfgTf30">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">1h</span><span class="cfg-val" id="cfgTf1h">--</span></div>
+  <div class="cfg-group"><span class="cfg-label">4h</span><span class="cfg-val" id="cfgTf4h">--</span></div>
 </div>
+<style>.cfg-val{color:#58a6ff;font-weight:600;font-size:.85rem}</style>
 
 <div class="container">
   <!-- LIVE Stats Block -->
@@ -289,15 +286,18 @@ function switchBot(bot) {
 
 function populateConfigFields(cfg) {
   document.getElementById('cfgCapital').value = cfg.capital || 100;
-  document.getElementById('cfgLeverage').value = cfg.leverage || 10;
-  document.getElementById('cfgMinProb').value = cfg.min_probability || cfg.min_prob || 60;
-  document.getElementById('cfgTpRange').value = cfg.tp_range_pct || cfg.tp_pct || 70;
-  document.getElementById('cfgSlPct').value = cfg.sl_pct || 70;
-  document.getElementById('cfgBudget').value = cfg.total_budget || 10000;
-  document.getElementById('cfgTf15').value = cfg.tf_budget_15m != null ? cfg.tf_budget_15m : 50;
-  document.getElementById('cfgTf30').value = cfg.tf_budget_30m != null ? cfg.tf_budget_30m : 30;
-  document.getElementById('cfgTf1h').value = cfg.tf_budget_1h != null ? cfg.tf_budget_1h : 20;
-  document.getElementById('cfgTf4h').value = cfg.tf_budget_4h != null ? cfg.tf_budget_4h : 0;
+  document.getElementById('cfgCapital').textContent = '$' + (cfg.capital || 100);
+  document.getElementById('cfgLeverage').textContent = (cfg.leverage || 10) + 'x';
+  document.getElementById('cfgMinProb').textContent = (cfg.min_probability || cfg.min_prob || 60) + '%';
+  document.getElementById('cfgTpRange').textContent = (cfg.tp_range_pct || cfg.tp_pct || 70) + '%';
+  document.getElementById('cfgSlPct').textContent = (cfg.sl_pct || 70) + '%';
+  const sl1h = document.getElementById('cfgSl1h');
+  if (sl1h) sl1h.textContent = (cfg.sl_pct_1h || cfg.sl_pct || 70) + '%';
+  document.getElementById('cfgBudget').textContent = '$' + (cfg.total_budget || 10000);
+  document.getElementById('cfgTf15').textContent = (cfg.tf_budget_15m != null ? cfg.tf_budget_15m : 50) + '%';
+  document.getElementById('cfgTf30').textContent = (cfg.tf_budget_30m != null ? cfg.tf_budget_30m : 30) + '%';
+  document.getElementById('cfgTf1h').textContent = (cfg.tf_budget_1h != null ? cfg.tf_budget_1h : 20) + '%';
+  document.getElementById('cfgTf4h').textContent = (cfg.tf_budget_4h != null ? cfg.tf_budget_4h : 0) + '%';
 }
 
 async function loadConfigFields() {
