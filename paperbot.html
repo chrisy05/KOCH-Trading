@@ -695,11 +695,12 @@ function renderGesamt(data) {
 }
 
 function checkBotRunning(data) {
-  // Prüfe heartbeat Timestamp in der JSON — wenn älter als 3 Min → gestoppt
+  // Prüfe heartbeat Timestamp in der JSON — wenn älter als 15 Min → gestoppt
+  // (15 Min wegen GitHub Pages Cache-Verzögerung)
   const hb = data._heartbeat || '';
   if (!hb) return null; // Kein Heartbeat = unbekannt
   const hbTime = new Date(hb);
-  return (Date.now() - hbTime.getTime()) < 180000; // 3 Min
+  return (Date.now() - hbTime.getTime()) < 900000; // 15 Min
 }
 
 async function loadData() {
