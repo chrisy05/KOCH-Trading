@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-Paper Trading Bot V2K3 — Beste Strategie + Elite Coins
-V2K3 (Regime+MTF+BTC+Coin-SMA) auf Top 10 Scanner-Coins.
-$2.000 Kapital, $200/Trade, 5-12x dynamischer Hebel.
-10 Coins: KAS, MINA, XRP, FLOW, GLM, AVAX, AXL, CELR, IOST, CAKE
-Start: 07.06.2026
+Paper Trading Bot V2K3 — Exakte V2-Kopie + Top 10 Elite Coins
+$2.000 Kapital, $200/Trade. Start: 07.06.2026
 """
 
 import json
@@ -25,7 +22,8 @@ CONFIG = {
     "leverage": 10,
     "min_probability": 60,
     "tp_range_pct": 70,       # 70% of expected move
-    "sl_pct": 40,             # V2: SL bei 40% Verlust der Margin
+    "sl_pct": 40,             # V2: SL bei 40% Verlust der Margin (15m/30m)
+    "sl_pct_1h": 15,          # 1H: SL bei 15% Verlust der Margin
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
@@ -45,8 +43,6 @@ if os.path.exists(_CFG_OVERRIDE):
     except Exception:
         pass
 
-# V2K3: Beste Strategie (Regime+MTF+BTC) + Top 10 Scanner-Coins
-# Ausgewählt: Hohe WR (96%+), viele Trades (24+), TON-Similarity 78+, ATR 4-7%
 COINS = [
     "KAS", "MINA", "XRP", "FLOW", "GLM", "AVAX",
     "AXL", "CELR", "IOST", "CAKE",
@@ -624,592 +620,10 @@ def calc_pnl(direction, entry, close_price, size):
         return (entry - close_price) * size
 
 
-def get_btc_sma_data():
-    """Holt BTC 1H Klines und berechnet alle SMA-Werte + Slopes.
-    Returns: dict mit price, sma10/20/50/100, slopes, regime oder None bei Fehler.
-    """
-    try:
-        url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=105"
-        req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
-            klines = json.loads(r.read())
-        if len(klines) < 105:
-            return None
-        closes = [float(k[4]) for k in klines]
-
-        # Aktuelle SMAs
-        sma10 = sum(closes[-10:]) / 10
-        sma20 = sum(closes[-20:]) / 20
-        sma50 = sum(closes[-50:]) / 50
-        sma100 = sum(closes[-100:]) / 100
-
-        # SMAs vor 5 Bars (für Slope-Berechnung)
-        sma10_prev = sum(closes[-15:-5]) / 10
-        sma20_prev = sum(closes[-25:-5]) / 20
-        sma50_prev = sum(closes[-55:-5]) / 50
-
-        # Slopes (% pro Stunde, normiert)
-        price = closes[-1]
-        slope10 = (sma10 - sma10_prev) / price * 100
-        slope20 = (sma20 - sma20_prev) / price * 100
-        slope50 = (sma50 - sma50_prev) / price * 100
-
-        # SMA-Abstände (normiert)
-        gap_10_20 = abs(sma10 - sma20) / price * 100
-        gap_20_50 = abs(sma20 - sma50) / price * 100
-
-        # Slope-Konvergenz: Wenn Slopes sich angleichen = Seitwärts
-        slope_diff_10_20 = abs(slope10 - slope20)
-        slope_diff_all = abs(slope10 - slope20) + abs(slope20 - slope50)
-
-        return {
-            "price": price,
-            "sma10": sma10, "sma20": sma20, "sma50": sma50, "sma100": sma100,
-            "slope10": slope10, "slope20": slope20, "slope50": slope50,
-            "gap_10_20": gap_10_20, "gap_20_50": gap_20_50,
-            "slope_diff_10_20": slope_diff_10_20,
-            "slope_diff_all": slope_diff_all,
-        }
-    except:
-        return None
-
-
-def detect_btc_regime(btc_data):
-    """Erkennt BTC-Regime basierend auf SMA-Slope-Konvergenz.
-
-    TRENDING: SMAs sind auseinander, Slopes steil und gleichgerichtet
-    SIDEWAYS: SMAs konvergieren, Slopes flach, Preis nahe allen SMAs
-    TRANSITIONING: SMAs beginnen sich anzunähern (Frühindikator)
-
-    Returns: (regime, confidence, details)
-    """
-    if not btc_data:
-        return "UNKNOWN", 0, "Keine Daten"
-
-    slope10 = btc_data["slope10"]
-    slope20 = btc_data["slope20"]
-    slope50 = btc_data["slope50"]
-    gap_10_20 = btc_data["gap_10_20"]
-    gap_20_50 = btc_data["gap_20_50"]
-    slope_diff = btc_data["slope_diff_all"]
-    price = btc_data["price"]
-    sma10 = btc_data["sma10"]
-    sma20 = btc_data["sma20"]
-    sma50 = btc_data["sma50"]
-
-    # Preis-Distanz zu SMAs
-    dist_to_sma10 = abs(price - sma10) / price * 100
-    dist_to_sma20 = abs(price - sma20) / price * 100
-    dist_to_sma50 = abs(price - sma50) / price * 100
-
-    # ═══ TRENDING-Erkennung (Divergenz / Auffächern) ═══
-    # Preis bereits auf einer Seite + SMAs fächern auf = Trend OHNE Cross
-    signals_trending = 0
-    trend_details = []
-
-    # 1. Slopes steil und gleichgerichtet (alle in gleiche Richtung)
-    slopes_same_dir = (slope10 > 0 and slope20 > 0 and slope50 > 0) or \
-                      (slope10 < 0 and slope20 < 0 and slope50 < 0)
-    if slopes_same_dir and (abs(slope10) > 0.15 or abs(slope20) > 0.10):
-        signals_trending += 2
-        trend_details.append(f"Slopes gleichgerichtet+steil ({slope10:.3f}/{slope20:.3f}/{slope50:.3f})")
-
-    # 2. Gaps wachsen (Preis entfernt sich von SMAs)
-    if dist_to_sma10 > 0.5 and dist_to_sma20 > 0.8:
-        signals_trending += 2
-        trend_details.append(f"Preis entfernt (10:{dist_to_sma10:.2f}% 20:{dist_to_sma20:.2f}%)")
-
-    # 3. SMAs fächern auf (Gap 10/20 wächst)
-    if gap_10_20 > 0.3:
-        signals_trending += 1
-        trend_details.append(f"SMA10/20 fächern auf ({gap_10_20:.2f}%)")
-
-    # 4. Gap 20/50 groß (etablierter Trend)
-    if gap_20_50 > 1.0:
-        signals_trending += 1
-        trend_details.append(f"SMA20/50 weit ({gap_20_50:.2f}%)")
-
-    # 5. Slope-Differenz groß (SMAs divergieren)
-    if slope_diff > 0.3:
-        signals_trending += 1
-        trend_details.append(f"Slopes divergent ({slope_diff:.3f}%)")
-
-    # ═══ SIDEWAYS-Erkennung (Konvergenz / Zusammenlaufen) ═══
-    signals_sideways = 0
-    sw_details = []
-
-    # 1. Slopes flach
-    if abs(slope10) < 0.15 and abs(slope20) < 0.10:
-        signals_sideways += 2
-        sw_details.append(f"Slopes flach (10:{slope10:.3f}% 20:{slope20:.3f}%)")
-
-    # 2. Slopes konvergieren
-    if slope_diff < 0.15:
-        signals_sideways += 2
-        sw_details.append(f"Slopes konvergent ({slope_diff:.3f}%)")
-
-    # 3. SMAs nahe beieinander
-    if gap_10_20 < 0.3:
-        signals_sideways += 1
-        sw_details.append(f"SMA10/20 eng ({gap_10_20:.2f}%)")
-
-    # 4. Preis nahe SMA10 und SMA20
-    if dist_to_sma10 < 0.3 and dist_to_sma20 < 0.5:
-        signals_sideways += 1
-        sw_details.append(f"Preis nahe SMAs (10:{dist_to_sma10:.2f}% 20:{dist_to_sma20:.2f}%)")
-
-    # 5. SMA10/20 quasi gleich
-    if gap_10_20 < 0.15:
-        signals_sideways += 1
-        sw_details.append("SMA10/20 quasi gleich")
-
-    # ═══ ENTSCHEIDUNG ═══
-    # Trending gewinnt über Sideways wenn beide Signale stark
-    if signals_trending >= 4:
-        return "TRENDING", signals_trending, " | ".join(trend_details)
-    elif signals_sideways >= 5:
-        return "SIDEWAYS", signals_sideways, " | ".join(sw_details)
-    elif signals_trending >= 3:
-        return "TRENDING", signals_trending, " | ".join(trend_details)
-    elif signals_sideways >= 3:
-        return "TRANSITIONING", signals_sideways, " | ".join(sw_details)
-    else:
-        # Default: Schaue ob eher trending oder sideways
-        if signals_trending > signals_sideways:
-            return "TRENDING", signals_trending, " | ".join(trend_details) if trend_details else "Leicht trending"
-        else:
-            return "TRANSITIONING", signals_sideways, " | ".join(sw_details) if sw_details else "Unklar"
-
-
-def check_mtf_alignment(sym, direction):
-    """Multi-TF Alignment Check: Prüft ob kleine TFs sich ausrichten.
-    Beginnt bei 5m, dann 15m, dann 30m, dann 1h.
-    Wenn von klein nach groß aligned = starkes Signal.
-
-    Returns: (aligned_count, total_checked, details)
-    """
-    tfs = [('5m', 50), ('15m', 50), ('30m', 50), ('1h', 50)]
-    aligned = 0
-    details = []
-
-    for tf, limit in tfs:
-        try:
-            url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval={tf}&limit={limit}"
-            req = urllib.request.Request(url)
-            with urllib.request.urlopen(req, timeout=8, context=ctx) as r:
-                klines = json.loads(r.read())
-
-            closes = [float(k[4]) for k in klines]
-            if len(closes) < 20:
-                continue
-
-            sma10 = sum(closes[-10:]) / 10
-            sma20 = sum(closes[-20:]) / 20
-            price = closes[-1]
-
-            if direction == "LONG":
-                if price > sma10 > sma20:
-                    aligned += 1
-                    details.append(f"{tf}✓")
-                else:
-                    details.append(f"{tf}✗")
-                    break  # Kette bricht ab
-            else:  # SHORT
-                if price < sma10 < sma20:
-                    aligned += 1
-                    details.append(f"{tf}✓")
-                else:
-                    details.append(f"{tf}✗")
-                    break
-        except:
-            details.append(f"{tf}?")
-            continue
-
-    return aligned, len(tfs), " ".join(details)
-
-
-def get_btc_sma_alignment(direction):
-    """SMA-Cross Alignment für Hebel-Bestimmung.
-
-    Für SHORT: Bärisches Alignment = SMA10 < SMA20 < SMA50 < SMA100
-    Für LONG:  Bullisches Alignment = SMA10 > SMA20 > SMA50 > SMA100
-
-    Stufen (Anzahl aligned SMA-Crosses):
-    - 0 Crosses aligned (Gegentrend)     → 0x (SKIP)
-    - 1 Cross aligned (SMA10/20)          → 5x
-    - 2 Crosses aligned (+ SMA20/50)      → 7x
-    - 3 Crosses aligned (+ SMA50/100)     → 10x (Trend bestätigt)
-    - 3 Crosses + Preis aligned           → 12x (Vollgas, nur 15m)
-
-    Zusätzlich: Preis-vs-SMA Check als Sicherheit.
-    """
-    btc = get_btc_sma_data()
-    if not btc:
-        return CONFIG["leverage"], 0, "Keine Daten"
-
-    c = btc["price"]
-    sma10, sma20, sma50, sma100 = btc["sma10"], btc["sma20"], btc["sma50"], btc["sma100"]
-
-    if direction == "SHORT":
-        # Preis-Check: Über SMA100 = komplett SKIP
-        if c > sma100:
-            return 0, 0, f"SKIP: BTC ${c:.0f} > SMA100 ${sma100:.0f}"
-        # Zwischen SMA50 und SMA100 = erlaubt mit 5x (Übergangszone)
-        if c > sma50:
-            return 5, 0, f"Übergang: BTC ${c:.0f} > SMA50 ${sma50:.0f} — 5x erlaubt"
-
-        # Cross-Alignment zählen (bärisch = kleiner SMA unter größerem)
-        crosses = 0
-        if sma10 < sma20: crosses += 1
-        if sma20 < sma50: crosses += 1
-        if sma50 < sma100: crosses += 1
-
-        # Preis unter SMA10 = Extra-Bestätigung
-        price_aligned = c < sma10
-
-        if crosses == 0:
-            return 0, 0, f"SKIP: Kein bärisches Cross (SMA10>${sma10:.0f} SMA20>${sma20:.0f})"
-        elif crosses == 1:
-            return 5, 1, f"1 Cross (SMA10<SMA20)"
-        elif crosses == 2:
-            return 7, 2, f"2 Crosses (10<20<50)"
-        else:  # 3
-            if price_aligned:
-                return 12, 4, f"VOLLGAS: Alle Crosses + Preis aligned"
-            return 10, 3, f"3 Crosses aligned (10<20<50<100)"
-
-    else:  # LONG
-        # Über SMA100 = komplett SKIP
-        if c < sma100:
-            # Zwischen SMA50 und SMA100 = erlaubt mit 5x (Übergangszone)
-            if c > sma50:
-                return 5, 0, f"Übergang: BTC ${c:.0f} zwischen SMA50 ${sma50:.0f} und SMA100 ${sma100:.0f} — 5x"
-            return 0, 0, f"SKIP: BTC ${c:.0f} < SMA50 ${sma50:.0f}"
-
-        crosses = 0
-        if sma10 > sma20: crosses += 1
-        if sma20 > sma50: crosses += 1
-        if sma50 > sma100: crosses += 1
-
-        price_aligned = c > sma10
-
-        if crosses == 0:
-            return 0, 0, f"SKIP: Kein bullisches Cross"
-        elif crosses == 1:
-            return 5, 1, f"1 Cross (SMA10>SMA20)"
-        elif crosses == 2:
-            return 7, 2, f"2 Crosses (10>20>50)"
-        else:
-            if price_aligned:
-                return 12, 4, f"VOLLGAS: Alle Crosses + Preis aligned"
-            return 10, 3, f"3 Crosses aligned (10>20>50>100)"
-
-
-# Cache für BTC SMA um API-Calls zu reduzieren (max 1x pro Minute)
-_btc_sma_cache = {"data": None, "ts": 0}
-
-def get_btc_sma_cached():
-    """BTC SMA Daten mit 60s Cache."""
-    now = time.time()
-    if _btc_sma_cache["data"] and now - _btc_sma_cache["ts"] < 60:
-        return _btc_sma_cache["data"]
-    data = get_btc_sma_data()
-    if data:
-        _btc_sma_cache["data"] = data
-        _btc_sma_cache["ts"] = now
-    return data
-
-
-def get_btc_sma_leverage(direction):
-    """Wrapper für Abwärtskompatibilität — nutzt jetzt SMA-Cross Alignment."""
-    leverage, alignment, reason = get_btc_sma_alignment(direction)
-    return leverage
-
-
-# Cooldown-Tracker für SMA-Risk: {direction: {"triggered_at": timestamp, "count": int}}
-_sma_risk_cooldown = {}
-
-def manage_open_risk(data, price_cache=None):
-    """BTC-basierter Risk Manager — gilt IMMER, unabhängig vom Regime.
-
-    Einstieg darf coin-basiert sein (Sideways), aber die Bremse ist IMMER BTC.
-    Wenn BTC dreht, werden ALLE Trades gegen die neue Richtung gebremst/geschlossen.
-
-    Sortiert NUR nach Verlustgröße (kleinste zuerst).
-    5-Min-Cooldown, max 2x, dann Force Close.
-    """
-    global _sma_risk_cooldown
-
-    btc = get_btc_sma_cached()
-    if not btc:
-        return
-
-    # Regime bestimmt ob BTC-Bremse greift
-    regime, regime_conf, _ = detect_btc_regime(btc)
-
-    # ═══ BTC-BREMSE GILT IMMER — auch für Sideways-Trades ═══
-    # Einstieg darf coin-basiert sein (Sideways), aber Exit/Bremse ist IMMER BTC-basiert.
-    # Wenn BTC aus Sideways in Trending wechselt, greift die volle Bremse sofort.
-    # In Sideways: Bremse trotzdem aktiv, aber nur für Trades GEGEN die BTC-1H-Richtung.
-
-    now = time.time()
-
-    for direction in ["SHORT", "LONG"]:
-        leverage, alignment, reason = get_btc_sma_alignment(direction)
-
-        # Stufe 3+ = alles OK, Cooldown zurücksetzen
-        if alignment >= 3:
-            _sma_risk_cooldown.pop(direction, None)
-            continue
-
-        # Übergangszone (leverage=5, alignment=0): Trade wurde bewusst eröffnet → tolerieren
-        if leverage > 0 and alignment == 0 and "Übergang" in reason:
-            _sma_risk_cooldown.pop(direction, None)
-            continue
-
-        # Cooldown-Logik: 5 Min Pause, max 2x bevor Force-Close
-        cd = _sma_risk_cooldown.get(direction)
-        if cd:
-            elapsed = now - cd["triggered_at"]
-            if elapsed < 300 and cd["count"] < 2:
-                # Noch im Cooldown und unter 2x → warten
-                continue
-            elif elapsed >= 300 and cd["count"] < 2:
-                # Cooldown abgelaufen, aber Stufe immer noch schlecht → zählen
-                _sma_risk_cooldown[direction] = {"triggered_at": now, "count": cd["count"] + 1}
-                log(f"  SMA-RISK Cooldown #{cd['count']+1} für {direction} | Alignment {alignment} | {reason}")
-                continue
-            # count >= 2 → kein Cooldown mehr, sofort schließen
-        else:
-            # Erstes Mal diese Stufe → Cooldown starten
-            _sma_risk_cooldown[direction] = {"triggered_at": now, "count": 1}
-            log(f"  SMA-RISK Cooldown #1 für {direction} | Alignment {alignment} | {reason}")
-            continue
-
-        # Ab hier: Cooldown 2x überschritten → Force Close
-        log(f"  SMA-RISK FORCE: {direction} Alignment {alignment} nach 2x Cooldown | {reason}")
-
-        # Verlust-Schwelle je nach Stufe
-        if alignment == 0:
-            max_loss_pct = 0      # ALLE schließen
-        elif alignment == 1:
-            max_loss_pct = -5     # >5% Verlust schließen
-        elif alignment == 2:
-            max_loss_pct = -15    # >15% Verlust schließen
-
-        closed_count = 0
-        for tf_key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
-            open_trades = [t for t in data[tf_key]
-                          if t["status"] == "open" and t["direction"] == direction]
-
-            if not open_trades:
-                continue
-
-            trades_with_pnl = []
-            for trade in open_trades:
-                coin = trade["coin"]
-                if price_cache and coin in price_cache:
-                    price = price_cache[coin][0]
-                else:
-                    continue
-
-                pnl = calc_pnl(direction, trade["entry"], price, trade.get("size", 0))
-                margin = trade.get("margin", CONFIG["capital"])
-                pnl_pct = (pnl / margin * 100) if margin > 0 else 0
-                trades_with_pnl.append((trade, price, pnl, pnl_pct))
-
-            # Sortiere NUR nach Verlustgröße (kleinste Verluste zuerst)
-            trades_with_pnl.sort(key=lambda x: x[3])
-
-            for trade, price, pnl, pnl_pct in trades_with_pnl:
-                if alignment == 0 or pnl_pct < max_loss_pct:
-                    close_trade(trade, price, "SMA_RISK")
-                    log(f"  SMA-RISK: {trade['coin']} {direction} closed | PnL: ${pnl:.2f} ({pnl_pct:+.1f}%) | Alignment {alignment}")
-                    closed_count += 1
-
-        if closed_count > 0:
-            log(f"  SMA-RISK: {closed_count} {direction} Trades geschlossen")
-            # Cooldown zurücksetzen nach Aktion
-            _sma_risk_cooldown.pop(direction, None)
-
-
-def check_coin_sma(coin, direction):
-    """Coin-eigener SMA-Filter auf 1H.
-    Prüft ob der Coin selbst gegen die Trade-Richtung läuft.
-    Returns: (skip: bool, penalty: int, reason: str)
-    """
-    try:
-        sym = f"{coin}USDT"
-        url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
-        req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
-            klines = json.loads(r.read())
-        if len(klines) < 50:
-            return False, 0, "OK (zu wenig Daten)"
-
-        closes = [float(k[4]) for k in klines]
-        c = closes[-1]
-        sma20 = sum(closes[-20:]) / 20
-        sma50 = sum(closes[-50:]) / 50
-
-        if direction == "SHORT":
-            if c > sma50:
-                return True, 0, f"{coin} ${c:.4f} > SMA50 ${sma50:.4f} — Coin bullish"
-            if c > sma20:
-                return False, 5, f"{coin} > SMA20 — leicht bullish"
-            return False, 0, "OK"
-        else:  # LONG
-            if c < sma50:
-                return True, 0, f"{coin} ${c:.4f} < SMA50 ${sma50:.4f} — Coin bearish"
-            if c < sma20:
-                return False, 5, f"{coin} < SMA20 — leicht bearish"
-            return False, 0, "OK"
-    except:
-        return False, 0, "OK (Error)"
-
-
 def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
-    """Open a new paper trade with Regime-aware leverage.
-    V2K3: BTC-Regime-Detektor + MTF-Alignment.
-    """
+    """Open a new paper trade."""
     capital = CONFIG["capital"]
-
-    # BTC Regime erkennen
-    btc_data = get_btc_sma_cached()
-    regime, regime_conf, regime_detail = detect_btc_regime(btc_data)
-
-    if regime == "SIDEWAYS":
-        # ═══ SIDEWAYS MODE ═══
-        # BTC 1H Grundrichtung bleibt die Basis!
-        # Sideways = BTC entscheidet sich gerade, aber die 1H-Richtung gilt weiter.
-        # Auf 2-15m scannen wir nach Breakout/Coiling in eine Richtung.
-        log(f"  REGIME: SIDEWAYS ({regime_conf}/7) | {regime_detail}")
-
-        # BTC 1H Grundrichtung bestimmen (SMA-Anordnung auf 1H)
-        sma10 = btc_data["sma10"]
-        sma20 = btc_data["sma20"]
-        sma50 = btc_data["sma50"]
-        btc_price = btc_data["price"]
-
-        btc_bearish = btc_price < sma20 and sma10 < sma50
-        btc_bullish = btc_price > sma20 and sma10 > sma50
-
-        # MIT BTC-Grundrichtung = normal erlaubt
-        # GEGEN BTC-Grundrichtung = max 5x, nur bei starker Bestätigung
-        with_btc = (direction == "SHORT" and btc_bearish) or (direction == "LONG" and btc_bullish)
-        against_btc = (direction == "LONG" and btc_bearish) or (direction == "SHORT" and btc_bullish)
-
-        if against_btc:
-            log(f"  SIDEWAYS gegen BTC-1H-Richtung: {direction} vs {'BEARISH' if btc_bearish else 'BULLISH'}")
-
-        # Coin-SMA Filter
-        coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
-        if coin_skip:
-            log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
-            return None
-
-        # MTF-Alignment auf kleinen TFs (2-15m Breakout/Coiling)
-        sym = f"{coin}USDT"
-        mtf_aligned, mtf_total, mtf_detail = check_mtf_alignment(sym, direction)
-        log(f"  MTF-Alignment: {mtf_aligned}/{mtf_total} | {mtf_detail}")
-
-        if against_btc:
-            # Gegen BTC: Nur bei MTF 4/4 erlaubt, max 5x
-            if mtf_aligned < 4:
-                log(f"  SKIP: Gegen BTC-Richtung + MTF nur {mtf_aligned}/4 — zu schwach")
-                return None
-            leverage = 5
-            log(f"  Gegen BTC erlaubt mit 5x — MTF 4/4 bestätigt")
-        else:
-            # Mit BTC: MTF bestimmt den Hebel
-            if mtf_aligned == 0:
-                log(f"  MTF-SKIP: {coin} {direction} — kein TF aligned")
-                return None
-
-            # Coin-eigenes SMA-Alignment prüfen (1H: SMA10/20/50 Anordnung)
-            coin_alignment = 0
-            try:
-                curl = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
-                req = urllib.request.Request(curl)
-                with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
-                    ck = json.loads(r.read())
-                cc = [float(k[4]) for k in ck]
-                c_sma10 = sum(cc[-10:]) / 10
-                c_sma20 = sum(cc[-20:]) / 20
-                c_sma50 = sum(cc[-50:]) / 50
-                cp = cc[-1]
-                if direction == "SHORT":
-                    if cp < c_sma10: coin_alignment += 1
-                    if c_sma10 < c_sma20: coin_alignment += 1
-                    if c_sma20 < c_sma50: coin_alignment += 1
-                else:
-                    if cp > c_sma10: coin_alignment += 1
-                    if c_sma10 > c_sma20: coin_alignment += 1
-                    if c_sma20 > c_sma50: coin_alignment += 1
-                log(f"  Coin-SMA Alignment: {coin_alignment}/3 ({coin} 1H)")
-            except:
-                coin_alignment = 0
-
-            # Hebel: MTF + Coin-Alignment, MIT BTC-Richtung
-            if mtf_aligned >= 4 and coin_alignment >= 3:
-                leverage = 12 if tf == "15m" else 10
-                log(f"  SIDEWAYS+BTC: {coin} {direction} {leverage}x — MTF 4/4 + Coin 3/3")
-            elif mtf_aligned >= 3 and coin_alignment >= 2:
-                leverage = 10
-            elif mtf_aligned >= 2 and coin_alignment >= 1:
-                leverage = 7
-            elif mtf_aligned >= 1:
-                leverage = 5
-            else:
-                leverage = 5
-
-        if coin_penalty > 0:
-            leverage = max(5, leverage - 2)
-            log(f"  COIN-SMA Bremse: {leverage}x — {coin_reason}")
-
-    elif regime == "TRANSITIONING":
-        # ═══ ÜBERGANGSPHASE ═══
-        # BTC entscheidet sich gerade — vorsichtiger, beide Filter aktiv
-        log(f"  REGIME: TRANSITIONING ({regime_conf}/7) | {regime_detail}")
-
-        leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
-        if leverage == 0 or alignment == 0:
-            # Übergangszone oder kein Alignment → SKIP
-            log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
-            return None
-        else:
-            if leverage > 10 and tf != "15m":
-                leverage = 10
-            log(f"  SMA-Alignment: {alignment}/4 | {leverage}x | {sma_reason}")
-
-        coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
-        if coin_skip:
-            log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
-            return None
-        if coin_penalty > 0 and leverage >= 10:
-            leverage = max(7, leverage - 3)
-            log(f"  COIN-SMA: {leverage}x — {coin_reason}")
-
-    else:
-        # ═══ TRENDING MODE (wie V2K2) ═══
-        leverage, alignment, sma_reason = get_btc_sma_alignment(direction)
-        if leverage == 0 or alignment == 0:
-            log(f"  SMA-SKIP: {coin} {direction} — {sma_reason}")
-            return None
-
-        if leverage > 10 and tf != "15m":
-            leverage = 10
-
-        log(f"  REGIME: TRENDING | SMA-Alignment: {alignment}/4 | {leverage}x | {sma_reason}")
-
-        coin_skip, coin_penalty, coin_reason = check_coin_sma(coin, direction)
-        if coin_skip:
-            log(f"  COIN-SMA: {coin} {direction} übersprungen — {coin_reason}")
-            return None
-        if coin_penalty > 0 and leverage >= 10:
-            leverage = max(7, leverage - 3)
-            log(f"  COIN-SMA: {leverage}x — {coin_reason}")
-
+    leverage = CONFIG["leverage"]
     margin = capital
     size = capital * leverage / entry
     liq = calc_liquidation(entry, direction, margin, size)
@@ -1225,7 +639,6 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
         "size": round(size, 4),
         "margin": margin,
         "probability": probability,
-        "leverage": leverage,
         "open_time": datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
         "close_time": None,
         "close_price": None,
@@ -1274,10 +687,7 @@ def get_recent_highlow(sym, minutes=5):
 
 
 def check_open_trades(data):
-    """Check all open trades for TP or liquidation hits using kline highs/lows.
-    Returns price_cache dict: {coin: (current, high, low)} for reuse by manage_open_risk.
-    """
-    all_price_cache = {}
+    """Check all open trades for TP or liquidation hits using kline highs/lows."""
     for tf_key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
         open_trades = [t for t in data[tf_key] if t["status"] == "open"]
         if not open_trades:
@@ -1292,7 +702,6 @@ def check_open_trades(data):
             h, l = get_recent_highlow(sym, 3)
             if p is not None:
                 price_data[coin] = (p, h or p, l or p)
-                all_price_cache[coin] = (p, h or p, l or p)
             time.sleep(0.05)
 
         for trade in open_trades:
@@ -1301,8 +710,9 @@ def check_open_trades(data):
                 continue
             current_price, recent_high, recent_low = price_data[coin]
 
-            # SL check: close at sl_pct% loss before liquidation
-            sl_pct = CONFIG.get("sl_pct", 0)
+            # SL check: TF-spezifischer SL (1H = 15%, Rest = 40%)
+            tf_sl_key = "sl_pct_" + tf_key.replace("trades_", "")  # sl_pct_1h etc.
+            sl_pct = CONFIG.get(tf_sl_key, CONFIG.get("sl_pct", 0))
             sl_price = None
             if sl_pct > 0:
                 margin = trade.get("margin", CONFIG["capital"])
@@ -1338,8 +748,6 @@ def check_open_trades(data):
                 elif recent_high >= trade["liq"]:
                     close_trade(trade, trade["liq"], "LIQ")
                     log(f"  LIQ HIT: {coin} SHORT | High {recent_high:.6f} >= Liq {trade['liq']:.6f}")
-
-    return all_price_cache
 
 
 def update_stats(data):
@@ -1561,18 +969,10 @@ def scan_and_trade(data, tf, limit, tf_key):
 # LOGGING
 # ═══════════════════════════════════════════════════════════════
 
-_LOG_FILE = "/tmp/paper_bot_v2k3.log"
-
 def log(msg):
-    """Print timestamped log message to stdout and file."""
+    """Print timestamped log message."""
     ts = datetime.now(TZ).strftime("%H:%M:%S")
-    line = f"[{ts}] [V2K3] {msg}"
-    print(line, flush=True)
-    try:
-        with open(_LOG_FILE, 'a') as f:
-            f.write(line + '\n')
-    except:
-        pass
+    print(f"[{ts}] [V2K3] {msg}", flush=True)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1609,12 +1009,13 @@ def main():
 
     while True:
         try:
-            # Zeitpunkt ZUERST merken, bevor check_open_trades die Minute verbraucht
             now = datetime.now(TZ)
             minute = now.minute
             hour = now.hour
 
-            # Scans ZUERST ausführen (zeitkritisch, verpassen sonst den Slot)
+            # Check open trades for TP/Liq every minute
+            check_open_trades(data)
+
             # 15min scan: run at 0, 15, 30, 45
             current_15m_slot = (hour * 60 + minute) // 15
             if minute % 15 == 0 and current_15m_slot != last_15m_scan:
@@ -1649,13 +1050,8 @@ def main():
                 save_data(data)
                 print_status(data)
 
-            # Check open trades for TP/Liq (nach Scans, da zeitintensiv ~30s)
-            price_cache = check_open_trades(data)
-
-            # Dynamischer Risk Manager — nutzt price_cache, keine extra API-Calls
-            manage_open_risk(data, price_cache)
-
-            # Save after all checks
+            # Save periodically (every check cycle) if any trades were closed
+            # (check_open_trades may have closed trades)
             update_stats(data)
             save_data(data)
 
