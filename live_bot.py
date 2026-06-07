@@ -1269,6 +1269,7 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
         "size": round(size, 4),
         "margin": margin,
         "probability": probability,
+        "leverage": leverage,
         "open_time": datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
         "close_time": None,
         "close_price": None,
