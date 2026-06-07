@@ -481,17 +481,8 @@ function renderStats(containerId, stats) {
 }
 
 function renderConfig(config) {
-  const el = document.getElementById('configBar');
-  const updated = config.start_date || new Date().toISOString().slice(0,10);
-  el.innerHTML = `
-    <span>Capital <b style="color:#c9d1d9">$${config.capital || 100}</b></span>
-    <span>Leverage <b style="color:#c9d1d9">${config.leverage || 10}x</b></span>
-    <span>Min Prob <b style="color:#c9d1d9">${config.min_probability || config.min_prob || 60}%</b></span>
-    <span>TP <b style="color:#c9d1d9">${config.tp_range_pct || config.tp_pct || 70}%</b></span>
-    <span>SL <b style="color:#c9d1d9">${config.sl_pct || 0}%</b></span>
-    <span style="color:#484f58;font-size:.65rem">Stand: ${updated}</span>
-  `;
-  // Populate input fields from JSON data as fallback
+  // Obere configBar ausblenden — settings-row reicht
+  document.getElementById('configBar').innerHTML = '';
   populateConfigFields(config);
 }
 
