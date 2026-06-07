@@ -919,6 +919,7 @@ def load_data():
 
 
 def save_data(data):
+    data["_heartbeat"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
     """Save live trades to JSON file."""
     try:
         with open(DATA_FILE, "w") as f:
