@@ -1417,25 +1417,42 @@ def check_open_trades(data):
                     else:
                         sl_price = trade["entry"] + sl_loss / size
 
-            # Standard price-based checks (same as paper bot)
+            # Standard price-based checks
+            # In LIVE mode: send close order to Bybit FIRST, only mark closed if order succeeds
+            close_price = None
+            close_reason = None
+
             if trade["direction"] == "LONG":
                 if recent_high >= trade["tp"]:
-                    close_trade(trade, trade["tp"], "TP")
+                    close_price, close_reason = trade["tp"], "TP"
                 elif sl_price is not None and recent_low <= sl_price:
-                    close_trade(trade, sl_price, "SL")
-                    log(f"  SL HIT: {coin} LONG | Low {recent_low:.6f} <= SL {sl_price:.6f} ({sl_pct}%)")
+                    close_price, close_reason = sl_price, "SL"
                 elif recent_low <= trade["liq"]:
-                    close_trade(trade, trade["liq"], "LIQ")
-                    log(f"  LIQ HIT: {coin} LONG | Low {recent_low:.6f} <= Liq {trade['liq']:.6f}")
+                    close_price, close_reason = trade["liq"], "LIQ"
             else:  # SHORT
                 if recent_low <= trade["tp"]:
-                    close_trade(trade, trade["tp"], "TP")
+                    close_price, close_reason = trade["tp"], "TP"
                 elif sl_price is not None and recent_high >= sl_price:
-                    close_trade(trade, sl_price, "SL")
-                    log(f"  SL HIT: {coin} SHORT | High {recent_high:.6f} >= SL {sl_price:.6f} ({sl_pct}%)")
+                    close_price, close_reason = sl_price, "SL"
                 elif recent_high >= trade["liq"]:
-                    close_trade(trade, trade["liq"], "LIQ")
-                    log(f"  LIQ HIT: {coin} SHORT | High {recent_high:.6f} >= Liq {trade['liq']:.6f}")
+                    close_price, close_reason = trade["liq"], "LIQ"
+
+            if close_price is not None:
+                # LIVE: Close on Bybit first
+                if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
+                    close_side = "Sell" if trade["direction"] == "LONG" else "Buy"
+                    result = close_position_market(bybit_sym, close_side, trade["bybit_qty"])
+                    if not result or result.get("retCode") != 0:
+                        err = result.get("retMsg", "Unknown") if result else "No response"
+                        log(f"  CLOSE FAILED on Bybit: {coin} {close_reason} | {err} — keeping open, retry next scan")
+                        continue
+                    log(f"  [LIVE] Bybit close order OK: {coin} {close_side} {trade['bybit_qty']}")
+
+                close_trade(trade, close_price, close_reason)
+                if close_reason == "SL":
+                    log(f"  SL HIT: {coin} {trade['direction']} | Price vs SL {sl_price:.6f} ({sl_pct}%)")
+                elif close_reason == "LIQ":
+                    log(f"  LIQ HIT: {coin} {trade['direction']} | Liq {trade['liq']:.6f}")
 
 
 def update_stats(data):
