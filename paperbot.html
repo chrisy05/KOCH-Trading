@@ -737,6 +737,38 @@ async function loadData() {
     renderStats('stats30m', data.stats_30m || {});
     renderStats('stats1h', data.stats_1h || {});
     renderStats('stats4h', data.stats_4h || {});
+
+    // Gray out deactivated TF cards (budget 0%)
+    const cfg = data.config || {};
+    const tfBudgets = {
+      'stats15m': cfg.tf_budget_15m != null ? cfg.tf_budget_15m : 50,
+      'stats30m': cfg.tf_budget_30m != null ? cfg.tf_budget_30m : 30,
+      'stats1h': cfg.tf_budget_1h != null ? cfg.tf_budget_1h : 20,
+      'stats4h': cfg.tf_budget_4h != null ? cfg.tf_budget_4h : 0
+    };
+    for (const [statsId, budget] of Object.entries(tfBudgets)) {
+      const statsEl = document.getElementById(statsId);
+      if (!statsEl) continue;
+      const card = statsEl.closest('.summary-card');
+      if (!card) continue;
+      const heading = card.querySelector('h2');
+      // Remove any previous DEAKTIVIERT label
+      const oldLabel = heading ? heading.querySelector('.deaktiviert-label') : null;
+      if (oldLabel) oldLabel.remove();
+      if (budget === 0) {
+        card.style.opacity = '0.35';
+        if (heading) {
+          const span = document.createElement('span');
+          span.className = 'deaktiviert-label';
+          span.style.cssText = 'color:#ef4444;font-size:.65rem;font-weight:600;margin-left:8px;letter-spacing:.5px';
+          span.textContent = '(DEAKTIVIERT)';
+          heading.appendChild(span);
+        }
+      } else {
+        card.style.opacity = '';
+      }
+    }
+
     renderGesamt(data);
 
     const t15 = data.trades_15m || [];
