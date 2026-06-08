@@ -1104,18 +1104,14 @@ async function loadKodaSE() {
 
     // Status badge
     const statusEl = document.getElementById('kodaSEStatus');
-    const hb = data._heartbeat;
-    if (hb) {
-      const age = (Date.now() - new Date(hb).getTime()) / 1000;
-      if (age < 120) {
-        statusEl.textContent = open.length > 0 ? 'TRADING' : 'WATCHING';
-        statusEl.style.color = open.length > 0 ? '#22c55e' : '#f59e0b';
-        statusEl.style.background = open.length > 0 ? '#22c55e15' : '#f59e0b15';
-      } else {
-        statusEl.textContent = 'OFFLINE';
-        statusEl.style.color = '#ef4444';
-        statusEl.style.background = '#ef444415';
-      }
+    if (open.length > 0) {
+      statusEl.textContent = 'TRADING';
+      statusEl.style.color = '#22c55e';
+      statusEl.style.background = '#22c55e15';
+    } else {
+      statusEl.textContent = 'ONLINE — Signal Erwartung';
+      statusEl.style.color = '#22c55e';
+      statusEl.style.background = '#22c55e15';
     }
 
     // Last trade info
