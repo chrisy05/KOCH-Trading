@@ -23,9 +23,14 @@ if [ $? -ne 0 ]; then
 fi
 echo ""
 
+# 1b. Bybit Live Data Sync
+echo "1b. Bybit Live Data Sync..."
+python3 bybit_sync.py 2>&1 || echo "  Warnung: bybit_sync.py fehlgeschlagen"
+echo ""
+
 # 2. Backup
 echo "2. Lokales Backup..."
-for f in index.html trades.html stats.html bot.html koda.html auszahlung.html trades_data.js; do
+for f in index.html trades.html stats.html bot.html koda.html auszahlung.html trades_data.js bybit_live_data.json; do
     [ -f "$f" ] && cp "$f" "$BACKUP/$f"
 done
 echo "   Backup → $BACKUP/"
