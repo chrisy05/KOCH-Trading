@@ -1057,7 +1057,41 @@ function loadAllPaperBots() {
 loadAllPaperBots();
 setInterval(loadAllPaperBots, 30000);
 
-// ── Signal-Trading-Bot (Placeholder) ──
+// ── Viona Signal Trade Log ──
+async function loadVionaTrades() {
+  try {
+    const r = await fetch('viona_trades.json?t=' + Date.now());
+    if (!r.ok) return;
+    const data = await r.json();
+    const tbody = document.getElementById('sigTradeLog');
+    const trades = data.trades || [];
+    if (trades.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:#333">Noch keine Signal-Trades</td></tr>';
+      return;
+    }
+    let html = '';
+    for (const t of trades.sort((a,b) => b.id - a.id)) {
+      const dirColor = t.direction === 'LONG' ? '#22c55e' : '#ef4444';
+      const pnlColor = t.pnl >= 0 ? '#22c55e' : '#ef4444';
+      html += `<tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:6px 8px;color:#58a6ff">${t.id}</td>
+        <td style="padding:6px 8px;color:#8b949e">${t.date}</td>
+        <td style="padding:6px 8px;font-weight:600">${t.coin}</td>
+        <td style="padding:6px 8px"><span style="background:${dirColor}22;color:${dirColor};padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:700">${t.direction}</span> ${t.leverage}x</td>
+        <td style="padding:6px 8px;text-align:right">$${t.entry}</td>
+        <td style="padding:6px 8px;text-align:right">$${t.exit || '—'}</td>
+        <td style="padding:6px 8px;text-align:right">${t.duration || '—'}</td>
+        <td style="padding:6px 8px;text-align:right;color:${pnlColor};font-weight:700">$${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}</td>
+        <td style="padding:6px 8px;text-align:right;color:${pnlColor}">${t.roi >= 0 ? '+' : ''}${t.roi.toFixed(1)}%</td>
+        <td style="padding:6px 8px"><span style="color:#8b949e;font-size:.7rem">${t.exchange}</span></td>
+      </tr>`;
+    }
+    tbody.innerHTML = html;
+  } catch(e) { console.error('loadVionaTrades:', e); }
+}
+loadVionaTrades();
+setInterval(loadVionaTrades, 30000);
+
 function saveSignalConfig() {
   alert('Coming soon — Signal-Bot Settings werden gespeichert.');
 }
