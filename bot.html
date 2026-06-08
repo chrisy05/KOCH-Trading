@@ -109,12 +109,14 @@
         <span id="liveStatus" style="padding:5px 14px;border-radius:20px;font-size:.8rem;font-weight:700;background:#f59e0b15;color:#f59e0b">BEREIT</span>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
       <div class="stat-box"><div class="label">Modus</div><div class="value" style="color:#f59e0b" id="lbMode">Bereit</div></div>
       <div class="stat-box"><div class="label">Exchange</div><div class="value" style="color:#00c8ff">Bybit</div></div>
+      <div class="stat-box"><div class="label">Equity</div><div class="value white" id="lbEquity">—</div></div>
       <div class="stat-box"><div class="label">Balance</div><div class="value white" id="lbBalance">—</div></div>
-      <div class="stat-box"><div class="label">API</div><div class="value" id="lbApi" style="color:#555">Prüfe...</div></div>
+      <div class="stat-box"><div class="label">Verfügbar</div><div class="value white" id="lbAvailable">—</div></div>
     </div>
+    <div style="font-size:.65rem;color:#484f58;margin-bottom:12px" id="bybitUpdated">Bybit Daten: —</div>
     <style>
       .cfg-input{background:#1a1a1a;border:2px solid #333;color:#fff;padding:14px 16px;border-radius:8px;font-size:1.5rem;font-weight:700;width:100%;text-align:center;outline:none;transition:border-color .2s;-moz-appearance:textfield}
       .cfg-input:focus{border-color:#58a6ff}
@@ -229,7 +231,7 @@
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">TP</th>
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">PnL</th>
               <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">ROI</th>
-              <th style="padding:8px;text-align:left;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Opened</th>
+              <th style="padding:8px;text-align:right;color:#8b949e;text-transform:uppercase;font-size:.68rem;position:sticky;top:0;background:#161616">Margin</th>
             </tr>
           </thead>
           <tbody id="livePositionsBody">
@@ -794,85 +796,131 @@ async function loadConfig() {
 
 loadConfig();
 checkLiveBot();
-loadLivePositions();
+loadBybitData();
 loadLiveTrades();
 setInterval(checkLiveBot, 10000);
+setInterval(loadBybitData, 30000);
 
-// ── Live Positions & Trade Log ──
+// ── Bybit Live Data (from bybit_live_data.json) ──
 let _lastPosHtml = '';
 let _lastTradeHtml = '';
-async function loadLivePositions() {
-  try {
-    let data;
-    try {
-      const r = await fetch(BOT_API + '/positions');
-      if (r.ok) data = await r.json();
-    } catch(e) {}
-    if (!data) {
-      try {
-        const r2 = await fetch('live_positions.json?t=' + Date.now(), {cache:'no-store'});
-        if (r2.ok) data = await r2.json();
-      } catch(e2) {}
-    }
-    if (!data) return;
-    const tbody = document.getElementById('livePositionsBody');
-    if (!data.positions || data.positions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:#333">Keine offenen Positionen</td></tr>';
-      return;
-    }
-    let rowsHtml = '';
-    // Load trade open times from live_trades.json
-    let tradeOpenTimes = {};
-    try {
-      const tr = await fetch('live_trades.json?t=' + Date.now(), {cache:'no-store'});
-      if (tr.ok) {
-        const td = await tr.json();
-        for (const key of ['trades_15m','trades_30m','trades_1h','trades_4h']) {
-          for (const t of (td[key]||[])) {
-            if (t.status === 'open' && t.coin) {
-              tradeOpenTimes[t.coin] = t.open_time;
-            }
-          }
-        }
-      }
-    } catch(e) {}
 
-    data.positions.forEach(p => {
-      const coin = p.symbol.replace('USDT', '');
-      const side = p.side === 'Buy' ? 'LONG' : 'SHORT';
-      const dirClass = side === 'LONG' ? 'long' : 'short';
-      const pnl = parseFloat(p.unrealisedPnl) || 0;
-      const pnlClass = pnl >= 0 ? 'pos' : 'neg';
-      const entry = parseFloat(p.avgPrice) || 0;
-      const mark = parseFloat(p.markPrice) || 0;
+async function loadBybitData() {
+  try {
+    const r = await fetch('bybit_live_data.json?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) return;
+    const data = await r.json();
+
+    // Update timestamp
+    if (data.updated) {
+      const dt = data.updated.replace('T', ' ');
+      document.getElementById('bybitUpdated').textContent = 'Bybit Daten: ' + dt;
+      document.getElementById('bybitUpdated').style.color = '#22c55e';
+    }
+
+    // Account info
+    if (data.account) {
+      document.getElementById('lbEquity').textContent = '$' + data.account.equity.toFixed(2);
+      document.getElementById('lbBalance').textContent = '$' + data.account.balance.toFixed(2);
+      document.getElementById('lbAvailable').textContent = '$' + data.account.available.toFixed(2);
+    }
+
+    // Positions table
+    const tbody = document.getElementById('livePositionsBody');
+    const positions = data.positions || [];
+
+    if (positions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:#333">Keine offenen Positionen</td></tr>';
+    } else {
+      let rowsHtml = '';
+      positions.forEach(p => {
+        const coin = p.coin;
+        const side = p.side === 'Buy' ? 'LONG' : 'SHORT';
+        const dirClass = side === 'LONG' ? 'long' : 'short';
+        const pnl = p.upnl || 0;
+        const pnlClass = pnl >= 0 ? 'pos' : 'neg';
+        const entry = p.entry || 0;
+        const mark = p.markPrice || 0;
+        const lev = parseFloat(p.leverage) || 1;
+        let roi = 0;
+        if (entry > 0) {
+          roi = side === 'LONG'
+            ? ((mark - entry) / entry) * lev * 100
+            : ((entry - mark) / entry) * lev * 100;
+        }
+        const roiClass = roi >= 0 ? 'pos' : 'neg';
+        const liq = p.liqPrice && parseFloat(p.liqPrice) > 0 ? '$' + parseFloat(p.liqPrice).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4}) : '—';
+        const tp = p.tp && parseFloat(p.tp) > 0 ? '$' + parseFloat(p.tp).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}) : '—';
+        const sl = p.sl && parseFloat(p.sl) > 0 ? parseFloat(p.sl).toFixed(4) : '';
+        const slTag = sl ? ' <span style="color:#ef4444;font-size:.6rem">SL:' + sl + '</span>' : '';
+        rowsHtml += `<tr>
+          <td><span class="coin">${coin}</span></td>
+          <td><span class="badge ${dirClass}">${side}</span> <span style="color:#8b949e;font-size:.65rem">${p.leverage}x</span></td>
+          <td style="text-align:right">${p.size}</td>
+          <td style="text-align:right">$${entry.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
+          <td style="text-align:right">$${mark.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
+          <td style="text-align:right">${liq}</td>
+          <td style="text-align:right">${tp}${slTag}</td>
+          <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(4)}</td>
+          <td style="text-align:right" class="${roiClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
+          <td style="color:#555;font-size:.7rem">$${p.margin.toFixed(2)}</td>
+        </tr>`;
+      });
+      if (rowsHtml !== _lastPosHtml) {
+        tbody.innerHTML = rowsHtml;
+        _lastPosHtml = rowsHtml;
+      }
+    }
+
+    // Live position stats
+    let totalPnl = 0, totalMargin = 0, totalRoi = 0;
+    positions.forEach(p => {
+      totalPnl += p.upnl || 0;
+      totalMargin += p.margin || 0;
+      const entry = p.entry || 0;
+      const mark = p.markPrice || 0;
       const lev = parseFloat(p.leverage) || 1;
-      const openTime = tradeOpenTimes[coin] ? tradeOpenTimes[coin].replace('T',' ').slice(0,16) : '';
-      // ROI = (mark - entry) / entry * leverage * 100 for LONG, inverted for SHORT
-      let roi = 0;
+      const side = p.side === 'Buy' ? 'LONG' : 'SHORT';
       if (entry > 0) {
-        roi = side === 'LONG'
+        totalRoi += side === 'LONG'
           ? ((mark - entry) / entry) * lev * 100
           : ((entry - mark) / entry) * lev * 100;
       }
-      const roiClass = roi >= 0 ? 'pos' : 'neg';
-      rowsHtml += `<tr>
-        <td><span class="coin">${coin}</span></td>
-        <td><span class="badge ${dirClass}">${side}</span></td>
-        <td style="text-align:right">${p.size}</td>
-        <td style="text-align:right">$${entry.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
-        <td style="text-align:right">$${mark.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
-        <td style="text-align:right">${p.liqPrice && parseFloat(p.liqPrice) > 0 ? '$'+parseFloat(p.liqPrice).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4}) : '—'}</td>
-        <td style="text-align:right">${p.takeProfit ? '$'+parseFloat(p.takeProfit).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}) : '—'}</td>
-        <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(4)}</td>
-        <td style="text-align:right" class="${roiClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
-        <td style="color:#555;font-size:.7rem">${openTime}</td>
-      </tr>`;
     });
-    if (rowsHtml !== _lastPosHtml) {
-      tbody.innerHTML = rowsHtml;
-      _lastPosHtml = rowsHtml;
+
+    document.getElementById('kodaOpenCount').textContent = positions.length;
+
+    const pnlEl = document.getElementById('kodaUnrealPnl');
+    pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+    pnlEl.style.color = totalPnl >= 0 ? '#22c55e' : '#ef4444';
+
+    document.getElementById('kodaMargin').textContent = '$' + totalMargin.toFixed(0);
+
+    const avgRoi = positions.length > 0 ? totalRoi / positions.length : 0;
+    const roiEl = document.getElementById('kodaAvgRoi');
+    roiEl.textContent = (avgRoi >= 0 ? '+' : '') + avgRoi.toFixed(1) + '%';
+    roiEl.style.color = avgRoi >= 0 ? '#22c55e' : '#ef4444';
+
+    // Closed stats from Bybit
+    if (data.stats) {
+      const s = data.stats;
+      document.getElementById('kodaClosedCount').textContent = s.total_trades;
+
+      const wlEl = document.getElementById('kodaWL');
+      wlEl.innerHTML = '<span style="color:#22c55e">' + s.wins + '</span> / <span style="color:#ef4444">' + s.losses + '</span>';
+
+      const wr = s.total_trades > 0 ? (s.wins / s.total_trades * 100) : 0;
+      const wrEl = document.getElementById('kodaWR');
+      wrEl.textContent = wr.toFixed(1) + '%';
+      wrEl.style.color = wr >= 60 ? '#22c55e' : wr >= 50 ? '#f59e0b' : '#ef4444';
+
+      const tpEl = document.getElementById('kodaTotalPnl');
+      tpEl.textContent = (s.total_pnl >= 0 ? '+' : '') + '$' + s.total_pnl.toFixed(2);
+      tpEl.style.color = s.total_pnl >= 0 ? '#22c55e' : '#ef4444';
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error('loadBybitData error:', e);
+  }
 }
 
 async function loadLiveTrades() {
@@ -965,96 +1013,8 @@ async function loadLiveTrades() {
   } catch(e) {}
 }
 
-// Auto-refresh positions every 5s, trades every 30s
-setInterval(loadLivePositions, 5000);
+// Auto-refresh trades every 30s
 setInterval(loadLiveTrades, 30000);
-setInterval(updateKodaStats, 15000);
-
-async function updateKodaStats() {
-  // Live positions stats
-  try {
-    let posData;
-    try { const r = await fetch(BOT_API + '/positions'); if (r.ok) posData = await r.json(); } catch(e) {}
-    if (!posData) { try { const r2 = await fetch('live_positions.json?t='+Date.now()); if (r2.ok) posData = await r2.json(); } catch(e) {} }
-
-    if (posData && posData.positions) {
-      const pos = posData.positions;
-      document.getElementById('kodaOpenCount').textContent = pos.length;
-
-      let totalPnl = 0, totalMargin = 0, totalRoi = 0;
-      pos.forEach(p => {
-        totalPnl += parseFloat(p.unrealisedPnl || 0);
-        const entry = parseFloat(p.avgPrice || 0);
-        const mark = parseFloat(p.markPrice || 0);
-        const lev = parseFloat(p.leverage || 10);
-        const size = parseFloat(p.size || 0);
-        totalMargin += entry > 0 ? (size * entry / lev) : 0;
-        if (entry > 0) {
-          const roi = p.side === 'Buy' ? ((mark-entry)/entry)*lev*100 : ((entry-mark)/entry)*lev*100;
-          totalRoi += roi;
-        }
-      });
-
-      const pnlEl = document.getElementById('kodaUnrealPnl');
-      pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
-      pnlEl.style.color = totalPnl >= 0 ? '#22c55e' : '#ef4444';
-
-      document.getElementById('kodaMargin').textContent = '$' + totalMargin.toFixed(0);
-
-      const avgRoi = pos.length > 0 ? totalRoi / pos.length : 0;
-      const roiEl = document.getElementById('kodaAvgRoi');
-      roiEl.textContent = (avgRoi >= 0 ? '+' : '') + avgRoi.toFixed(1) + '%';
-      roiEl.style.color = avgRoi >= 0 ? '#22c55e' : '#ef4444';
-    }
-  } catch(e) {}
-
-  // Closed trades stats
-  try {
-    let tradeData;
-    try { const r = await fetch(BOT_API + '/trades'); if (r.ok) tradeData = await r.json(); } catch(e) {}
-    if (!tradeData) { try { const r2 = await fetch('live_trades.json?t='+Date.now()); if (r2.ok) tradeData = await r2.json(); } catch(e) {} }
-
-    if (tradeData) {
-      let closed = [];
-      if (tradeData.trades) {
-        closed = tradeData.trades.filter(t => t.status === 'closed');
-      } else {
-        for (const key of ['trades_15m','trades_30m','trades_1h','trades_4h']) {
-          if (tradeData[key]) closed.push(...tradeData[key].filter(t => t.status === 'closed'));
-        }
-      }
-
-      const wins = closed.filter(t => t.close_reason === 'TP').length;
-      const losses = closed.filter(t => t.close_reason === 'SL' || t.close_reason === 'LIQ').length;
-      const totalPnl = closed.reduce((s,t) => s + (t.pnl || 0), 0);
-      const wr = closed.length > 0 ? (wins/closed.length*100) : 0;
-
-      document.getElementById('kodaClosedCount').textContent = closed.length;
-
-      const wlEl = document.getElementById('kodaWL');
-      wlEl.innerHTML = '<span style=\"color:#22c55e\">' + wins + '</span> / <span style=\"color:#ef4444\">' + losses + '</span>';
-
-      const wrEl = document.getElementById('kodaWR');
-      wrEl.textContent = wr.toFixed(1) + '%';
-      wrEl.style.color = wr >= 60 ? '#22c55e' : wr >= 50 ? '#f59e0b' : '#ef4444';
-
-      const pnlEl = document.getElementById('kodaTotalPnl');
-      pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
-      pnlEl.style.color = totalPnl >= 0 ? '#22c55e' : '#ef4444';
-
-      // Find earliest trade date
-      let earliest = '';
-      closed.forEach(t => {
-        const ot = t.open_time || '';
-        if (ot && (!earliest || ot < earliest)) earliest = ot;
-      });
-      const sinceStr = earliest ? 'Daten seit: ' + earliest.slice(0,10) : '';
-      document.getElementById('kodaClosedSince').textContent = sinceStr;
-      document.getElementById('kodaLiveSince').textContent = sinceStr;
-    }
-  } catch(e) {}
-}
-updateKodaStats();
 
 // ── Paper Bots V2K1/K2/K3 ──
 async function loadPaperBot(file, prefix) {
