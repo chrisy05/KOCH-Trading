@@ -21,7 +21,7 @@ CONFIG = {
     "capital": 200,
     "leverage": 10,
     "min_probability": 60,
-    "tp_range_pct": 70,       # 70% of expected move
+    "tp_range_pct": 15,       # 15% of expected move (geändert 08.06.)
     "sl_pct": 40,             # V2: SL bei 40% Verlust der Margin (15m/30m)
     "sl_pct_1h": 15,          # 1H: SL bei 15% Verlust der Margin
     "max_open_15m": 50,

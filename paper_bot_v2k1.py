@@ -28,10 +28,10 @@ CONFIG = {
     "max_trades_per_coin_1h": 1,  # per day
     "max_open_4h": 3,
     "total_budget": 2000,     # Gesamtkapital $2.000
-    "tf_budget_15m": 50,      # % of total budget for 15m trades
-    "tf_budget_30m": 30,      # % of total budget for 30m trades
-    "tf_budget_1h": 20,       # % of total budget for 1h trades
-    "tf_budget_4h": 0,        # % of total budget for 4h trades (0 = disabled)
+    "tf_budget_15m": 100,     # % of total budget for 15m trades (nur 15m aktiv)
+    "tf_budget_30m": 0,       # deaktiviert 08.06.
+    "tf_budget_1h": 0,        # deaktiviert 08.06.
+    "tf_budget_4h": 0,        # deaktiviert
 }
 
 # Load config overrides from JSON file (written by dashboard settings)
