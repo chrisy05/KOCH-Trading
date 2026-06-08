@@ -444,9 +444,11 @@
     </div>
   </div>
 
-  <!-- KODA SE-Analyzer Paper Bot -->
-  <div style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:24px">
-    <div style="background:#161616;border:1px solid #f59e0b33;border-left:3px solid #f59e0b;border-radius:10px;padding:16px">
+  <!-- KODA SE-Analyzer Container -->
+  <div style="border:2px solid #f59e0b;border-radius:14px;padding:18px;margin-bottom:24px;background:#0d0d0d">
+
+    <!-- KODA SE Paper Bot Card -->
+    <div style="background:#161616;border:1px solid #f59e0b33;border-left:3px solid #f59e0b;border-radius:10px;padding:16px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div>
           <h3 style="color:#f59e0b;font-size:.95rem;margin-bottom:3px">KODA SE Paper Bot</h3>
@@ -462,59 +464,69 @@
         <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Letzter Trade</div><div style="font-size:.85rem;font-weight:600;color:#8b949e" id="kodaSELast">--</div></div>
       </div>
     </div>
-  </div>
 
-  <!-- KODA Bot (ER1) KPI Row -->
-  <div class="grid-4">
-    <div class="stat-box"><div class="label">Bot Trades</div><div class="value white" id="kpi-trades">0</div><div class="sub" id="kpi-trades-sub">—</div></div>
-    <div class="stat-box"><div class="label">Winrate</div><div class="value green" id="kpi-wr">—</div><div class="sub" id="kpi-wr-sub"></div></div>
-    <div class="stat-box"><div class="label">Net PNL</div><div class="value" id="kpi-pnl">$0.00</div><div class="sub" id="kpi-pnl-sub">USDT realisiert</div></div>
-    <div class="stat-box"><div class="label">Avg Trade</div><div class="value" id="kpi-avg">—</div><div class="sub">pro Trade</div></div>
-  </div>
-
-  <!-- Strategy & Performance -->
-  <div class="grid-2">
-    <div class="card">
-      <h2>Strategie Performance</h2>
-      <div id="strat-bars"></div>
+    <!-- KODA SE KPI Row -->
+    <div class="grid-4">
+      <div class="stat-box"><div class="label">Bot Trades</div><div class="value white" id="kpi-trades">0</div><div class="sub" id="kpi-trades-sub">—</div></div>
+      <div class="stat-box"><div class="label">Winrate</div><div class="value green" id="kpi-wr">—</div><div class="sub" id="kpi-wr-sub"></div></div>
+      <div class="stat-box"><div class="label">Net PNL</div><div class="value" id="kpi-pnl">$0.00</div><div class="sub" id="kpi-pnl-sub">USDT realisiert</div></div>
+      <div class="stat-box"><div class="label">Avg Trade</div><div class="value" id="kpi-avg">—</div><div class="sub">pro Trade</div></div>
     </div>
-    <div class="card">
-      <h2>Bot Status</h2>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Modus</div><div id="bot-mode" style="font-size:1rem;font-weight:700;color:#f59e0b">TESTNET</div></div>
-        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Strategie</div><div style="font-size:1rem;font-weight:700;color:#00c8ff">ER1</div></div>
-        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Position Size</div><div id="bot-size" style="font-size:1rem;font-weight:700">$10 × 10x</div></div>
-        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">TP / SL</div><div style="font-size:1rem;font-weight:700">+1.0% / -1.2%</div></div>
-        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Split-TP</div><div style="font-size:1rem;font-weight:700;color:#22c55e">50% TP1 + Trail</div></div>
-        <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Coins</div><div id="bot-coins" style="font-size:.85rem;font-weight:600">Tier 1 (8)</div></div>
+
+    <!-- Bot Status -->
+    <div class="grid-2">
+      <div class="card">
+        <h2>Bot Status</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Modus</div><div id="bot-mode" style="font-size:1rem;font-weight:700;color:#f59e0b">PAPER</div></div>
+          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Strategie</div><div style="font-size:1rem;font-weight:700;color:#f59e0b">KODA SE-Analyzer</div></div>
+          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Position Size</div><div id="bot-size" style="font-size:1rem;font-weight:700">$1k x dynamic</div></div>
+          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">TP / SL</div><div style="font-size:1rem;font-weight:700">from signal</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Performance nach Coin</h2>
+        <div id="coin-perf"></div>
       </div>
     </div>
-  </div>
 
-  <!-- Coin Performance -->
-  <div class="card">
-    <h2>Performance nach Coin</h2>
-    <div id="coin-perf"></div>
-  </div>
-
-  <!-- Trade Log -->
-  <div class="card">
-    <h2>Trade Log</h2>
-    <div style="overflow-x:auto">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th><th>Datum</th><th>Coin</th><th>Richt.</th><th>Strat</th>
-          <th>Entry</th><th>TP1</th><th>Rest Exit</th>
-          <th>ROI %</th><th>Net PNL</th><th>Dauer</th>
-          <th>Status</th><th>Notiz</th>
-        </tr>
-      </thead>
-      <tbody id="trade-tbody"></tbody>
-    </table>
+    <!-- Signal Log -->
+    <div class="card">
+      <h2 style="color:#f59e0b">Signal Log</h2>
+      <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Zeit</th><th>Coin</th><th>Richt.</th><th>Score</th>
+            <th>Entry</th><th>TP</th><th>SL</th><th>BTC Trend</th>
+          </tr>
+        </thead>
+        <tbody id="signal-log-tbody"></tbody>
+      </table>
+      </div>
+      <div id="signal-empty-msg" style="text-align:center;padding:30px;color:#333">Keine Signale vorhanden</div>
     </div>
-    <div id="empty-msg" style="text-align:center;padding:40px;color:#333">Noch keine Bot-Trades vorhanden</div>
-  </div>
+
+    <!-- Bot Trade Log -->
+    <div class="card">
+      <h2 style="color:#f59e0b">Bot Trade Log</h2>
+      <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Datum</th><th>Coin</th><th>Richt.</th>
+            <th>Entry</th><th>Exit</th>
+            <th>ROI %</th><th>Net PNL</th><th>Dauer</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="trade-tbody"></tbody>
+      </table>
+      </div>
+      <div id="empty-msg" style="text-align:center;padding:30px;color:#333">Noch keine Bot-Trades vorhanden</div>
+    </div>
+
+  </div><!-- end KODA SE container -->
 </div>
 
 <div style="display:flex;justify-content:space-between;align-items:center;padding:10px"><a href="cockpit.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">← Cockpit</a><a href="index.html" style="color:#58a6ff;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Dashboard</a><a href="kapitalfluss.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Kapitalfluss →</a></div>
@@ -540,10 +552,64 @@ pwInput.addEventListener('input', function() {
 
 // ── Data Loading ──
 function loadData() {
-  // Load KODA-Bot trades from Excel via embedded JSON
-  // In production: fetch from webhook or JSON endpoint
-  const trades = typeof KODA_TRADES !== 'undefined' ? KODA_TRADES : [];
-  render(trades);
+  // Load trades from paper_trades_koda_se.json
+  fetch('paper_trades_koda_se.json?t=' + Date.now(), {cache:'no-store'})
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && data.trades) render(data.trades);
+      else render([]);
+    })
+    .catch(() => render([]));
+  // Also load signal log
+  loadSignalLog();
+}
+
+async function loadSignalLog() {
+  try {
+    const r = await fetch('se_analyzer_candidates.json?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) {
+      document.getElementById('signal-empty-msg').style.display = 'block';
+      return;
+    }
+    const data = await r.json();
+    const candidates = data.candidates || [];
+    const tbody = document.getElementById('signal-log-tbody');
+    const btcTrend = data.btc_trend || '—';
+    const scanTime = (data.scan_time || '').replace('T',' ').slice(0,19);
+
+    if (candidates.length === 0) {
+      document.getElementById('signal-empty-msg').style.display = 'block';
+      document.getElementById('signal-empty-msg').textContent = 'Keine Kandidaten — Scan: ' + scanTime + ' | BTC: ' + btcTrend;
+      tbody.innerHTML = '';
+      return;
+    }
+
+    document.getElementById('signal-empty-msg').style.display = 'none';
+    let html = '';
+    candidates.forEach(c => {
+      const dir = (c.direction || '').toUpperCase();
+      const dirClass = dir === 'LONG' ? 'long' : 'short';
+      const score = c.score || c.grade || '—';
+      const entry = c.entry ? '$' + c.entry : '—';
+      const tp = c.tp ? '$' + c.tp : '—';
+      const sl = c.sl ? '$' + c.sl : '—';
+      const time = (c.time || c.scan_time || scanTime || '').replace('T',' ').slice(0,16);
+      const coin = (c.coin || c.symbol || '').replace('USDT','');
+      html += `<tr>
+        <td style="color:#8b949e">${time}</td>
+        <td><span class="coin">${coin}</span></td>
+        <td><span class="badge ${dirClass}">${dir}</span></td>
+        <td style="color:#f59e0b;font-weight:700">${score}</td>
+        <td style="text-align:right">${entry}</td>
+        <td style="text-align:right;color:#22c55e">${tp}</td>
+        <td style="text-align:right;color:#ef4444">${sl}</td>
+        <td style="color:#8b949e">${btcTrend}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+  } catch(e) {
+    document.getElementById('signal-empty-msg').style.display = 'block';
+  }
 }
 
 function render(trades) {
@@ -556,16 +622,17 @@ function render(trades) {
 
   document.getElementById('empty-msg').style.display = 'none';
 
-  const closed = trades.filter(t => t.status !== 'OPEN');
-  const wins = closed.filter(t => t.close_reason === 'TP' || (t.net_pnl > 0 && !t.close_reason));
-  const losses = closed.filter(t => t.close_reason === 'SL' || t.close_reason === 'LIQ' || (t.net_pnl <= 0 && !t.close_reason));
-  const totalPnl = closed.reduce((s, t) => s + t.net_pnl, 0);
+  const closed = trades.filter(t => t.status === 'closed');
+  const open = trades.filter(t => t.status === 'open');
+  const wins = closed.filter(t => (t.pnl || t.net_pnl || 0) > 0);
+  const losses = closed.filter(t => (t.pnl || t.net_pnl || 0) <= 0);
+  const totalPnl = closed.reduce((s, t) => s + (t.pnl || t.net_pnl || 0), 0);
   const avgPnl = closed.length > 0 ? totalPnl / closed.length : 0;
   const wr = closed.length > 0 ? (wins.length / closed.length * 100) : 0;
 
   // KPIs
   document.getElementById('kpi-trades').textContent = closed.length;
-  document.getElementById('kpi-trades-sub').textContent = `${wins.length}W / ${losses.length}L`;
+  document.getElementById('kpi-trades-sub').textContent = `${wins.length}W / ${losses.length}L` + (open.length ? ` | ${open.length} open` : '');
   document.getElementById('kpi-wr').textContent = wr.toFixed(1) + '%';
   document.getElementById('kpi-wr').className = 'value ' + (wr >= 50 ? 'green' : 'red');
   document.getElementById('kpi-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
@@ -576,54 +643,76 @@ function render(trades) {
   // Coin Performance
   const coinMap = {};
   closed.forEach(t => {
-    if (!coinMap[t.coin]) coinMap[t.coin] = {wins: 0, total: 0, pnl: 0};
-    coinMap[t.coin].total++;
-    if (t.close_reason === 'TP' || (t.net_pnl > 0 && !t.close_reason)) coinMap[t.coin].wins++;
-    coinMap[t.coin].pnl += t.net_pnl;
+    const coin = (t.coin || '').replace('USDT','');
+    const pnl = t.pnl || t.net_pnl || 0;
+    if (!coinMap[coin]) coinMap[coin] = {wins: 0, total: 0, pnl: 0};
+    coinMap[coin].total++;
+    if (pnl > 0) coinMap[coin].wins++;
+    coinMap[coin].pnl += pnl;
   });
 
   const coinPerf = document.getElementById('coin-perf');
   coinPerf.innerHTML = '';
-  Object.entries(coinMap).sort((a, b) => b[1].pnl - a[1].pnl).forEach(([coin, d]) => {
-    const wr = (d.wins / d.total * 100).toFixed(0);
-    const maxPnl = Math.max(...Object.values(coinMap).map(c => Math.abs(c.pnl)), 1);
-    const width = Math.abs(d.pnl) / maxPnl * 100;
-    const color = d.pnl >= 0 ? '#22c55e' : '#ef4444';
-    coinPerf.innerHTML += `<div class="strat-row">
-      <div class="strat-name">${coin}</div>
-      <div class="strat-bar-outer"><div class="strat-bar-inner" style="width:${width}%;background:${color}">${wr}%</div></div>
-      <div class="strat-val">${d.pnl >= 0 ? '+' : ''}$${d.pnl.toFixed(2)}</div>
-    </div>`;
-  });
+  const coinEntries = Object.entries(coinMap).sort((a, b) => b[1].pnl - a[1].pnl);
+  if (coinEntries.length === 0) {
+    coinPerf.innerHTML = '<div style="color:#333;text-align:center;padding:20px">Keine Daten</div>';
+  } else {
+    coinEntries.forEach(([coin, d]) => {
+      const wr = (d.wins / d.total * 100).toFixed(0);
+      const maxPnl = Math.max(...Object.values(coinMap).map(c => Math.abs(c.pnl)), 1);
+      const width = Math.abs(d.pnl) / maxPnl * 100;
+      const color = d.pnl >= 0 ? '#22c55e' : '#ef4444';
+      coinPerf.innerHTML += `<div class="strat-row">
+        <div class="strat-name">${coin}</div>
+        <div class="strat-bar-outer"><div class="strat-bar-inner" style="width:${width}%;background:${color}">${wr}%</div></div>
+        <div class="strat-val">${d.pnl >= 0 ? '+' : ''}$${d.pnl.toFixed(2)}</div>
+      </div>`;
+    });
+  }
 
-  // Trade Table
+  // Bot Trade Table
   const tbody = document.getElementById('trade-tbody');
   tbody.innerHTML = '';
-  trades.slice().reverse().forEach(t => {
-    const dirClass = t.direction === 'LONG' ? 'long' : 'short';
-    const pnlClass = t.net_pnl >= 0 ? 'pos' : 'neg';
-    const modeTag = t.status === 'TESTNET' ? '<span class="testnet-tag">TEST</span>' :
-                    t.status === 'LIVE' ? '<span class="live-tag">LIVE</span>' : t.status;
-    tbody.innerHTML += `<tr>
-      <td>${t.id}</td>
-      <td>${t.datum} ${t.zeit || ''}</td>
-      <td><span class="coin">${t.coin}</span></td>
-      <td><span class="badge ${dirClass}">${t.direction}</span></td>
-      <td>${t.strategie || 'ER1'}</td>
-      <td>$${t.entry.toLocaleString()}</td>
-      <td>${t.tp1_kurs ? '$' + t.tp1_kurs.toLocaleString() : '—'}</td>
-      <td>${t.rest_kurs ? '$' + t.rest_kurs.toLocaleString() : '—'}</td>
-      <td class="${pnlClass}">${t.roi_pct >= 0 ? '+' : ''}${t.roi_pct.toFixed(2)}%</td>
-      <td class="${pnlClass}">${t.net_pnl >= 0 ? '+' : ''}$${t.net_pnl.toFixed(2)}</td>
-      <td>${t.dauer || '—'}</td>
-      <td>${modeTag}</td>
-      <td style="color:#555;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis">${t.notiz || ''}</td>
+  trades.slice().reverse().forEach((t, i) => {
+    const coin = (t.coin || '').replace('USDT','');
+    const dir = (t.direction || '').toUpperCase();
+    const dirClass = dir === 'LONG' ? 'long' : 'short';
+    const pnl = t.pnl || t.net_pnl || 0;
+    const roi = t.roi || t.roi_pct || 0;
+    const pnlClass = pnl >= 0 ? 'pos' : 'neg';
+    const entry = t.entry || 0;
+    const exit = t.close_price || t.exit || 0;
+    // Duration
+    let duration = '—';
+    if (t.open_time && t.close_time) {
+      const ms = new Date(t.close_time) - new Date(t.open_time);
+      const mins = Math.floor(ms / 60000);
+      if (mins < 60) duration = mins + 'm';
+      else if (mins < 1440) duration = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+      else duration = Math.floor(mins/1440) + 'd ' + Math.floor((mins%1440)/60) + 'h';
+    } else if (t.dauer) {
+      duration = t.dauer;
+    }
+    const status = t.close_reason || t.status || '—';
+    const isSL = status === 'SL' || status === 'LIQ' || pnl < 0;
+    const rowStyle = isSL ? 'background:rgba(239,68,68,0.15);border-left:3px solid #ef4444' : '';
+    tbody.innerHTML += `<tr style="${rowStyle}">
+      <td>${t.id || (trades.length - i)}</td>
+      <td style="color:#8b949e">${(t.open_time || t.datum || '').replace('T',' ').slice(0,16)}</td>
+      <td><span class="coin">${coin}</span></td>
+      <td><span class="badge ${dirClass}">${dir}</span></td>
+      <td style="text-align:right">$${entry.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
+      <td style="text-align:right">${exit ? '$'+exit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}) : '—'}</td>
+      <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
+      <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+      <td>${duration}</td>
+      <td>${status}</td>
     </tr>`;
   });
 }
 
-// Trade data will be injected here by the build script
-var KODA_TRADES = [];
+// Signal log refresh
+setInterval(loadSignalLog, 30000);
 
 // ── Bot Control Server API ──
 const BOT_API = 'http://localhost:8099';
