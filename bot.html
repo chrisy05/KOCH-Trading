@@ -444,6 +444,26 @@
     </div>
   </div>
 
+  <!-- KODA SE-Analyzer Paper Bot -->
+  <div style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:24px">
+    <div style="background:#161616;border:1px solid #f59e0b33;border-left:3px solid #f59e0b;border-radius:10px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <h3 style="color:#f59e0b;font-size:.95rem;margin-bottom:3px">KODA SE Paper Bot</h3>
+          <div style="color:#555;font-size:.7rem" id="kodaSEDesc">SE-Analyzer | $1k/Trade | 1 Trade max | Grade A only</div>
+        </div>
+        <span id="kodaSEStatus" style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:#f59e0b15;color:#f59e0b">IDLE</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center">
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="kodaSEWR">--</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="kodaSETrades">0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="kodaSEPnl">$0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="kodaSEOpen">0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Letzter Trade</div><div style="font-size:.85rem;font-weight:600;color:#8b949e" id="kodaSELast">--</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- KODA Bot (ER1) KPI Row -->
   <div class="grid-4">
     <div class="stat-box"><div class="label">Bot Trades</div><div class="value white" id="kpi-trades">0</div><div class="sub" id="kpi-trades-sub">—</div></div>
@@ -1056,6 +1076,67 @@ function loadAllPaperBots() {
 }
 loadAllPaperBots();
 setInterval(loadAllPaperBots, 30000);
+
+// ── KODA SE Paper Bot ──
+async function loadKodaSE() {
+  try {
+    const r = await fetch('paper_trades_koda_se.json?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) return;
+    const data = await r.json();
+    const trades = data.trades || [];
+    const closed = trades.filter(t => t.status === 'closed');
+    const open = trades.filter(t => t.status === 'open');
+    const wins = closed.filter(t => (t.pnl || 0) > 0).length;
+    const wr = closed.length > 0 ? (wins / closed.length * 100) : 0;
+    const totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
+
+    const wrEl = document.getElementById('kodaSEWR');
+    wrEl.textContent = closed.length > 0 ? wr.toFixed(1) + '%' : '--';
+    wrEl.style.color = wr >= 60 ? '#22c55e' : wr >= 50 ? '#f59e0b' : closed.length > 0 ? '#ef4444' : '#8b949e';
+
+    document.getElementById('kodaSETrades').textContent = closed.length;
+
+    const pnlEl = document.getElementById('kodaSEPnl');
+    pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+    pnlEl.style.color = totalPnl >= 0 ? '#22c55e' : '#ef4444';
+
+    document.getElementById('kodaSEOpen').textContent = open.length;
+
+    // Status badge
+    const statusEl = document.getElementById('kodaSEStatus');
+    const hb = data._heartbeat;
+    if (hb) {
+      const age = (Date.now() - new Date(hb).getTime()) / 1000;
+      if (age < 120) {
+        statusEl.textContent = open.length > 0 ? 'TRADING' : 'WATCHING';
+        statusEl.style.color = open.length > 0 ? '#22c55e' : '#f59e0b';
+        statusEl.style.background = open.length > 0 ? '#22c55e15' : '#f59e0b15';
+      } else {
+        statusEl.textContent = 'OFFLINE';
+        statusEl.style.color = '#ef4444';
+        statusEl.style.background = '#ef444415';
+      }
+    }
+
+    // Last trade info
+    const lastEl = document.getElementById('kodaSELast');
+    if (closed.length > 0) {
+      const last = closed[closed.length - 1];
+      lastEl.textContent = last.coin + ' ' + last.direction + ' ' + (last.close_reason || '');
+      lastEl.style.color = (last.pnl || 0) >= 0 ? '#22c55e' : '#ef4444';
+    } else if (open.length > 0) {
+      lastEl.textContent = open[0].coin + ' ' + open[0].direction + ' (open)';
+      lastEl.style.color = '#f59e0b';
+    }
+
+    // Description from config
+    if (data.config && data.config.description) {
+      document.getElementById('kodaSEDesc').textContent = data.config.description;
+    }
+  } catch(e) {}
+}
+loadKodaSE();
+setInterval(loadKodaSE, 30000);
 
 // ── Viona Signal Trade Log ──
 async function loadVionaTrades() {

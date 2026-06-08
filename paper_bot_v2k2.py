@@ -834,10 +834,11 @@ def scan_and_trade(data, tf, limit, tf_key):
         return
 
     open_trades = [t for t in data[tf_key] if t["status"] == "open"]
-    # Check ALL open trades across ALL timeframes — 1 coin = 1 trade max
+    # V2K2 GLM Solo: Mehrere Trades auf gleichem Coin erlaubt (verschiedene TFs)
     all_open = [t for tf in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]
                 for t in data.get(tf, []) if t["status"] == "open"]
-    open_coins = set(t["coin"] for t in all_open)
+    # 1 Coin pro TF max (nicht cross-TF)
+    open_coins_this_tf = set(t["coin"] for t in open_trades)
 
     # For 15m: check max open trades limit
     if tf_key == "trades_15m" and len(open_trades) >= CONFIG["max_open_15m"]:
@@ -896,7 +897,7 @@ def scan_and_trade(data, tf, limit, tf_key):
 
     for coin in COINS:
         # Skip if already in an open trade for this coin+tf
-        if coin in open_coins:
+        if coin in open_coins_this_tf:
             continue
 
         # 1h mode: max 1 trade per coin per day

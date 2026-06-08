@@ -1250,7 +1250,15 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
 
         tpsl_result = set_tp_sl(bybit_symbol, tp_price=str(tp_rounded), sl_price=str(sl_rounded) if sl_rounded else None)
         if not tpsl_result or tpsl_result.get("retCode") != 0:
-            log(f"  [LIVE] WARNING: TP/SL not set for {coin}. Manual intervention needed!")
+            # Retry: TP kann fehlschlagen wenn Preis sich zwischen Order und TP/SL bewegt
+            # Versuch 2: Nur SL setzen (SL ist wichtiger als TP)
+            log(f"  [LIVE] TP/SL failed, retrying SL only...")
+            time.sleep(0.5)
+            sl_only = set_tp_sl(bybit_symbol, sl_price=str(sl_rounded) if sl_rounded else None)
+            if not sl_only or sl_only.get("retCode") != 0:
+                log(f"  [LIVE] CRITICAL: Even SL alone failed for {coin}! Position ungeschützt!")
+            else:
+                log(f"  [LIVE] SL gesetzt, TP fehlt — Checker wird TP nachholen")
 
         log(f"  [LIVE] Trade opened successfully: {direction} {coin} | OrderID: {order_id}")
     else:
