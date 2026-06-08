@@ -1492,19 +1492,57 @@ def update_stats(data):
 # SCAN & TRADE
 # ═══════════════════════════════════════════════════════════════
 
-def check_btc_spike():
-    """Check if BTC moved >1% in last 15min — fakeout protection."""
+def check_btc_spike(trade_direction=None):
+    """BTC Spike Filter — Kombi aus Richtung + Haltezeit.
+
+    1. Spike in Trendrichtung → nur Gegenrichtung blockieren
+       BTC pumpt → SHORT blockiert, LONG erlaubt
+       BTC dumpt → LONG blockiert, SHORT erlaubt
+    2. Nach 15 Min: prüft ob Preis >50% des Moves hält → kein Fakeout → freigeben
+
+    Returns: True = blockieren, False = erlaubt
+    """
     try:
-        url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=5m&limit=3"
+        # 6 Bars à 5 Min = 30 Min Fenster
+        url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=5m&limit=6"
         req = urllib.request.Request(url, headers={"User-Agent": "LiveBot/1.0"})
         with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
             klines = json.loads(resp.read().decode())
-        if not klines or len(klines) < 3:
+        if not klines or len(klines) < 6:
             return False
-        open_price = float(klines[0][1])
-        close_price = float(klines[-1][4])
-        move_pct = abs(close_price - open_price) / open_price * 100
-        return move_pct > 1.0
+
+        # Spike-Erkennung: >1% in den ersten 3 Bars (15 Min)
+        spike_open = float(klines[0][1])
+        spike_close = float(klines[2][4])
+        spike_move = (spike_close - spike_open) / spike_open * 100
+        spike_abs = abs(spike_move)
+
+        if spike_abs < 1.0:
+            return False  # Kein Spike
+
+        spike_direction = "UP" if spike_move > 0 else "DOWN"
+
+        # 1. Richtungsfilter: Trade MIT dem Spike → erlaubt
+        if trade_direction:
+            if spike_direction == "UP" and trade_direction == "LONG":
+                log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — LONG erlaubt (mit Trend)")
+                return False
+            if spike_direction == "DOWN" and trade_direction == "SHORT":
+                log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — SHORT erlaubt (mit Trend)")
+                return False
+
+        # 2. Haltezeit: Preis nach 15 Min noch >50% des Moves? → freigeben
+        current_price = float(klines[-1][4])
+        move_held = (current_price - spike_open) / spike_open * 100
+        held_pct = (move_held / spike_move * 100) if spike_move != 0 else 0
+
+        if held_pct > 50:
+            log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — hält {held_pct:.0f}% nach 15 Min → freigeben")
+            return False
+
+        # Spike + Gegenrichtung + nicht gehalten → blockieren
+        log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — hält nur {held_pct:.0f}% → Bremse aktiv")
+        return True
     except:
         return False
 
@@ -1517,10 +1555,7 @@ def scan_and_trade(data, tf, limit, tf_key):
     log(f"SCAN {tf.upper()} [{mode_label}] | {now.strftime('%Y-%m-%d %H:%M ET')}")
     log(f"{'='*60}")
 
-    # Fakeout-Bremse
-    if check_btc_spike():
-        log(f"  BTC SPIKE erkannt (>1% in 15min) — Bremse aktiv, kein neuer Trade.")
-        return
+    # Fakeout-Bremse: wird jetzt pro Trade mit Richtung geprüft (siehe unten)
 
     open_trades = [t for t in data[tf_key] if t["status"] == "open"]
     # Check ALL open trades across ALL timeframes — 1 coin = 1 trade max
@@ -1625,6 +1660,10 @@ def scan_and_trade(data, tf, limit, tf_key):
                     if current_open >= CONFIG["max_open_4h"]:
                         log(f"  Max open 4h trades reached. Stopping scan.")
                         break
+
+                # Spike-Check pro Trade mit Richtung
+                if check_btc_spike(direction):
+                    continue
 
                 trade = open_trade(data, tf_key, coin, direction, entry, tp, probability, tf)
                 if trade:
