@@ -135,13 +135,13 @@ BYBIT_SYMBOL_MAP = {
 
 COINS = [
     "TON", "SOL", "BCH", "LINK", "DOGE",
-    "FIDA", "NEO", "DYDX", "ADA", "HYPE", "FIL", "ICP", "LTC",
-    "JASMY", "EIGEN", "IP", "OP", "SEI", "ONE", "IMX", "AVAX",
+    "FIDA", "NEO", "ADA", "HYPE", "ICP", "LTC",
+    "JASMY", "EIGEN", "IP", "OP", "SEI", "ONE", "IMX",
     "GLM", "CFX", "BNT", "CRV", "TRX", "SUI",
-    "JUP", "TAO", "HBAR", "OGN", "LPT", "ETH", "THETA",
-    "APT", "DOT", "XRP", "WIF", "PEPE", "BNB", "RUNE",
-    "XTZ", "METIS", "AAVE", "UNI", "BGB", "NEAR", "WLD",
-]  # XLM entfernt am 07.06.2026
+    "JUP", "TAO", "OGN", "LPT", "ETH", "THETA",
+    "APT", "DOT", "XRP", "WIF", "PEPE", "RUNE",
+    "XTZ", "METIS", "AAVE", "BGB", "NEAR", "WLD",
+]  # Entfernt 08.06.: DYDX, AVAX, SUSHI, HBAR, FIL, BNB, UNI (negativ PnL)
 
 # Bybit quantity precision per symbol (decimals for qty rounding)
 # Default is 0 (whole numbers). Override for specific coins.
