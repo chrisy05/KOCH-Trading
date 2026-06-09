@@ -103,7 +103,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <div>
         <h2 style="color:#22c55e;font-size:1.2rem;margin-bottom:4px">KODA Live Bot — Bybit</h2>
-        <div style="color:#555;font-size:.8rem">Coin Analyzer Strategie · Bybit V5 API</div>
+        <div style="color:#555;font-size:.8rem">V2 Logik · Coins: 41</div>
       </div>
       <div style="display:flex;gap:8px">
         <span id="liveStatus" style="padding:5px 14px;border-radius:20px;font-size:.8rem;font-weight:700;background:#f59e0b15;color:#f59e0b">BEREIT</span>
@@ -123,72 +123,21 @@
       .cfg-input::-webkit-inner-spin-button,.cfg-input::-webkit-outer-spin-button{opacity:1;height:36px;width:20px;cursor:pointer}
       .cfg-unit{color:#555;font-size:1rem;margin-left:6px}
     </style>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px">
-      <div class="stat-box" style="padding:14px">
-        <div class="label">Kapital/Trade</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><span class="cfg-unit">$</span><input type="number" id="cfgCapital" value="100" min="0" max="50000" step="1" class="cfg-input" style="width:110px"></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">Hebel</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgLeverage" value="10" min="0" max="125" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">x</span></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">Min Prob</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgMinProb" value="60" min="0" max="100" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">TP Range</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTpRange" value="80" min="0" max="100" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">SL Loss</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgSlPct" value="70" min="0" max="100" step="1" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">Max 4h Trades</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgMax4h" value="3" min="0" max="20" step="1" class="cfg-input" style="width:80px"></div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-      <div class="stat-box" style="padding:14px">
-        <div class="label">15m Budget</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf15" value="50" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">30m Budget</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf30" value="30" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">1h Budget</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf1h" value="20" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
-      </div>
-      <div class="stat-box" style="padding:14px">
-        <div class="label">4h Budget</div>
-        <div style="display:flex;align-items:center;justify-content:center;margin-top:6px"><input type="number" id="cfgTf4h" value="0" min="0" max="100" step="5" class="cfg-input" style="width:80px"><span class="cfg-unit">%</span></div>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <button onclick="updateConfig()" style="background:#58a6ff;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Settings Aktualisieren</button>
-      <button onclick="startBot('live')" style="background:#22c55e;color:#000;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Start</button>
-      <button onclick="stopBot()" style="background:#ef4444;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">Stop</button>
-      <span id="lbStatusMsg" style="color:#555;font-size:.8rem;margin-left:10px"></span>
-    </div>
-    <div style="font-size:.7rem;color:#444;margin-top:8px"><b>TFs:</b> 15m · 30m · 1h · 4h · <b>Strategie:</b> Coin Analyzer · <b>Coins:</b> 51 (Viona) · <span id="lbConfigDate" style="color:#484f58">Stand: —</span><br><b>TF Budget:</b> % vom Gesamtkapital das pro Timeframe maximal in offenen Trades gebunden sein darf (0% = TF deaktiviert)</div>
-
-    <!-- Aktive Einstellungen (read-only, vom laufenden Bot) -->
-    <div id="activeConfig" style="display:none;background:#0d1b0d;border:1px solid #1a3a1a;border-radius:10px;padding:12px 16px;margin-top:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <!-- Aktive Einstellungen (static display) -->
+    <div style="background:#0d1b0d;border:1px solid #1a3a1a;border-radius:10px;padding:14px 18px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;animation:pulse 2s infinite"></span>
         <span style="color:#22c55e;font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase">Aktive Einstellungen</span>
       </div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:#8b9ab0">
-        <span>Kapital: <b id="acCapital" style="color:#fff">—</b></span>
-        <span>Hebel: <b id="acLeverage" style="color:#fff">—</b></span>
-        <span>Min Prob: <b id="acMinProb" style="color:#fff">—</b></span>
-        <span>TP: <b id="acTpRange" style="color:#fff">—</b></span>
-        <span>SL: <b id="acSlPct" style="color:#fff">—</b></span>
-        <span>Max 4h: <b id="acMax4h" style="color:#fff">—</b></span>
-        <span>Budget: <b id="acBudget" style="color:#fff">—</b></span>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:.85rem;color:#8b9ab0">
+        <span>Kapital: <b style="color:#fff">$15</b></span>
+        <span>Hebel: <b style="color:#fff">10x</b></span>
+        <span>Min Prob: <b style="color:#fff">60%</b></span>
+        <span>TP: <b style="color:#fff">70%</b></span>
+        <span>SL: <b style="color:#fff">40%</b></span>
+        <span>Budget: <b style="color:#fff">50/50/0/0</b></span>
+        <span>Strategie: <b style="color:#fff">V2 Logik</b></span>
+        <span>Coins: <b style="color:#fff">41</b></span>
       </div>
     </div>
     <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
