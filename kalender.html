@@ -49,7 +49,7 @@ h1{color:#58a6ff;text-align:center;margin-bottom:5px;font-size:1.3rem}
 <span style="outline:2px solid #58a6ff;padding:0 3px;">blau</span> = aktuelle Stunde
 </div>
 <table class="splan" id="splanTable"></table>
-<div style="font-size:0.6rem;color:#484f58;margin-top:4px;text-align:center;">Basiert auf 12 Monaten BTC 1H-Daten (9,000 Bars) · Santo Domingo Zeit</div>
+<div style="font-size:0.6rem;color:#484f58;margin-top:4px;text-align:center;">Basiert auf 6 Monaten BTC 1H-Daten (Dez 2025 – Jun 2026, 4.474 Bars) · Santo Domingo Zeit</div>
 </div>
 
 <div class="section">
@@ -72,30 +72,30 @@ Hier koennen zukuenftig Events eingetragen werden (FOMC, CPI, Token Unlocks etc.
 
 <script>
 const sp={
- 0:{mo:'n|FLAT',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
- 1:{mo:'n|FLAT',di:'s|SHORT',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
- 2:{mo:'s|SHORT',di:'s|SHORT',mi:'s|SHORT',do:'s|SHORT',fr:'s|SHORT',sa:'s|SHORT',so:'n|FLAT'},
- 3:{mo:'n|FLAT',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
- 4:{mo:'n|FLAT',di:'n|FLAT',mi:'l|LONG',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
- 5:{mo:'n|EU ruhig',di:'n|EU ruhig',mi:'n|EU ruhig',do:'n|EU ruhig',fr:'n|EU ruhig',sa:'m|dünn',so:'m|dünn'},
- 6:{mo:'s|SHORT⭐',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
- 7:{mo:'n|FLAT',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
- 8:{mo:'n|Aufbau',di:'n|Aufbau',mi:'n|Aufbau',do:'n|Aufbau',fr:'n|Aufbau',sa:'m|dünn',so:'m|dünn'},
- 9:{mo:'s|SHORT',di:'s|SHORT',mi:'s|SHORT',do:'s|SHORT⭐',fr:'s|SHORT',sa:'m|dünn',so:'m|dünn'},
-10:{mo:'s|SHORT',di:'s|SHORT',mi:'s|SHORT',do:'s|SHORT',fr:'s|SHORT',sa:'m|dünn',so:'m|dünn'},
-11:{mo:'n|FLAT',di:'l|LONG⭐',mi:'s|SHORT',do:'s|SHORT⭐',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
-12:{mo:'s|SHORT',di:'n|FLAT',mi:'n|FLAT',do:'s|SHORT⭐',fr:'s|SHORT',sa:'m|dünn',so:'m|dünn'},
-13:{mo:'l|LONG',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
-14:{mo:'s|SHORT',di:'n|FLAT',mi:'n|FLAT',do:'s|SHORT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
-15:{mo:'n|FLAT',di:'n|FLAT',mi:'l|LONG⭐',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'s|SHORT'},
-16:{mo:'n|FLAT',di:'l|LONG',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
-17:{mo:'l|LONG',di:'l|LONG',mi:'l|LONG',do:'l|LONG⭐',fr:'l|LONG',sa:'m|dünn',so:'m|dünn'},
-18:{mo:'l|LONG⭐',di:'l|LONG⭐',mi:'l|LONG⭐',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'l|LONG⭐'},
-19:{mo:'s|SHORT',di:'s|SHORT',mi:'n|FLAT',do:'s|SHORT',fr:'s|SHORT',sa:'m|dünn',so:'m|dünn'},
-20:{mo:'n|FLAT',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'m|dünn',sa:'m|dünn',so:'n|FLAT'},
-21:{mo:'s|SHORT',di:'n|FLAT',mi:'n|FLAT',do:'l|LONG',fr:'m|dünn',sa:'l|LONG',so:'n|FLAT'},
-22:{mo:'s|SHORT⭐',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'m|dünn',sa:'l|LONG',so:'n|FLAT'},
-23:{mo:'n|FLAT',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'m|dünn',sa:'m|dünn',so:'n|FLAT'},
+ 0:{mo:'l|LONG',di:'n|FLAT',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'s|SHORT⭐',so:'m|dünn'},
+ 1:{mo:'s|SHORT',di:'s|SHORT⭐',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'s|SHORT',so:'s|SHORT'},
+ 2:{mo:'n|FLAT',di:'n|FLAT',mi:'l|LONG',do:'l|LONG',fr:'l|LONG',sa:'s|SHORT⭐',so:'s|SHORT'},
+ 3:{mo:'l|LONG',di:'l|LONG',mi:'n|FLAT',do:'n|FLAT',fr:'n|FLAT',sa:'s|SHORT⭐',so:'l|LONG'},
+ 4:{mo:'l|LONG',di:'s|SHORT',mi:'s|SHORT',do:'s|SHORT',fr:'l|LONG',sa:'l|LONG',so:'l|LONG'},
+ 5:{mo:'l|LONG',di:'s|SHORT',mi:'l|LONG',do:'l|LONG',fr:'n|FLAT',sa:'m|dünn',so:'m|dünn'},
+ 6:{mo:'s|SHORT⭐',di:'n|FLAT',mi:'n|FLAT',do:'s|SHORT⭐',fr:'l|LONG',sa:'s|SHORT',so:'l|LONG'},
+ 7:{mo:'l|LONG',di:'n|FLAT',mi:'n|FLAT',do:'s|SHORT',fr:'n|FLAT',sa:'m|dünn',so:'l|LONG'},
+ 8:{mo:'l|LONG',di:'l|LONG',mi:'n|FLAT',do:'l|LONG',fr:'n|FLAT',sa:'l|LONG',so:'s|SHORT'},
+ 9:{mo:'s|SHORT',di:'s|SHORT⭐',mi:'s|SHORT',do:'s|SHORT',fr:'s|SHORT',sa:'l|LONG',so:'s|SHORT'},
+10:{mo:'l|LONG',di:'s|SHORT',mi:'s|SHORT',do:'s|SHORT',fr:'n|FLAT',sa:'l|LONG',so:'l|LONG'},
+11:{mo:'s|SHORT',di:'l|LONG⭐',mi:'l|LONG',do:'n|FLAT',fr:'n|FLAT',sa:'l|LONG',so:'s|SHORT'},
+12:{mo:'n|FLAT',di:'n|FLAT',mi:'s|SHORT',do:'s|SHORT',fr:'l|LONG',sa:'s|SHORT',so:'s|SHORT⭐'},
+13:{mo:'l|LONG',di:'s|SHORT⭐',mi:'l|LONG',do:'n|FLAT',fr:'n|FLAT',sa:'m|dünn',so:'l|LONG'},
+14:{mo:'s|SHORT⭐',di:'l|LONG',mi:'n|FLAT',do:'n|FLAT',fr:'s|SHORT',sa:'l|LONG⭐',so:'m|dünn'},
+15:{mo:'n|FLAT',di:'l|LONG',mi:'l|LONG⭐',do:'l|LONG',fr:'l|LONG',sa:'l|LONG',so:'s|SHORT'},
+16:{mo:'s|SHORT',di:'l|LONG',mi:'s|SHORT',do:'n|FLAT',fr:'s|SHORT',sa:'l|LONG',so:'s|SHORT'},
+17:{mo:'l|LONG',di:'s|SHORT',mi:'l|LONG⭐',do:'s|SHORT',fr:'l|LONG',sa:'l|LONG',so:'s|SHORT'},
+18:{mo:'l|LONG',di:'n|FLAT',mi:'s|SHORT',do:'n|FLAT',fr:'l|LONG',sa:'s|SHORT',so:'l|LONG'},
+19:{mo:'n|FLAT',di:'l|LONG',mi:'s|SHORT',do:'n|FLAT',fr:'s|SHORT',sa:'s|SHORT',so:'n|FLAT'},
+20:{mo:'l|LONG',di:'l|LONG',mi:'n|FLAT',do:'n|FLAT',fr:'l|LONG',sa:'m|dünn',so:'l|LONG'},
+21:{mo:'s|SHORT',di:'n|FLAT',mi:'s|SHORT',do:'l|LONG',fr:'l|LONG',sa:'s|SHORT',so:'n|FLAT'},
+22:{mo:'s|SHORT',di:'s|SHORT',mi:'s|SHORT⭐',do:'s|SHORT',fr:'l|LONG',sa:'l|LONG',so:'n|FLAT'},
+23:{mo:'n|FLAT',di:'n|FLAT',mi:'s|SHORT',do:'l|LONG',fr:'s|SHORT',sa:'l|LONG',so:'n|FLAT'}
 };
 const days=['mo','di','mi','do','fr','sa','so'];
 const dLbl=['Mo','Di','Mi','Do','Fr','Sa','So'];
@@ -114,8 +114,8 @@ for(let hr=0;hr<24;hr++){
     const cls=clsMap[p[0]]||'sp-n';
     const nc=(hr===cH&&d===cD)?' sp-now':'';
     const wd=['mo','di','mi','do','fr','sa','so'].indexOf(d);
-    const best=((hr===11&&wd===1)||(hr===18&&(wd===0||wd===1||wd===2||wd===6))||(hr===15&&wd===2)||(hr===17&&wd===3)||(hr===9&&wd===3)||(hr===12&&wd===3)||(hr===22&&wd===0));
-    const mid=((hr===17&&wd<=4)||(hr>=9&&hr<=10&&wd<=4)||(hr===16&&wd===1)||(hr===13&&wd===0));
+    const best=((hr===0&&wd===5)||(hr===1&&wd===1)||(hr===6&&wd===3)||(hr===9&&wd===1)||(hr===11&&wd===1)||(hr===12&&wd===6)||(hr===14&&wd===5)||(hr===15&&wd===2));
+    const mid=((hr===2&&wd===2)||(hr===2&&wd===5)||(hr===3&&wd===1)||(hr===3&&wd===5)||(hr===6&&wd===0)||(hr===12&&wd===3)||(hr===12&&wd===4)||(hr===12&&wd===5)||(hr===13&&wd===1)||(hr===14&&wd===0)||(hr===14&&wd===4)||(hr===17&&wd===2)||(hr===18&&wd===5)||(hr===19&&wd===2)||(hr===22&&wd===2)||(hr===22&&wd===3)||(hr===22&&wd===4));
     const frame=best?' sp-best':(mid?' sp-mid':'');
     h+='<td class="'+cls+nc+frame+'">'+p[1]+'</td>';
   });
