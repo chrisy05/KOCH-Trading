@@ -467,8 +467,7 @@ render();
   var yyyy = today.getFullYear();
   var todayStr = yyyy+'-'+mm+'-'+dd;
   
-  var fromDate = new Date(today);
-  fromDate.setMonth(fromDate.getMonth()-3);
+  var fromDate = new Date(2026, 0, 1); // Alle Trades ab Anfang
   var fdd = String(fromDate.getDate()).padStart(2,'0');
   var fmm = String(fromDate.getMonth()+1).padStart(2,'0');
   var fyyyy = fromDate.getFullYear();
