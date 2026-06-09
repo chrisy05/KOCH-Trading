@@ -555,6 +555,15 @@ def load_data():
             for key in ["stats_30m", "stats_4h"]:
                 if key not in data:
                     data[key] = dict(empty_stats)
+            # Config aktuell halten (tf_budget etc.)
+            data.setdefault("config", {}).update({
+                "capital": CONFIG["capital"], "leverage": CONFIG["leverage"],
+                "total_budget": CONFIG.get("total_budget", 10000),
+                "tf_budget_15m": CONFIG.get("tf_budget_15m", 50),
+                "tf_budget_30m": CONFIG.get("tf_budget_30m", 30),
+                "tf_budget_1h": CONFIG.get("tf_budget_1h", 20),
+                "tf_budget_4h": CONFIG.get("tf_budget_4h", 0),
+            })
             return data
         except Exception:
             pass
