@@ -29,7 +29,7 @@ CONFIG = {
     "capital": 100,
     "leverage": 10,
     "min_probability": 60,
-    "tp_range_pct": 80,       # 80% of expected move
+    "tp_range_pct": 70,       # 70% of expected move (TP1)
     "sl_pct": 70,             # SL bei 70% Verlust der Margin (0 = aus, nur Liq)
     "max_open_15m": 50,
     "max_trades_per_coin_1h": 1,  # per day
@@ -1302,8 +1302,9 @@ def get_recent_highlow(sym, minutes=5):
 
 def check_open_trades(data):
     """
-    Check all open trades for TP or liquidation hits.
-    In LIVE mode: also cross-check with Bybit positions.
+    Check all open trades for TP1/TP2 trailing or liquidation hits.
+    V2K1 logic: TP1 closes 50% + moves SL to entry, then trail remaining 50%.
+    In LIVE mode: all closes go through Bybit API first.
     """
     # Get Bybit positions for cross-referencing (LIVE mode only)
     bybit_positions = {}
@@ -1362,28 +1363,40 @@ def check_open_trades(data):
                             reason = "LIQ"
                         elif direction == "LONG":
                             if close_price >= trade["tp"] * 0.998:
-                                reason = "TP"
+                                reason = "TP" if not trade.get("tp1_hit") else "TP1+TRAIL"
                             elif close_price <= entry:
-                                reason = "SL"
+                                reason = "SL" if not trade.get("tp1_hit") else "TP1+BE"
                             else:
-                                reason = "TP"
+                                reason = "TP" if not trade.get("tp1_hit") else "TP1+TRAIL"
                         else:  # SHORT
                             if close_price <= trade["tp"] * 1.002:
-                                reason = "TP"
+                                reason = "TP" if not trade.get("tp1_hit") else "TP1+TRAIL"
                             elif close_price >= entry:
-                                reason = "SL"
+                                reason = "SL" if not trade.get("tp1_hit") else "TP1+BE"
                             else:
-                                reason = "TP"
+                                reason = "TP" if not trade.get("tp1_hit") else "TP1+TRAIL"
 
-                        close_trade(trade, close_price, reason)
-                        log(f"  [LIVE] Position {coin} closed on Bybit | {reason} @ {close_price:.6f} | Bybit PnL: ${bybit_pnl:.2f} ({exec_type})")
+                        # If TP1 was already hit, include tp1_pnl in total
+                        if trade.get("tp1_hit") and trade.get("tp1_pnl"):
+                            tp2_pnl = bybit_pnl  # Bybit reports PnL for closed portion
+                            total_pnl = trade["tp1_pnl"] + tp2_pnl
+                            trade["pnl"] = round(total_pnl, 2)
+                            trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                            trade["close_price"] = round(close_price, 8)
+                            trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                            trade["close_reason"] = reason
+                            trade["status"] = "closed"
+                            log(f"  [LIVE] Position {coin} closed on Bybit | {reason} @ {close_price:.6f} | TP1: ${trade['tp1_pnl']:.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
+                        else:
+                            close_trade(trade, close_price, reason)
+                            log(f"  [LIVE] Position {coin} closed on Bybit | {reason} @ {close_price:.6f} | Bybit PnL: ${bybit_pnl:.2f} ({exec_type})")
                     else:
-                        # API nicht erreichbar — Trade offen lassen, nächsten Scan abwarten
                         log(f"  [LIVE] Position {coin} gone but Bybit closed-pnl unavailable. Retrying next scan.")
                     continue
 
-            # SL check
-            sl_pct = CONFIG.get("sl_pct", 0)
+            # SL check: TF-specific SL
+            tf_sl_key = "sl_pct_" + tf_key.replace("trades_", "")  # sl_pct_1h etc.
+            sl_pct = CONFIG.get(tf_sl_key, CONFIG.get("sl_pct", 0))
             sl_price = None
             if sl_pct > 0:
                 margin = trade.get("margin", CONFIG["capital"])
@@ -1395,42 +1408,194 @@ def check_open_trades(data):
                     else:
                         sl_price = trade["entry"] + sl_loss / size
 
-            # Standard price-based checks
-            # In LIVE mode: send close order to Bybit FIRST, only mark closed if order succeeds
-            close_price = None
-            close_reason = None
+            # ── V2K1: TP1/TP2 Trailing Stop Logic ──
+            tp1_hit = trade.get("tp1_hit", False)
 
             if trade["direction"] == "LONG":
-                if recent_high >= trade["tp"]:
-                    close_price, close_reason = trade["tp"], "TP"
-                elif sl_price is not None and recent_low <= sl_price:
-                    close_price, close_reason = sl_price, "SL"
-                elif recent_low <= trade["liq"]:
-                    close_price, close_reason = trade["liq"], "LIQ"
+                if not tp1_hit:
+                    # Phase 1: waiting for TP1
+                    if recent_high >= trade["tp"]:
+                        # TP1 hit — close 50% on Bybit, move SL to entry, start trailing
+                        tp1_pnl = calc_pnl("LONG", trade["entry"], trade["tp"], trade["size"]) * 0.5
+                        half_qty = float(trade.get("bybit_qty", "0")) / 2.0
+                        half_qty_str = round_qty(bybit_sym, half_qty)
+
+                        # LIVE: close half position on Bybit
+                        if LIVE_MODE and trade.get("mode") == "LIVE":
+                            result = close_position_market(bybit_sym, "Sell", half_qty_str)
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  TP1 CLOSE FAILED: {coin} Sell {half_qty_str} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] TP1 partial close OK: {coin} Sell {half_qty_str}")
+                            time.sleep(0.3)
+                            # Move SL to entry (remove TP since we manage it manually now)
+                            entry_rounded = round_price(trade["entry"])
+                            set_tp_sl(bybit_sym, sl_price=entry_rounded)
+                            log(f"  [LIVE] SL moved to entry: {coin} @ {entry_rounded}")
+
+                        trade["tp1_hit"] = True
+                        trade["tp1_pnl"] = round(tp1_pnl, 2)
+                        trade["peak_price"] = trade["tp"]
+                        # Update bybit_qty to remaining half
+                        trade["bybit_qty"] = half_qty_str
+                        log(f"  TP1 HIT: {coin} LONG @ {trade['tp']:.6f} | Partial PnL: ${tp1_pnl:.2f} | SL->Entry, trailing starts")
+
+                    elif sl_price is not None and recent_low <= sl_price:
+                        # SL hit — close full position on Bybit
+                        if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
+                            result = close_position_market(bybit_sym, "Sell", trade["bybit_qty"])
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  SL CLOSE FAILED: {coin} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] SL close OK: {coin} Sell {trade['bybit_qty']}")
+                        close_trade(trade, sl_price, "SL")
+                        log(f"  SL HIT: {coin} LONG | Low {recent_low:.6f} <= SL {sl_price:.6f} ({sl_pct}%)")
+
+                    elif recent_low <= trade["liq"]:
+                        # LIQ — Bybit auto-liquidates, just record
+                        close_trade(trade, trade["liq"], "LIQ")
+                        log(f"  LIQ HIT: {coin} LONG | Low {recent_low:.6f} <= Liq {trade['liq']:.6f}")
+                else:
+                    # Phase 2: TP1 hit, trailing for TP2
+                    peak = trade.get("peak_price", trade["tp"])
+                    if recent_high > peak:
+                        trade["peak_price"] = recent_high
+                        peak = recent_high
+
+                    # Trailing stop: 3% retrace from peak
+                    trail_stop = peak * (1 - 0.03)
+                    # Breakeven SL at entry
+                    be_stop = trade["entry"]
+
+                    if recent_low <= be_stop:
+                        # Price fell back to entry — close remaining at entry (breakeven on TP2 half)
+                        if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
+                            result = close_position_market(bybit_sym, "Sell", trade["bybit_qty"])
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  TP2 BE CLOSE FAILED: {coin} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] TP2 BE close OK: {coin} Sell {trade['bybit_qty']}")
+                        tp2_pnl = 0.0
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(be_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+BE"
+                        trade["status"] = "closed"
+                        log(f"  TP2 BE: {coin} LONG | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
+
+                    elif recent_low <= trail_stop:
+                        # Trailing stop hit — close remaining at trail stop
+                        if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
+                            result = close_position_market(bybit_sym, "Sell", trade["bybit_qty"])
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  TP2 TRAIL CLOSE FAILED: {coin} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] TP2 TRAIL close OK: {coin} Sell {trade['bybit_qty']}")
+                        tp2_pnl = calc_pnl("LONG", trade["entry"], trail_stop, trade["size"]) * 0.5
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(trail_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+TRAIL"
+                        trade["status"] = "closed"
+                        log(f"  TP2 TRAIL: {coin} LONG | Peak {peak:.6f} -> Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
+
             else:  # SHORT
-                if recent_low <= trade["tp"]:
-                    close_price, close_reason = trade["tp"], "TP"
-                elif sl_price is not None and recent_high >= sl_price:
-                    close_price, close_reason = sl_price, "SL"
-                elif recent_high >= trade["liq"]:
-                    close_price, close_reason = trade["liq"], "LIQ"
+                if not tp1_hit:
+                    # Phase 1: waiting for TP1
+                    if recent_low <= trade["tp"]:
+                        # TP1 hit — close 50% on Bybit
+                        tp1_pnl = calc_pnl("SHORT", trade["entry"], trade["tp"], trade["size"]) * 0.5
+                        half_qty = float(trade.get("bybit_qty", "0")) / 2.0
+                        half_qty_str = round_qty(bybit_sym, half_qty)
 
-            if close_price is not None:
-                # LIVE: Close on Bybit first
-                if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
-                    close_side = "Sell" if trade["direction"] == "LONG" else "Buy"
-                    result = close_position_market(bybit_sym, close_side, trade["bybit_qty"])
-                    if not result or result.get("retCode") != 0:
-                        err = result.get("retMsg", "Unknown") if result else "No response"
-                        log(f"  CLOSE FAILED on Bybit: {coin} {close_reason} | {err} — keeping open, retry next scan")
-                        continue
-                    log(f"  [LIVE] Bybit close order OK: {coin} {close_side} {trade['bybit_qty']}")
+                        if LIVE_MODE and trade.get("mode") == "LIVE":
+                            result = close_position_market(bybit_sym, "Buy", half_qty_str)
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  TP1 CLOSE FAILED: {coin} Buy {half_qty_str} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] TP1 partial close OK: {coin} Buy {half_qty_str}")
+                            time.sleep(0.3)
+                            entry_rounded = round_price(trade["entry"])
+                            set_tp_sl(bybit_sym, sl_price=entry_rounded)
+                            log(f"  [LIVE] SL moved to entry: {coin} @ {entry_rounded}")
 
-                close_trade(trade, close_price, close_reason)
-                if close_reason == "SL":
-                    log(f"  SL HIT: {coin} {trade['direction']} | Price vs SL {sl_price:.6f} ({sl_pct}%)")
-                elif close_reason == "LIQ":
-                    log(f"  LIQ HIT: {coin} {trade['direction']} | Liq {trade['liq']:.6f}")
+                        trade["tp1_hit"] = True
+                        trade["tp1_pnl"] = round(tp1_pnl, 2)
+                        trade["peak_price"] = trade["tp"]
+                        trade["bybit_qty"] = half_qty_str
+                        log(f"  TP1 HIT: {coin} SHORT @ {trade['tp']:.6f} | Partial PnL: ${tp1_pnl:.2f} | SL->Entry, trailing starts")
+
+                    elif sl_price is not None and recent_high >= sl_price:
+                        if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
+                            result = close_position_market(bybit_sym, "Buy", trade["bybit_qty"])
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  SL CLOSE FAILED: {coin} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] SL close OK: {coin} Buy {trade['bybit_qty']}")
+                        close_trade(trade, sl_price, "SL")
+                        log(f"  SL HIT: {coin} SHORT | High {recent_high:.6f} >= SL {sl_price:.6f} ({sl_pct}%)")
+
+                    elif recent_high >= trade["liq"]:
+                        close_trade(trade, trade["liq"], "LIQ")
+                        log(f"  LIQ HIT: {coin} SHORT | High {recent_high:.6f} >= Liq {trade['liq']:.6f}")
+                else:
+                    # Phase 2: TP1 hit, trailing for TP2
+                    peak = trade.get("peak_price", trade["tp"])
+                    if recent_low < peak:
+                        trade["peak_price"] = recent_low
+                        peak = recent_low
+
+                    # Trailing stop: 3% retrace from peak (for SHORT, price going UP is bad)
+                    trail_stop = peak * (1 + 0.03)
+                    be_stop = trade["entry"]
+
+                    if recent_high >= be_stop:
+                        # Back to entry — breakeven on TP2 half
+                        if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
+                            result = close_position_market(bybit_sym, "Buy", trade["bybit_qty"])
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  TP2 BE CLOSE FAILED: {coin} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] TP2 BE close OK: {coin} Buy {trade['bybit_qty']}")
+                        tp2_pnl = 0.0
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(be_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+BE"
+                        trade["status"] = "closed"
+                        log(f"  TP2 BE: {coin} SHORT | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
+
+                    elif recent_high >= trail_stop:
+                        # Trailing stop hit
+                        if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
+                            result = close_position_market(bybit_sym, "Buy", trade["bybit_qty"])
+                            if not result or result.get("retCode") != 0:
+                                err = result.get("retMsg", "Unknown") if result else "No response"
+                                log(f"  TP2 TRAIL CLOSE FAILED: {coin} | {err} — retry next scan")
+                                continue
+                            log(f"  [LIVE] TP2 TRAIL close OK: {coin} Buy {trade['bybit_qty']}")
+                        tp2_pnl = calc_pnl("SHORT", trade["entry"], trail_stop, trade["size"]) * 0.5
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(trail_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+TRAIL"
+                        trade["status"] = "closed"
+                        log(f"  TP2 TRAIL: {coin} SHORT | Peak {peak:.6f} -> Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
 
 
 def update_stats(data):
@@ -1446,7 +1611,7 @@ def update_stats(data):
             }
             continue
 
-        wins = [t for t in closed if t.get("close_reason") == "TP"]
+        wins = [t for t in closed if t.get("close_reason") in ("TP", "TP1+TRAIL", "TP1+BE")]
         losses = [t for t in closed if t.get("close_reason") in ("SL", "LIQ", "SMA_RISK", "SW_RISK")]
         total_pnl = sum(t["pnl"] for t in closed if t["pnl"])
 
@@ -1606,8 +1771,43 @@ def scan_and_trade(data, tf, limit, tf_key):
 
             if probability >= CONFIG["min_probability"]:
                 signals_found += 1
+
+                # ── V2K1: Kaskaden-Ampel Filter ──
+                bull_lights, bear_lights, cascade_dir, cascade_details = get_cascade_signal()
+                if direction == "LONG":
+                    lights_in_dir = bull_lights
+                else:
+                    lights_in_dir = bear_lights
+
                 log(f"  SIGNAL: {coin} {direction} | Prob: {probability}% | Bias: {result['coin_bias']} | BTC: {result['btc_trend']}")
                 log(f"          Scores: {result['scores']} | L:{result['long_count']} S:{result['short_count']}")
+                log(f"          Cascade: {bull_lights}B/{bear_lights}S -> {cascade_dir} | Lights in dir: {lights_in_dir} | {cascade_details}")
+
+                # Cascade gate: 0-1 lights -> SKIP
+                if lights_in_dir <= 1:
+                    log(f"  CASCADE SKIP: {coin} {direction} — only {lights_in_dir} lights. Need >=2.")
+                    continue
+
+                # Adjust TP based on cascade lights
+                tp_adjusted = tp
+                if lights_in_dir == 2:
+                    # Reduce TP to 50% of expected move (instead of 70%)
+                    em = result["expected_move"]
+                    if direction == "LONG":
+                        tp_adjusted = entry + em * 0.50
+                    else:
+                        tp_adjusted = entry - em * 0.50
+                    log(f"  CASCADE 2-LIGHT: TP reduced to 50% EM -> {tp_adjusted:.6f}")
+                elif lights_in_dir == 5:
+                    log(f"  CASCADE 5-LIGHT: Full alignment — extended trailing flagged")
+
+                tp = tp_adjusted
+
+                # Validate TP still makes sense after adjustment
+                if direction == "LONG" and tp <= entry:
+                    continue
+                if direction == "SHORT" and tp >= entry:
+                    continue
 
                 if tf_key == "trades_15m":
                     current_open = len([t for t in data[tf_key] if t["status"] == "open"])
@@ -1625,7 +1825,12 @@ def scan_and_trade(data, tf, limit, tf_key):
                 if check_btc_spike(direction):
                     continue
 
-                trade = open_trade(data, tf_key, coin, direction, entry, tp, probability, tf)
+                # Build cascade code: 5-stellig 5m/15m/30m/1h/4h — 1=BULL 2=BEAR 0=SIDE
+                code_map = {"BULL": "1", "BEAR": "2", "SIDE": "0", "NO_DATA": "0"}
+                c_code = "".join(code_map.get(cascade_details.get(tf_c, "0"), "0") for tf_c in ["5m", "15m", "30m", "1h", "4h"])
+
+                trade = open_trade(data, tf_key, coin, direction, entry, tp, probability, tf,
+                                   cascade_lights=lights_in_dir, cascade_code=c_code)
                 if trade:
                     trades_opened += 1
 
