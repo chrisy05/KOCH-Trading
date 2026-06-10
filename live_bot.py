@@ -1111,101 +1111,12 @@ def check_mtf_alignment(sym, direction):
 ## ═══════════════════════════════════════════════════════════════
 
 def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
-    """Open a trade with V2K3 Regime-aware logic."""
+    """Open a trade with V2 logic — simple, no Regime/MTF/SMA-Cross."""
     capital = CONFIG["capital"]
+    leverage = 10  # Fix 10x
 
-    # ═══ V2K3 REGIME + BTC FILTER ═══
-    btc_data = get_btc_sma_cached()
-    regime, regime_conf, regime_detail = detect_btc_regime(btc_data)
-
-    # BTC 1H Grundrichtung
-    btc_bearish = btc_data and btc_data["price"] < btc_data["sma20"] and btc_data["sma10"] < btc_data["sma50"]
-    btc_bullish = btc_data and btc_data["price"] > btc_data["sma20"] and btc_data["sma10"] > btc_data["sma50"]
-    with_btc = (direction == "SHORT" and btc_bearish) or (direction == "LONG" and btc_bullish)
-    against_btc = (direction == "LONG" and btc_bearish) or (direction == "SHORT" and btc_bullish)
-
-    if regime == "SIDEWAYS":
-        log(f"  REGIME: SIDEWAYS ({regime_conf}/7) | {regime_detail}")
-        if against_btc:
-            sym = f"{coin}USDT"
-            mtf_a, _, mtf_d = check_mtf_alignment(sym, direction)
-            if mtf_a < 4:
-                log(f"  SKIP: Gegen BTC + MTF nur {mtf_a}/4")
-                return None
-            leverage = 5
-            log(f"  Gegen BTC erlaubt mit 5x — MTF 4/4")
-        else:
-            coin_skip, coin_pen, coin_rsn = check_coin_sma(coin, direction)
-            if coin_skip:
-                log(f"  COIN-SMA: {coin} {direction} skip — {coin_rsn}")
-                return None
-            sym = f"{coin}USDT"
-            mtf_a, _, mtf_d = check_mtf_alignment(sym, direction)
-            log(f"  MTF: {mtf_a}/4 | {mtf_d}")
-            if mtf_a == 0:
-                log(f"  MTF-SKIP: kein TF aligned")
-                return None
-            # Coin-SMA Alignment auf 1H
-            coin_al = 0
-            try:
-                url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1h&limit=50"
-                req = urllib.request.Request(url)
-                with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
-                    ck = json.loads(r.read())
-                cc = [float(k[4]) for k in ck]
-                cs10, cs20, cs50 = sum(cc[-10:])/10, sum(cc[-20:])/20, sum(cc[-50:])/50
-                cp = cc[-1]
-                if direction == "SHORT":
-                    coin_al = int(cp<cs10) + int(cs10<cs20) + int(cs20<cs50)
-                else:
-                    coin_al = int(cp>cs10) + int(cs10>cs20) + int(cs20>cs50)
-            except: pass
-            if mtf_a >= 4 and coin_al >= 3: leverage = 12 if tf == "15m" else 10
-            elif mtf_a >= 3 and coin_al >= 2: leverage = 10
-            elif mtf_a >= 2 and coin_al >= 1: leverage = 7
-            else: leverage = 5
-            if coin_pen > 0: leverage = max(5, leverage - 2)
-
-    elif regime == "TRANSITIONING":
-        log(f"  REGIME: TRANSITIONING ({regime_conf}/7)")
-        lev, alignment, sma_rsn = get_btc_sma_alignment(direction)
-        if lev == 0:
-            if against_btc:
-                log(f"  SMA-SKIP: {coin} {direction} — {sma_rsn}")
-                return None
-            sym = f"{coin}USDT"
-            mtf_a, _, mtf_d = check_mtf_alignment(sym, direction)
-            if mtf_a >= 3:
-                leverage = 5
-                log(f"  TRANSITION-OVERRIDE: MTF {mtf_a}/4 → 5x")
-            else:
-                log(f"  SMA-SKIP: {coin} {direction} — {sma_rsn}")
-                return None
-        else:
-            leverage = min(lev, 10) if tf != "15m" else lev
-            log(f"  SMA-Alignment: {alignment}/4 | {leverage}x")
-        coin_skip, coin_pen, coin_rsn = check_coin_sma(coin, direction)
-        if coin_skip:
-            log(f"  COIN-SMA: {coin} {direction} skip — {coin_rsn}")
-            return None
-        if coin_pen > 0 and leverage >= 10:
-            leverage = max(7, leverage - 3)
-
-    else:  # TRENDING
-        lev, alignment, sma_rsn = get_btc_sma_alignment(direction)
-        if lev == 0:
-            log(f"  SMA-SKIP: {coin} {direction} — {sma_rsn}")
-            return None
-        leverage = min(lev, 10) if tf != "15m" else lev
-        log(f"  REGIME: TRENDING | {alignment}/4 | {leverage}x | {sma_rsn}")
-        coin_skip, coin_pen, coin_rsn = check_coin_sma(coin, direction)
-        if coin_skip:
-            log(f"  COIN-SMA: {coin} {direction} skip — {coin_rsn}")
-            return None
-        if coin_pen > 0 and leverage >= 10:
-            leverage = max(7, leverage - 3)
-
-    # ═══ END V2K3 ═══
+    # ═══ V2 LOGIK — einfach, direkt, keine Regime/MTF/SMA-Cross Filter ═══
+    log(f"  V2 Logik | {direction} {coin} | 10x fix")
 
     margin = capital
     size = capital * leverage / entry
@@ -1518,56 +1429,21 @@ def update_stats(data):
 # ═══════════════════════════════════════════════════════════════
 
 def check_btc_spike(trade_direction=None):
-    """BTC Spike Filter — Kombi aus Richtung + Haltezeit.
-
-    1. Spike in Trendrichtung → nur Gegenrichtung blockieren
-       BTC pumpt → SHORT blockiert, LONG erlaubt
-       BTC dumpt → LONG blockiert, SHORT erlaubt
-    2. Nach 15 Min: prüft ob Preis >50% des Moves hält → kein Fakeout → freigeben
-
-    Returns: True = blockieren, False = erlaubt
-    """
+    """BTC Spike Filter — V2 Logik: >1% in 15min = alles blockiert."""
     try:
-        # 6 Bars à 5 Min = 30 Min Fenster
-        url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=5m&limit=6"
+        url = "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=5m&limit=3"
         req = urllib.request.Request(url, headers={"User-Agent": "LiveBot/1.0"})
         with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
             klines = json.loads(resp.read().decode())
-        if not klines or len(klines) < 6:
+        if not klines or len(klines) < 3:
             return False
-
-        # Spike-Erkennung: >1% in den ersten 3 Bars (15 Min)
-        spike_open = float(klines[0][1])
-        spike_close = float(klines[2][4])
-        spike_move = (spike_close - spike_open) / spike_open * 100
-        spike_abs = abs(spike_move)
-
-        if spike_abs < 1.0:
-            return False  # Kein Spike
-
-        spike_direction = "UP" if spike_move > 0 else "DOWN"
-
-        # 1. Richtungsfilter: Trade MIT dem Spike → erlaubt
-        if trade_direction:
-            if spike_direction == "UP" and trade_direction == "LONG":
-                log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — LONG erlaubt (mit Trend)")
-                return False
-            if spike_direction == "DOWN" and trade_direction == "SHORT":
-                log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — SHORT erlaubt (mit Trend)")
-                return False
-
-        # 2. Haltezeit: Preis nach 15 Min noch >50% des Moves? → freigeben
-        current_price = float(klines[-1][4])
-        move_held = (current_price - spike_open) / spike_open * 100
-        held_pct = (move_held / spike_move * 100) if spike_move != 0 else 0
-
-        if held_pct > 50:
-            log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — hält {held_pct:.0f}% nach 15 Min → freigeben")
-            return False
-
-        # Spike + Gegenrichtung + nicht gehalten → blockieren
-        log(f"  SPIKE {spike_direction} {spike_move:+.1f}% — hält nur {held_pct:.0f}% → Bremse aktiv")
-        return True
+        open_price = float(klines[0][1])
+        close_price = float(klines[-1][4])
+        move_pct = abs(close_price - open_price) / open_price * 100
+        if move_pct > 1.0:
+            log(f"  BTC SPIKE {move_pct:.1f}% in 15min — Bremse aktiv")
+            return True
+        return False
     except:
         return False
 
