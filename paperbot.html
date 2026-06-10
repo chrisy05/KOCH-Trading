@@ -213,10 +213,10 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
       <table>
         <thead>
           <tr>
-            <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Lev</th><th class="num">Entry</th><th class="num">Current</th><th class="num">TP</th><th class="num">Liq</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Opened</th>
+            <th>Coin</th><th>Dir</th><th>TF</th><th class="num">Lev</th><th class="num">Entry</th><th class="num">Current</th><th class="num">TP</th><th class="num">Liq</th><th class="num">Prob</th><th class="num">PnL</th><th class="num">ROI</th><th>Duration</th><th>Opened</th><th class="num">Kaskade</th>
           </tr>
         </thead>
-        <tbody id="openBody"><tr><td colspan="13" class="empty-state">Loading...</td></tr></tbody>
+        <tbody id="openBody"><tr><td colspan="14" class="empty-state">Loading...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -499,7 +499,7 @@ async function renderOpenTrades(...tradeLists) {
   document.getElementById('openCount').textContent = allOpen.length;
 
   if (allOpen.length === 0) {
-    document.getElementById('openBody').innerHTML = '<tr><td colspan="13" class="empty-state">No open trades</td></tr>';
+    document.getElementById('openBody').innerHTML = '<tr><td colspan="14" class="empty-state">No open trades</td></tr>';
     return;
   }
 
@@ -535,6 +535,7 @@ async function renderOpenTrades(...tradeLists) {
       <td class="num ${roi !== null ? pnlColor(roi) : ''}">${roi !== null ? roi.toFixed(1) + '%' : '--'}</td>
       <td class="gray">${dur}</td>
       <td class="gray" style="font-size:.72rem">${openDt}</td>
+      <td class="num" style="font-family:monospace;font-size:.7rem;color:#58a6ff">${t.cascade_code || ''}</td>
     </tr>`;
   }
   document.getElementById('openBody').innerHTML = html;
