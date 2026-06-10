@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Paper Trading Bot V2K1 — Exakte V2-Kopie + Scanner-Winners
-$2.000 Kapital, $200/Trade. Start: 07.06.2026
+Paper Trading Bot V2K1 — V2 + Kaskaden-Ampel + TP1/TP2 Trailing
+$5k Budget, $100/Trade, 10x. 24 Scanner-Winner Coins.
+Start: 10.06.2026
 """
 
 import json
@@ -18,20 +19,20 @@ from datetime import datetime, timezone, timedelta
 # ═══════════════════════════════════════════════════════════════
 
 CONFIG = {
-    "capital": 200,
+    "capital": 100,
     "leverage": 10,
     "min_probability": 60,
-    "tp_range_pct": 70,       # 70% of expected move
-    "sl_pct": 40,             # V2: SL bei 40% Verlust der Margin (15m/30m)
-    "sl_pct_1h": 15,          # 1H: SL bei 15% Verlust der Margin
+    "tp_range_pct": 70,       # 70% of expected move (TP1)
+    "sl_pct": 40,             # SL bei 40% Verlust der Margin
+    "sl_pct_1h": 15,          # 1H: SL bei 15%
     "max_open_15m": 50,
-    "max_trades_per_coin_1h": 1,  # per day
+    "max_trades_per_coin_1h": 1,
     "max_open_4h": 3,
-    "total_budget": 2000,     # Gesamtkapital $2.000
-    "tf_budget_15m": 100,     # % of total budget for 15m trades (nur 15m aktiv)
-    "tf_budget_30m": 0,       # deaktiviert 08.06.
-    "tf_budget_1h": 0,        # deaktiviert 08.06.
-    "tf_budget_4h": 0,        # deaktiviert
+    "total_budget": 5000,     # $5k Budget
+    "tf_budget_15m": 50,      # 50% für 15m
+    "tf_budget_30m": 50,      # 50% für 30m
+    "tf_budget_1h": 0,
+    "tf_budget_4h": 0,
 }
 
 # Load config overrides from JSON file (written by dashboard settings)
@@ -538,6 +539,60 @@ def full_analyze(coin, tf="15m", limit=800):
 # TRADE MANAGEMENT
 # ═══════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════
+# KASKADEN-AMPEL (BTC Multi-TF SMA Alignment)
+# ═══════════════════════════════════════════════════════════════
+
+_cascade_cache = {"ts": 0, "result": None}
+CASCADE_CACHE_SECONDS = 300  # 5 minutes
+
+def get_cascade_signal():
+    """Check BTC SMA10/20/50 on 5 timeframes. Returns (bull_count, bear_count, direction, details)."""
+    now_ts = time.time()
+    if _cascade_cache["result"] is not None and (now_ts - _cascade_cache["ts"]) < CASCADE_CACHE_SECONDS:
+        return _cascade_cache["result"]
+
+    timeframes = ["5m", "15m", "30m", "1h", "4h"]
+    bull_count = 0
+    bear_count = 0
+    details = {}
+
+    for tf in timeframes:
+        klines = fetch_klines("BTCUSDT", tf, 55)
+        if not klines or len(klines) < 50:
+            details[tf] = "NO_DATA"
+            time.sleep(0.1)
+            continue
+
+        closes = [k["close"] for k in klines]
+        sma10 = sum(closes[-10:]) / 10
+        sma20 = sum(closes[-20:]) / 20
+        sma50 = sum(closes[-50:]) / 50
+
+        if sma10 > sma20 > sma50:
+            bull_count += 1
+            details[tf] = "BULL"
+        elif sma10 < sma20 < sma50:
+            bear_count += 1
+            details[tf] = "BEAR"
+        else:
+            details[tf] = "SIDE"
+
+        time.sleep(0.1)
+
+    if bull_count > bear_count:
+        direction = "LONG"
+    elif bear_count > bull_count:
+        direction = "SHORT"
+    else:
+        direction = "NEUTRAL"
+
+    result = (bull_count, bear_count, direction, details)
+    _cascade_cache["ts"] = now_ts
+    _cascade_cache["result"] = result
+    return result
+
+
 def load_data():
     """Load paper trades from JSON file."""
     if os.path.exists(DATA_FILE):
@@ -631,7 +686,7 @@ def calc_pnl(direction, entry, close_price, size):
         return (entry - close_price) * size
 
 
-def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
+def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=0):
     """Open a new paper trade."""
     capital = CONFIG["capital"]
     leverage = CONFIG["leverage"]
@@ -657,10 +712,15 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
         "pnl": None,
         "roi": None,
         "status": "open",
+        # V2K1: TP1/TP2 trailing fields
+        "tp1_hit": False,
+        "tp1_pnl": None,
+        "peak_price": None,
+        "cascade_lights": cascade_lights,
     }
 
     data[tf_key].append(trade)
-    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | Liq: {liq:.6f} | Prob: {probability}% | TF: {tf}")
+    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | Liq: {liq:.6f} | Prob: {probability}% | TF: {tf} | Cascade: {cascade_lights}")
     return trade
 
 
@@ -735,30 +795,110 @@ def check_open_trades(data):
                     else:
                         sl_price = trade["entry"] + sl_loss / size
 
+            # ── V2K1: TP1/TP2 Trailing Stop Logic ──
+            tp1_hit = trade.get("tp1_hit", False)
+
             if trade["direction"] == "LONG":
-                # Check TP hit (using high — wick up counts)
-                if recent_high >= trade["tp"]:
-                    close_trade(trade, trade["tp"], "TP")
-                # Check SL hit before LIQ
-                elif sl_price is not None and recent_low <= sl_price:
-                    close_trade(trade, sl_price, "SL")
-                    log(f"  SL HIT: {coin} LONG | Low {recent_low:.6f} <= SL {sl_price:.6f} ({sl_pct}%)")
-                # Check LIQ hit (using low — wick down counts)
-                elif recent_low <= trade["liq"]:
-                    close_trade(trade, trade["liq"], "LIQ")
-                    log(f"  LIQ HIT: {coin} LONG | Low {recent_low:.6f} <= Liq {trade['liq']:.6f}")
+                if not tp1_hit:
+                    # Phase 1: waiting for TP1
+                    if recent_high >= trade["tp"]:
+                        # TP1 hit — record partial PnL, move SL to entry, start trailing
+                        tp1_pnl = calc_pnl("LONG", trade["entry"], trade["tp"], trade["size"]) * 0.5
+                        trade["tp1_hit"] = True
+                        trade["tp1_pnl"] = round(tp1_pnl, 2)
+                        trade["peak_price"] = trade["tp"]  # start tracking from TP
+                        log(f"  TP1 HIT: {coin} LONG @ {trade['tp']:.6f} | Partial PnL: ${tp1_pnl:.2f} | SL→Entry, trailing starts")
+                    elif sl_price is not None and recent_low <= sl_price:
+                        close_trade(trade, sl_price, "SL")
+                        log(f"  SL HIT: {coin} LONG | Low {recent_low:.6f} <= SL {sl_price:.6f} ({sl_pct}%)")
+                    elif recent_low <= trade["liq"]:
+                        close_trade(trade, trade["liq"], "LIQ")
+                        log(f"  LIQ HIT: {coin} LONG | Low {recent_low:.6f} <= Liq {trade['liq']:.6f}")
+                else:
+                    # Phase 2: TP1 hit, trailing for TP2
+                    # Update peak price
+                    peak = trade.get("peak_price", trade["tp"])
+                    if recent_high > peak:
+                        trade["peak_price"] = recent_high
+                        peak = recent_high
+
+                    # Check trailing stop: 3% retrace from peak
+                    trail_stop = peak * (1 - 0.03)
+                    # Also check breakeven SL (entry price)
+                    be_stop = trade["entry"]
+
+                    if recent_low <= be_stop:
+                        # Price fell back to entry — close remaining at entry (breakeven on TP2 half)
+                        tp2_pnl = 0.0  # breakeven on remaining 50%
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(be_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+BE"
+                        trade["status"] = "closed"
+                        log(f"  TP2 BE: {coin} LONG | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
+                    elif recent_low <= trail_stop:
+                        # Trailing stop hit — close remaining at trail stop
+                        tp2_pnl = calc_pnl("LONG", trade["entry"], trail_stop, trade["size"]) * 0.5
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(trail_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+TRAIL"
+                        trade["status"] = "closed"
+                        log(f"  TP2 TRAIL: {coin} LONG | Peak {peak:.6f} → Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
+
             else:  # SHORT
-                # Check TP hit (using low — wick down counts)
-                if recent_low <= trade["tp"]:
-                    close_trade(trade, trade["tp"], "TP")
-                # Check SL hit before LIQ
-                elif sl_price is not None and recent_high >= sl_price:
-                    close_trade(trade, sl_price, "SL")
-                    log(f"  SL HIT: {coin} SHORT | High {recent_high:.6f} >= SL {sl_price:.6f} ({sl_pct}%)")
-                # Check LIQ hit (using high — wick up counts)
-                elif recent_high >= trade["liq"]:
-                    close_trade(trade, trade["liq"], "LIQ")
-                    log(f"  LIQ HIT: {coin} SHORT | High {recent_high:.6f} >= Liq {trade['liq']:.6f}")
+                if not tp1_hit:
+                    # Phase 1: waiting for TP1
+                    if recent_low <= trade["tp"]:
+                        # TP1 hit
+                        tp1_pnl = calc_pnl("SHORT", trade["entry"], trade["tp"], trade["size"]) * 0.5
+                        trade["tp1_hit"] = True
+                        trade["tp1_pnl"] = round(tp1_pnl, 2)
+                        trade["peak_price"] = trade["tp"]  # lowest point so far
+                        log(f"  TP1 HIT: {coin} SHORT @ {trade['tp']:.6f} | Partial PnL: ${tp1_pnl:.2f} | SL→Entry, trailing starts")
+                    elif sl_price is not None and recent_high >= sl_price:
+                        close_trade(trade, sl_price, "SL")
+                        log(f"  SL HIT: {coin} SHORT | High {recent_high:.6f} >= SL {sl_price:.6f} ({sl_pct}%)")
+                    elif recent_high >= trade["liq"]:
+                        close_trade(trade, trade["liq"], "LIQ")
+                        log(f"  LIQ HIT: {coin} SHORT | High {recent_high:.6f} >= Liq {trade['liq']:.6f}")
+                else:
+                    # Phase 2: TP1 hit, trailing for TP2
+                    peak = trade.get("peak_price", trade["tp"])
+                    if recent_low < peak:
+                        trade["peak_price"] = recent_low
+                        peak = recent_low
+
+                    # Trailing stop: 3% retrace from peak (for SHORT, price going UP is bad)
+                    trail_stop = peak * (1 + 0.03)
+                    be_stop = trade["entry"]
+
+                    if recent_high >= be_stop:
+                        # Back to entry — breakeven on TP2 half
+                        tp2_pnl = 0.0
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(be_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+BE"
+                        trade["status"] = "closed"
+                        log(f"  TP2 BE: {coin} SHORT | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
+                    elif recent_high >= trail_stop:
+                        # Trailing stop hit
+                        tp2_pnl = calc_pnl("SHORT", trade["entry"], trail_stop, trade["size"]) * 0.5
+                        total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
+                        trade["pnl"] = round(total_pnl, 2)
+                        trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
+                        trade["close_price"] = round(trail_stop, 8)
+                        trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+                        trade["close_reason"] = "TP1+TRAIL"
+                        trade["status"] = "closed"
+                        log(f"  TP2 TRAIL: {coin} SHORT | Peak {peak:.6f} → Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
 
 
 def update_stats(data):
@@ -773,7 +913,7 @@ def update_stats(data):
             }
             continue
 
-        wins = [t for t in closed if t.get("close_reason") == "TP"]
+        wins = [t for t in closed if t.get("close_reason") in ("TP", "TP1+TRAIL", "TP1+BE")]
         losses = [t for t in closed if t.get("close_reason") in ("SL", "LIQ", "SMA_RISK", "SW_RISK")]
         total_pnl = sum(t["pnl"] for t in closed if t["pnl"])
 
@@ -945,8 +1085,43 @@ def scan_and_trade(data, tf, limit, tf_key):
 
             if probability >= CONFIG["min_probability"]:
                 signals_found += 1
+
+                # ── V2K1: Kaskaden-Ampel Filter ──
+                bull_lights, bear_lights, cascade_dir, cascade_details = get_cascade_signal()
+                if direction == "LONG":
+                    lights_in_dir = bull_lights
+                else:
+                    lights_in_dir = bear_lights
+
                 log(f"  SIGNAL: {coin} {direction} | Prob: {probability}% | Bias: {result['coin_bias']} | BTC: {result['btc_trend']}")
                 log(f"          Scores: {result['scores']} | L:{result['long_count']} S:{result['short_count']}")
+                log(f"          Cascade: {bull_lights}B/{bear_lights}S → {cascade_dir} | Lights in dir: {lights_in_dir} | {cascade_details}")
+
+                # Cascade gate: 0-1 lights → SKIP
+                if lights_in_dir <= 1:
+                    log(f"  CASCADE SKIP: {coin} {direction} — only {lights_in_dir} lights. Need >=2.")
+                    continue
+
+                # Adjust TP based on cascade lights
+                tp_adjusted = tp
+                if lights_in_dir == 2:
+                    # Reduce TP to 50% of expected move (instead of 70%)
+                    em = result["expected_move"]
+                    if direction == "LONG":
+                        tp_adjusted = entry + em * 0.50
+                    else:
+                        tp_adjusted = entry - em * 0.50
+                    log(f"  CASCADE 2-LIGHT: TP reduced to 50% EM → {tp_adjusted:.6f}")
+                elif lights_in_dir == 5:
+                    log(f"  CASCADE 5-LIGHT: Full alignment — extended trailing flagged")
+
+                tp = tp_adjusted
+
+                # Validate TP still makes sense after adjustment
+                if direction == "LONG" and tp <= entry:
+                    continue
+                if direction == "SHORT" and tp >= entry:
+                    continue
 
                 # Check 15m max open limit again (could have filled during scan)
                 if tf_key == "trades_15m":
@@ -962,15 +1137,7 @@ def scan_and_trade(data, tf, limit, tf_key):
                         log(f"  Max open 4h trades reached. Stopping scan.")
                         break
 
-                # Budget-Check: aktuelle Margin über ALLE TFs berechnen
-                current_margin = sum(t.get("margin", CONFIG["capital"])
-                    for tfk in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]
-                    for t in data.get(tfk, []) if t["status"] == "open")
-                if current_margin + CONFIG["capital"] > CONFIG["total_budget"]:
-                    log(f"  BUDGET VOLL: ${current_margin:.0f} / ${CONFIG['total_budget']:.0f} — kein Platz.")
-                    break
-
-                open_trade(data, tf_key, coin, direction, entry, tp, probability, tf)
+                open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=lights_in_dir)
                 trades_opened += 1
 
         except Exception as e:
@@ -1012,7 +1179,7 @@ def print_status(data):
 
 
 def main():
-    log("Paper Trading Bot V2 starting...")
+    log("Paper Trading Bot V2K1 starting (Kaskaden-Ampel + TP1/TP2 Trailing)...")
     log(f"Config: Capital=${CONFIG['capital']}, Leverage={CONFIG['leverage']}x, Min Prob={CONFIG['min_probability']}%")
     log(f"Coins: {len(COINS)} | Data file: {DATA_FILE}")
     log(f"TP range: {CONFIG['tp_range_pct']}% of expected move")
