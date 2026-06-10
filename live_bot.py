@@ -955,6 +955,60 @@ def calc_pnl(direction, entry, close_price, size):
 
 
 ## ═══════════════════════════════════════════════════════════════
+## KASKADEN-AMPEL (BTC Multi-TF SMA Alignment)
+## ═══════════════════════════════════════════════════════════════
+
+_cascade_cache = {"ts": 0, "result": None}
+CASCADE_CACHE_SECONDS = 300  # 5 minutes
+
+def get_cascade_signal():
+    """Check BTC SMA10/20/50 on 5 timeframes. Returns (bull_count, bear_count, direction, details)."""
+    now_ts = time.time()
+    if _cascade_cache["result"] is not None and (now_ts - _cascade_cache["ts"]) < CASCADE_CACHE_SECONDS:
+        return _cascade_cache["result"]
+
+    timeframes = ["5m", "15m", "30m", "1h", "4h"]
+    bull_count = 0
+    bear_count = 0
+    details = {}
+
+    for tf in timeframes:
+        klines = fetch_klines("BTCUSDT", tf, 55)
+        if not klines or len(klines) < 50:
+            details[tf] = "NO_DATA"
+            time.sleep(0.1)
+            continue
+
+        closes = [k["close"] for k in klines]
+        sma10 = sum(closes[-10:]) / 10
+        sma20 = sum(closes[-20:]) / 20
+        sma50 = sum(closes[-50:]) / 50
+
+        if sma10 > sma20 > sma50:
+            bull_count += 1
+            details[tf] = "BULL"
+        elif sma10 < sma20 < sma50:
+            bear_count += 1
+            details[tf] = "BEAR"
+        else:
+            details[tf] = "SIDE"
+
+        time.sleep(0.1)
+
+    if bull_count > bear_count:
+        direction = "LONG"
+    elif bear_count > bull_count:
+        direction = "SHORT"
+    else:
+        direction = "NEUTRAL"
+
+    result = (bull_count, bear_count, direction, details)
+    _cascade_cache["ts"] = now_ts
+    _cascade_cache["result"] = result
+    return result
+
+
+## ═══════════════════════════════════════════════════════════════
 ## V2K3 REGIME + MTF LOGIC
 ## ═══════════════════════════════════════════════════════════════
 
@@ -1110,13 +1164,12 @@ def check_mtf_alignment(sym, direction):
 
 ## ═══════════════════════════════════════════════════════════════
 
-def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
-    """Open a trade with V2 logic — simple, no Regime/MTF/SMA-Cross."""
+def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=0, cascade_code="00000"):
+    """Open a trade with V2K1 logic — Cascade + TP1/TP2 Trailing."""
     capital = CONFIG["capital"]
     leverage = 10  # Fix 10x
 
-    # ═══ V2 LOGIK — einfach, direkt, keine Regime/MTF/SMA-Cross Filter ═══
-    log(f"  V2 Logik | {direction} {coin} | 10x fix")
+    log(f"  V2K1 Logik | {direction} {coin} | 10x fix | Cascade: {cascade_lights} lights")
 
     margin = capital
     size = capital * leverage / entry
@@ -1201,10 +1254,16 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf):
         "bybit_order_id": order_id,
         "bybit_qty": qty_str,
         "mode": "LIVE" if LIVE_MODE else "DRY-RUN",
+        # V2K1: TP1/TP2 trailing fields
+        "tp1_hit": False,
+        "tp1_pnl": None,
+        "peak_price": None,
+        "cascade_lights": cascade_lights,
+        "cascade_code": cascade_code,  # 5-stellig: 5m/15m/30m/1h/4h — 1=BULL 2=BEAR 0=SIDE
     }
 
     data[tf_key].append(trade)
-    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | Liq: {liq:.6f} | Prob: {probability}% | TF: {tf}")
+    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | Liq: {liq:.6f} | Prob: {probability}% | TF: {tf} | Cascade: {cascade_lights}")
     return trade
 
 
