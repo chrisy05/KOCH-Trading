@@ -186,32 +186,64 @@ def open_trade(data, candidate):
 
 
 def close_trade(trade, close_price, reason):
-    """Close a paper trade."""
+    """Close a paper trade (full or final after TP1 partial)."""
     direction = trade["direction"]
     entry = trade["entry"]
-    size = trade["size"]
+
+    # If TP1 was already hit, only 50% of original size remains
+    if trade.get("tp1_hit"):
+        remaining_size = trade["size"] * 0.5
+    else:
+        remaining_size = trade["size"]
 
     if direction == "LONG":
-        pnl = (close_price - entry) * size
+        pnl = (close_price - entry) * remaining_size
     else:
-        pnl = (entry - close_price) * size
+        pnl = (entry - close_price) * remaining_size
 
-    roi = pnl / trade["margin"] * 100
+    # Add TP1 PnL if it was hit
+    tp1_pnl = trade.get("tp1_pnl", 0)
+    total_pnl = tp1_pnl + pnl
+    total_roi = total_pnl / trade["margin"] * 100
 
     trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
     trade["close_price"] = round(close_price, 8)
     trade["close_reason"] = reason
-    trade["pnl"] = round(pnl, 2)
-    trade["roi"] = round(roi, 2)
+    trade["tp2_pnl"] = round(pnl, 2)
+    trade["pnl"] = round(total_pnl, 2)
+    trade["roi"] = round(total_roi, 2)
     trade["status"] = "closed"
 
-    result = "WIN" if pnl > 0 else "LOSS"
-    log(f"CLOSED {direction} {trade['coin']} @ ${close_price:.6f} | {reason} | PnL: ${pnl:.2f} ({roi:.1f}%) | {result}")
+    result = "WIN" if total_pnl > 0 else "LOSS"
+    log(f"CLOSED {direction} {trade['coin']} @ ${close_price:.6f} | {reason} | PnL: ${total_pnl:.2f} ({total_roi:.1f}%) | {result}")
     return trade
 
 
+def handle_tp1_hit(trade, tp1_price):
+    """Handle TP1 hit: close 50% position, move SL to entry."""
+    direction = trade["direction"]
+    entry = trade["entry"]
+    half_size = trade["size"] * 0.5
+
+    if direction == "LONG":
+        tp1_pnl = (tp1_price - entry) * half_size
+    else:
+        tp1_pnl = (entry - tp1_price) * half_size
+
+    trade["tp1_hit"] = True
+    trade["tp1_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+    trade["tp1_pnl"] = round(tp1_pnl, 2)
+    trade["tp1_price"] = round(tp1_price, 8)
+    trade["sl_original"] = trade["sl"]
+    trade["sl"] = entry  # Move SL to entry (breakeven)
+    trade["max_price_after_tp1"] = tp1_price  # Start tracking peak
+
+    tp1_roi = tp1_pnl / trade["margin"] * 100
+    log(f"TP1 HIT {direction} {trade['coin']} @ ${tp1_price:.6f} | 50% closed | PnL: ${tp1_pnl:.2f} ({tp1_roi:.1f}%) | SL→Entry | Trailing active")
+
+
 def check_open_trade(data):
-    """Check if open trade hit TP or SL."""
+    """Check if open trade hit TP1, TP2 (trailing) or SL."""
     trade = get_open_trade(data)
     if not trade:
         return
@@ -227,20 +259,48 @@ def check_open_trade(data):
     if low is None:
         low = current
 
-    if trade["direction"] == "LONG":
-        # TP hit? (wick up counts)
-        if high >= trade["tp"]:
-            close_trade(trade, trade["tp"], "TP")
-        # SL hit? (wick down counts)
-        elif low <= trade["sl"]:
-            close_trade(trade, trade["sl"], "SL")
-    else:  # SHORT
-        # TP hit? (wick down counts)
-        if low <= trade["tp"]:
-            close_trade(trade, trade["tp"], "TP")
-        # SL hit? (wick up counts)
-        elif high >= trade["sl"]:
-            close_trade(trade, trade["sl"], "SL")
+    tp1_already_hit = trade.get("tp1_hit", False)
+
+    # ── Phase 1: Before TP1 — check TP1 and original SL ──
+    if not tp1_already_hit:
+        if trade["direction"] == "LONG":
+            if high >= trade["tp"]:
+                handle_tp1_hit(trade, trade["tp"])
+            elif low <= trade["sl"]:
+                close_trade(trade, trade["sl"], "SL")
+        else:  # SHORT
+            if low <= trade["tp"]:
+                handle_tp1_hit(trade, trade["tp"])
+            elif high >= trade["sl"]:
+                close_trade(trade, trade["sl"], "SL")
+
+    # ── Phase 2: After TP1 — trailing stop on remaining 50% ──
+    else:
+        entry = trade["entry"]
+        peak = trade.get("max_price_after_tp1", current)
+
+        if trade["direction"] == "LONG":
+            # Update peak
+            if high > peak:
+                trade["max_price_after_tp1"] = high
+                peak = high
+            # Check breakeven SL (entry)
+            if low <= entry:
+                close_trade(trade, entry, "SL (Entry)")
+            # Trailing: price drops 3% from peak
+            elif current <= peak * (1 - 0.03):
+                close_trade(trade, current, "TP2 Trailing")
+        else:  # SHORT
+            # Update peak (lowest price for SHORT)
+            if low < peak:
+                trade["max_price_after_tp1"] = low
+                peak = low
+            # Check breakeven SL (entry)
+            if high >= entry:
+                close_trade(trade, entry, "SL (Entry)")
+            # Trailing: price rises 3% from peak (lowest)
+            elif current >= peak * (1 + 0.03):
+                close_trade(trade, current, "TP2 Trailing")
 
 
 def update_stats(data):
