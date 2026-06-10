@@ -686,7 +686,7 @@ def calc_pnl(direction, entry, close_price, size):
         return (entry - close_price) * size
 
 
-def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=0):
+def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=0, cascade_code="00000"):
     """Open a new paper trade."""
     capital = CONFIG["capital"]
     leverage = CONFIG["leverage"]
@@ -717,6 +717,7 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascad
         "tp1_pnl": None,
         "peak_price": None,
         "cascade_lights": cascade_lights,
+        "cascade_code": cascade_code,  # 5-stellig: 5m/15m/30m/1h/4h — 1=BULL 2=BEAR 0=SIDE
     }
 
     data[tf_key].append(trade)
@@ -1137,7 +1138,10 @@ def scan_and_trade(data, tf, limit, tf_key):
                         log(f"  Max open 4h trades reached. Stopping scan.")
                         break
 
-                open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=lights_in_dir)
+                # Build cascade code: 5-stellig 5m/15m/30m/1h/4h — 1=BULL 2=BEAR 0=SIDE
+                code_map = {"BULL": "1", "BEAR": "2", "SIDE": "0", "NO_DATA": "0"}
+                c_code = "".join(code_map.get(cascade_details.get(tf_c, "0"), "0") for tf_c in ["5m", "15m", "30m", "1h", "4h"])
+                open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=lights_in_dir, cascade_code=c_code)
                 trades_opened += 1
 
         except Exception as e:
