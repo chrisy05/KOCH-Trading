@@ -432,21 +432,6 @@
 
     <!-- Signal Log -->
     <div class="card">
-      <h2 style="color:#f59e0b">Signal Log</h2>
-      <div style="overflow-x:auto">
-      <table>
-        <thead>
-          <tr>
-            <th>Zeit</th><th>Coin</th><th>Richt.</th><th>Score</th>
-            <th>Entry</th><th>TP</th><th>SL</th><th>BTC Trend</th>
-          </tr>
-        </thead>
-        <tbody id="signal-log-tbody"></tbody>
-      </table>
-      </div>
-      <div id="signal-empty-msg" style="text-align:center;padding:30px;color:#333">Keine Signale vorhanden</div>
-    </div>
-
     <!-- Bot Trade Log -->
     <div class="card">
       <h2 style="color:#f59e0b">Bot Trade Log</h2>
@@ -486,55 +471,6 @@ function loadData() {
     })
     .catch(() => render([]));
   // Also load signal log
-  loadSignalLog();
-}
-
-async function loadSignalLog() {
-  try {
-    const r = await fetch('se_analyzer_candidates.json?t=' + Date.now(), {cache:'no-store'});
-    if (!r.ok) {
-      document.getElementById('signal-empty-msg').style.display = 'block';
-      return;
-    }
-    const data = await r.json();
-    const candidates = data.candidates || [];
-    const tbody = document.getElementById('signal-log-tbody');
-    const btcTrend = data.btc_trend || '—';
-    const scanTime = (data.scan_time || '').replace('T',' ').slice(0,19);
-
-    if (candidates.length === 0) {
-      document.getElementById('signal-empty-msg').style.display = 'block';
-      document.getElementById('signal-empty-msg').textContent = 'Keine Kandidaten — Scan: ' + scanTime + ' | BTC: ' + btcTrend;
-      tbody.innerHTML = '';
-      return;
-    }
-
-    document.getElementById('signal-empty-msg').style.display = 'none';
-    let html = '';
-    candidates.forEach(c => {
-      const dir = (c.direction || '').toUpperCase();
-      const dirClass = dir === 'LONG' ? 'long' : 'short';
-      const score = c.score || c.grade || '—';
-      const entry = c.entry ? '$' + c.entry : '—';
-      const tp = c.tp ? '$' + c.tp : '—';
-      const sl = c.sl ? '$' + c.sl : '—';
-      const time = (c.time || c.scan_time || scanTime || '').replace('T',' ').slice(0,16);
-      const coin = (c.coin || c.symbol || '').replace('USDT','');
-      html += `<tr>
-        <td style="color:#8b949e">${time}</td>
-        <td><span class="coin">${coin}</span></td>
-        <td><span class="badge ${dirClass}">${dir}</span></td>
-        <td style="color:#f59e0b;font-weight:700">${score}</td>
-        <td style="text-align:right">${entry}</td>
-        <td style="text-align:right;color:#22c55e">${tp}</td>
-        <td style="text-align:right;color:#ef4444">${sl}</td>
-        <td style="color:#8b949e">${btcTrend}</td>
-      </tr>`;
-    });
-    tbody.innerHTML = html;
-  } catch(e) {
-    document.getElementById('signal-empty-msg').style.display = 'block';
-  }
 }
 
 function render(trades) {
@@ -637,7 +573,7 @@ function render(trades) {
 }
 
 // Signal log refresh
-setInterval(loadSignalLog, 30000);
+// Signal log removed — bot posts directly to TG channel
 
 // ── Bot Control Server API ──
 const BOT_API = 'http://localhost:8099';
