@@ -473,12 +473,6 @@
 </div>
 
 <script>
-// ── Auth removed — direct access ──
-loadData();
-if (false) {
-  }
-});
-
 // ── Data Loading ──
 function loadData() {
   // Load trades from paper_trades_koda_se.json
@@ -1204,6 +1198,9 @@ function startSignalBot() {
 function stopSignalBot() {
   alert('Coming soon — Signal-Bot wird gestoppt.');
 }
+
+// Auto-load on page open
+loadData();
 </script>
 
 </body>
