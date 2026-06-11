@@ -1,5 +1,27 @@
 # Current Work
 
+## Erledigt (07.06.2026 — Best Config VERIFIZIERT)
+
+### V6 Best Config Verification: 2x|42%SL|55%EM+MTF
+
+**ERGEBNIS: CONFIRMED — Alle Zahlen exakt verifiziert**
+
+1. **Re-Run reproduziert exakt**: 745 Trades, 85.0% WR, $3,640.70 PnL, PF 1.79, DD 33.4%
+2. **20 Trades gegen 1m Binance Klines verifiziert**:
+   - 17/20 Richtung stimmt (85%)
+   - 13/20 exakter Exit-Match (65%)
+   - 3 Mismatches: ALLE konservativ (BT sagt Loss, 1m sagt Win)
+   - 0 Faelle wo BT zu optimistisch war
+3. **Bug-Checks bestanden**:
+   - Keine Partial PnL Doppelzaehlung
+   - Fees korrekt (0.03% round-trip)
+   - SL Exit-Preise konsistent
+   - Entry Fees + Exit Fees korrekt aufgeteilt
+4. **Wichtig**: SL 42% = PREIS-Bewegung, nicht Margin. Bei 2x = 84% Margin-Verlust ($210 von $250)
+
+Report: `/Trading/agents/signals/best_config_verification.json`
+Script: `/Trading/agents/signals/verify_best_config.py`
+
 ## Erledigt (07.06.2026 — V7 Optimierung: Liqui-Ratio + Novel Methods)
 
 ### V7 Ergebnisse: 65 Konfigurationen getestet, 48 expanded auf 24 Coins
