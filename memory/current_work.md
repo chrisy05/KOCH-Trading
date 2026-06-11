@@ -1,5 +1,28 @@
 # Current Work
 
+## Erledigt (07.06.2026 — KODA Optimal Paper Bot erstellt)
+
+### KODA Optimal Paper Bot — V6 Best Config als Paper Bot
+
+**Bot:** `paper_bot_optimal.py` | **Daten:** `paper_trades_optimal.json`
+
+**Strategy:**
+- 2x Leverage, $50/Trade, $1000 Budget, max 20 simultaneous
+- SL: 42% PRICE move (LONG: entry * 0.58, SHORT: entry * 1.42) = 84% margin loss
+- TP: 55% Expected Move (ATR14 * sqrt(bars_per_day) * 0.5 * 0.55)
+- MTF Gate: BTC 1H SMA20 > SMA50 for LONG, SMA20 < SMA50 for SHORT
+- Score Gate: >= 4/7 scores aligned
+- Min Probability: 60%
+- TP1/TP2: 50% close at TP1, SL moves to entry, 3% trail from peak
+- Adaptive SL: EMA ribbon width (8/13/21/34) — tighten when narrows
+- Cascade Ampel: >= 2 lights required
+- Timeframes: 15m (50%) + 30m (50%)
+- 24 Coins: GLM, AVAX, KAS, MINA, XRP, FLOW, AXL, CELR, CYS, IOST, CAKE, KAITO, TRX, SUN, GRT, DUSK, BAT, SYN, TON, HBAR, DOT, LTC, LINK, SOL
+
+**Dashboard:** Tab "Optimal" in paperbot.html hinzugefuegt
+
+**Status:** Erstellt, NICHT gestartet. Chris muss Start bestaetigen.
+
 ## Erledigt (07.06.2026 — 50% Verification: 373 Trades gegen 1m Klines)
 
 ### 50% Verification: 2x|42%SL|55%EM+MTF — 373 von 745 Trades
