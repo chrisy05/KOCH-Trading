@@ -130,6 +130,9 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
 </div>
 <style>.cfg-val{color:#58a6ff;font-weight:600;font-size:.85rem}</style>
 
+<!-- Strategie-Beschreibung -->
+<div id="strategyDesc" style="background:#0d1117;border-bottom:1px solid #f0388855;padding:8px 24px;font-size:.72rem;color:#c9d1d9;line-height:1.5"></div>
+
 <div class="container">
   <!-- LIVE Stats Block -->
   <div class="summary-card" style="border:1px solid #f59e0b55;margin-bottom:14px">
@@ -276,6 +279,15 @@ const BOT_LABELS = {
   'v2k3': 'V2K3: V2K2 + Regime-Detektor + MTF-Alignment',
   'optimal': 'KODA Optimal: 2x, 42% SL, 55% EM, MTF Gate'
 };
+const BOT_STRATEGIES = {
+  'core': 'SMA Crossover + 7-Score Probability | Signal: SMA20/50 Cross + Score ≥4/7 | TP: 70% Expected Move | SL: 70% Margin | Kein MTF Gate, kein Kaskaden-Filter',
+  'v2': 'SMA Crossover + 7-Score Probability | Signal: SMA20/50 Cross + Score ≥4/7 | TP: 70% EM | SL: 40% Margin (enger) | BTC 1H MTF Gate aktiv',
+  'v3': 'SMA Crossover + 7-Score Probability | Signal: SMA20/50 Cross + Score ≥5/7 (strenger) | TP: 60% EM (konservativer) | SL: 40% Margin | BTC 1H MTF Gate aktiv',
+  'v2k1': 'V2-Kopie + Kaskaden-Ampel | Signal: SMA Cross + Score ≥4/7 | Kaskaden: 5m/15m/30m/1H SMA10/20/50 Alignment | TP1/TP2 Trailing (50% bei TP1, Rest 3% Trail) | Adaptive SL (EMA Ribbon)',
+  'v2k2': 'V2 + Kaskaden + SMA-Stufen Hebelbremse | Wie V2K1, zusätzlich: Hebel wird reduziert wenn weniger SMAs aligned sind (5 grün=10x, 3 grün=5x, etc.)',
+  'v2k3': 'V2 + Kaskaden + Regime-Detektor + MTF-Alignment | Wie V2K2, zusätzlich: Erkennt Trend/Range/Reversal Regime und passt TP/SL dynamisch an',
+  'optimal': 'Beste getestete Strategie (85% WR verifiziert) | 5-Score (Delta, Funding, Distance, POC, VA) + Kaskaden-Ampel + BTC 1H MTF Gate + EMA Ribbon Gate + TP1/TP2 Trailing + Adaptive SL | 2x Hebel, 42% Price-SL, 55% EM TP'
+};
 
 function switchBot(bot) {
   activeBot = bot;
@@ -283,6 +295,7 @@ function switchBot(bot) {
   const tabIds = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2','v2k3':'tabV2k3','optimal':'tabOptimal'};
   document.getElementById(tabIds[bot]).classList.add('active');
   document.getElementById('botLabel').textContent = BOT_LABELS[bot];
+  document.getElementById('strategyDesc').textContent = BOT_STRATEGIES[bot] || '';
   document.getElementById('cfgStatus').textContent = '';
   loadConfigFields();
   loadData();
@@ -802,6 +815,7 @@ async function loadData() {
 
 loadData();
 loadConfigFields();
+document.getElementById('strategyDesc').textContent = BOT_STRATEGIES[activeBot] || '';
 </script>
 </body>
 </html>
