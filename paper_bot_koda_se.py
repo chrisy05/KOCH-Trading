@@ -788,6 +788,103 @@ def calc_pnl(direction, entry, close_price, size):
         return (entry - close_price) * size
 
 
+BOT_TOKEN = "8716936978:AAFfWX0XskwCM9iioEmbWzGYgSqYpLNPoPY"
+CHRIS_CHAT_ID = "351653518"
+_signal_counter = 0
+
+def _load_signal_counter():
+    global _signal_counter
+    try:
+        with open("/tmp/koda_se_signal_counter.txt", "r") as f:
+            _signal_counter = int(f.read().strip())
+    except:
+        _signal_counter = 100  # start after old signals
+
+def _save_signal_counter():
+    try:
+        with open("/tmp/koda_se_signal_counter.txt", "w") as f:
+            f.write(str(_signal_counter))
+    except:
+        pass
+
+_load_signal_counter()
+
+def send_tg(text):
+    """Send message to Chris via Telegram."""
+    try:
+        import urllib.parse
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        data = urllib.parse.urlencode({"chat_id": CHRIS_CHAT_ID, "text": text}).encode()
+        req = urllib.request.Request(url, data=data, method="POST")
+        urllib.request.urlopen(req, timeout=10, context=ctx)
+    except Exception as e:
+        log(f"TG send failed: {e}")
+
+
+def notify_trade_opened(trade):
+    """Post signal to Telegram when bot opens a trade."""
+    global _signal_counter
+    _signal_counter += 1
+    _save_signal_counter()
+
+    coin = trade["coin"]
+    d = trade["direction"]
+    entry = trade["entry"]
+    tp = trade["tp"]
+    sl = trade["sl"]
+    prob = trade["probability"]
+    lev = trade["leverage"]
+    tf = trade["tf"]
+    cascade = trade.get("cascade_code", "")
+
+    arrow = "🟢" if d == "LONG" else "🔴"
+    tp_pct = abs(tp / entry - 1) * 100
+    sl_pct = abs(sl / entry - 1) * 100
+
+    fmt = lambda x: f"${x:,.2f}" if x > 100 else (f"${x:.4f}" if x > 1 else f"${x:.6f}")
+
+    msg = f"""{arrow} KODA SE #{_signal_counter} — {coin} {d}
+━━━━━━━━━━━━━━━━━━━━━━
+Prob: {prob}% | TF: {tf} | Kaskade: {cascade}
+
+Entry: {fmt(entry)}
+TP1:   {fmt(tp)} ({'+' if d=='LONG' else '-'}{tp_pct:.1f}%) → 50% close, SL→Entry
+TP2:   Trailing 3% vom Peak
+SL:    {fmt(sl)} ({'-' if d=='LONG' else '+'}{sl_pct:.1f}%)
+
+Hebel: {lev}x | Margin: ${trade['margin']}
+
+Factory7Signal© Full Stack
+━━━━━━━━━━━━━━━━━━━━━━
+KODA SE · {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"""
+
+    send_tg(msg)
+
+
+def notify_trade_closed(trade):
+    """Post result to Telegram when bot closes a trade."""
+    coin = trade["coin"]
+    d = trade["direction"]
+    pnl = trade["pnl"]
+    roi = trade["roi"]
+    reason = trade["close_reason"]
+    entry = trade["entry"]
+    close = trade["close_price"]
+
+    emoji = "✅" if pnl > 0 else "❌"
+    fmt = lambda x: f"${x:,.2f}" if x > 100 else (f"${x:.4f}" if x > 1 else f"${x:.6f}")
+
+    msg = f"""{emoji} KODA SE — {coin} {d} CLOSED
+━━━━━━━━━━━━━━━━━━━━━━
+Entry: {fmt(entry)} → Exit: {fmt(close)}
+Reason: {reason}
+PnL: ${pnl:+.2f} ({roi:+.1f}%)
+━━━━━━━━━━━━━━━━━━━━━━
+KODA SE · {datetime.now(TZ).strftime('%H:%M')} ET"""
+
+    send_tg(msg)
+
+
 def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=0, cascade_code="00000"):
     """Open a new paper trade."""
     capital = CONFIG["capital"]
@@ -830,6 +927,9 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascad
 
     data[tf_key].append(trade)
     log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | SL: {sl:.6f} (42% price) | Liq: {liq:.6f} | Prob: {probability}% | TF: {tf} | Cascade: {cascade_lights}")
+
+    # Notify Telegram
+    notify_trade_opened(trade)
     return trade
 
 
@@ -873,6 +973,9 @@ def close_trade(trade, close_price, reason):
 
     emoji = "WIN" if pnl > 0 else "LOSS"
     log(f"  CLOSED {trade['direction']} {trade['coin']} @ {close_price:.6f} | {reason} | PnL: ${pnl:.2f} ({roi:.1f}%) | {emoji}")
+
+    # Notify Telegram
+    notify_trade_closed(trade)
 
     # Drawdown brake tracking
     if pnl <= 0:
