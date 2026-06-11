@@ -385,34 +385,50 @@
     </div>
   </div>
 
-  <!-- Optimal + Confirmation Cards -->
-  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
-    <!-- Optimal -->
-    <div style="background:#161616;border:1px solid #22c55e33;border-left:3px solid #22c55e;border-radius:10px;padding:16px">
-      <div style="margin-bottom:10px">
+  <!-- KODA Optimal — Full Width Card -->
+  <div style="background:#161616;border:1px solid #22c55e33;border-left:3px solid #22c55e;border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div>
         <h3 style="color:#22c55e;font-size:.95rem;margin-bottom:3px">KODA Optimal</h3>
         <div style="color:#555;font-size:.7rem">SMA + Kaskaden | 2x | $50 | 42% SL | 55% TP | 85% WR verifiziert</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="optWR">—</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="optTrades">0</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="optPnl">$0</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="optOpen">0</div></div>
-      </div>
+      <span id="optStatus" style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:#22c55e15;color:#22c55e">—</span>
     </div>
-    <!-- Confirmation -->
-    <div style="background:#161616;border:1px solid #f0388833;border-left:3px solid #f03888;border-radius:10px;padding:16px">
-      <div style="margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center;margin-bottom:12px">
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="optWR">—</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="optTrades">0</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="optPnl">$0</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="optOpen">0</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Letzter</div><div style="font-size:.85rem;font-weight:600;color:#8b949e" id="optLast">—</div></div>
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
+      <tbody id="optOpenTbody"></tbody>
+    </table></div>
+    <div id="optClosedSection"></div>
+  </div>
+
+  <!-- KODA Confirmation — Full Width Card -->
+  <div style="background:#161616;border:1px solid #f0388833;border-left:3px solid #f03888;border-radius:10px;padding:16px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div>
         <h3 style="color:#f03888;font-size:.95rem;margin-bottom:3px">KODA Confirmation</h3>
         <div style="color:#555;font-size:.7rem">Observer/Executor | 5x | 70% TP | ms3 | 0.3% Bestätigung/8bars | BT: +$14,747</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="confWR">—</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="confTrades">0</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="confPnl">$0</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="confOpen">0</div></div>
-      </div>
+      <span id="confStatus" style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:#f0388815;color:#f03888">—</span>
     </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center;margin-bottom:12px">
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="confWR">—</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="confTrades">0</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="confPnl">$0</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="confOpen">0</div></div>
+      <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Pending</div><div style="font-size:1.1rem;font-weight:700;color:#8b5cf6" id="confPending">0</div></div>
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
+      <tbody id="confOpenTbody"></tbody>
+    </table></div>
+    <div id="confClosedSection"></div>
   </div>
 
   <!-- KODA SE-Analyzer Container -->
@@ -1218,12 +1234,14 @@ async function loadBotCard(jsonFile, prefix) {
     if (!r.ok) return;
     const data = await r.json();
     const allTrades = [...(data.trades_15m||[]),...(data.trades_30m||[]),...(data.trades_1h||[]),...(data.trades_4h||[]),...(data.trades||[])];
-    const closed = allTrades.filter(t => t.status === 'closed');
+    const closed = allTrades.filter(t => t.status === 'closed').sort((a,b)=>(b.close_time||'').localeCompare(a.close_time||''));
     const open = allTrades.filter(t => t.status === 'open');
     const wins = closed.filter(t => (t.pnl||0) > 0).length;
     const wr = closed.length > 0 ? (wins/closed.length*100) : 0;
     const pnl = closed.reduce((s,t) => s + (t.pnl||0), 0);
+    const hb = data._heartbeat||'';
 
+    // KPIs
     const wrEl = document.getElementById(prefix+'WR');
     wrEl.textContent = closed.length > 0 ? wr.toFixed(1)+'%' : '—';
     wrEl.style.color = wr >= 60 ? '#22c55e' : wr >= 50 ? '#f59e0b' : closed.length > 0 ? '#ef4444' : '#8b949e';
@@ -1232,6 +1250,46 @@ async function loadBotCard(jsonFile, prefix) {
     pnlEl.textContent = (pnl>=0?'+':'')+'$'+pnl.toFixed(2);
     pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
     document.getElementById(prefix+'Open').textContent = open.length;
+
+    // Status badge
+    const statusEl = document.getElementById(prefix+'Status');
+    if(statusEl){
+      const paused = data._drawdown_paused||false;
+      if(paused){statusEl.textContent='⛔ PAUSE';statusEl.style.color='#ef4444';statusEl.style.background='#ef444415';}
+      else if(open.length>0){statusEl.textContent='● TRADING ('+open.length+')';statusEl.style.color='#22c55e';statusEl.style.background='#22c55e15';}
+      else if(hb){const age=(Date.now()-new Date(hb).getTime())/60000;
+        if(age>10){statusEl.textContent='⚠️ OFFLINE';statusEl.style.color='#ef4444';}
+        else{statusEl.textContent='● AKTIV';statusEl.style.color='#22c55e';}}
+    }
+
+    // Open trades table
+    const otb = document.getElementById(prefix+'OpenTbody');
+    if(otb){
+      if(open.length===0){otb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#444;padding:10px">Keine offenen Trades</td></tr>';}
+      else{let h='';open.forEach(t=>{
+        const dc=t.direction==='LONG'?'color:#22c55e':'color:#ef4444';
+        const p=t.pnl||0;const pc=p>=0?'color:#22c55e':'color:#ef4444';
+        const dur=t.open_time?Math.floor((Date.now()-new Date(t.open_time).getTime())/60000)+'m':'—';
+        const st=t.tp1_hit?'🔄 trail':'open';
+        const fmt=x=>x>100?'$'+x.toFixed(2):(x>1?'$'+x.toFixed(4):'$'+x.toFixed(6));
+        h+=`<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px 6px;font-weight:600">${t.coin}</td><td style="${dc};font-size:.7rem;font-weight:600">${t.direction}</td><td>${fmt(t.entry)}</td><td>${fmt(t.current_price||t.entry)}</td><td style="${pc}">${p>=0?'+':''}$${p.toFixed(2)}</td><td style="color:#8b949e">${dur}</td><td style="color:${t.tp1_hit?'#f59e0b':'#8b949e'}">${st}</td></tr>`;
+      });otb.innerHTML=h;}
+    }
+
+    // Closed trades section
+    const cs = document.getElementById(prefix+'ClosedSection');
+    if(cs && closed.length>0){
+      let h='<div style="font-size:.7rem;color:#8b949e;margin-top:12px;margin-bottom:6px;text-transform:uppercase">Abgeschlossen</div><table style="width:100%;border-collapse:collapse;font-size:.75rem"><thead><tr style="border-bottom:1px solid #21262d;color:#8b949e"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Dauer</th><th>Ergebnis</th></tr></thead><tbody>';
+      closed.forEach(t=>{
+        const dc=t.direction==='LONG'?'color:#22c55e':'color:#ef4444';
+        const p=t.pnl||0;const pc=p>=0?'color:#22c55e':'color:#ef4444';
+        const rs=p>=0?'background:rgba(34,197,94,0.05);border-left:2px solid #22c55e':'background:rgba(239,68,68,0.08);border-left:2px solid #ef4444';
+        let dur='—';if(t.open_time&&t.close_time){const m=Math.floor((new Date(t.close_time)-new Date(t.open_time))/60000);dur=m<60?m+'m':Math.floor(m/60)+'h '+m%60+'m';}
+        const fmt=x=>x>100?'$'+x.toFixed(2):(x>1?'$'+x.toFixed(4):'$'+x.toFixed(6));
+        h+=`<tr style="${rs}"><td style="padding:3px 6px;font-weight:600">${t.coin}</td><td style="${dc};font-size:.7rem;font-weight:600">${t.direction}</td><td>${fmt(t.entry)}</td><td>${fmt(t.close_price||0)}</td><td style="${pc}">${p>=0?'+':''}$${p.toFixed(2)}</td><td style="color:#8b949e">${dur}</td><td>${t.close_reason||'—'}</td></tr>`;
+      });
+      h+='</tbody></table>';cs.innerHTML=h;
+    }
   } catch(e) {}
 }
 function loadOptAndConf() {
