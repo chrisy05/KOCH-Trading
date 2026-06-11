@@ -434,21 +434,20 @@
     <div class="card">
     <!-- Bot Trade Log -->
     <div class="card">
-      <h2 style="color:#f59e0b">Bot Trade Log</h2>
+      <h2 style="color:#f59e0b">Offene Trades</h2>
       <div style="overflow-x:auto">
       <table>
         <thead>
           <tr>
-            <th>#</th><th>Datum</th><th>Coin</th><th>Richt.</th>
-            <th>Entry</th><th>Exit</th>
-            <th>ROI %</th><th>Net PNL</th><th>Dauer</th>
+            <th>#</th><th>Eröffnet</th><th>Coin</th><th>Richt.</th>
+            <th>Entry</th><th>Aktuell</th>
+            <th>ROI %</th><th>PNL</th><th>Dauer</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody id="trade-tbody"></tbody>
       </table>
       </div>
-      <div id="empty-msg" style="text-align:center;padding:30px;color:#333">Noch keine Bot-Trades vorhanden</div>
     </div>
 
   </div><!-- end KODA SE container -->
@@ -531,45 +530,101 @@ function render(trades) {
     });
   }
 
-  // Bot Trade Table
+  // Split into open and closed trades
+  const openTrades = trades.filter(t => t.status === 'open');
+  const closedTrades = trades.filter(t => t.status !== 'open').sort((a,b) => (b.close_time||'').localeCompare(a.close_time||''));
+
+  // Open Trades Table
   const tbody = document.getElementById('trade-tbody');
   tbody.innerHTML = '';
-  trades.slice().reverse().forEach((t, i) => {
-    const coin = (t.coin || '').replace('USDT','');
-    const dir = (t.direction || '').toUpperCase();
-    const dirClass = dir === 'LONG' ? 'long' : 'short';
-    const pnl = t.pnl || t.net_pnl || 0;
-    const roi = t.roi || t.roi_pct || 0;
-    const pnlClass = pnl >= 0 ? 'pos' : 'neg';
-    const entry = t.entry || 0;
-    const exit = t.close_price || t.exit || 0;
-    // Duration
-    let duration = '—';
-    if (t.open_time && t.close_time) {
-      const ms = new Date(t.close_time) - new Date(t.open_time);
-      const mins = Math.floor(ms / 60000);
-      if (mins < 60) duration = mins + 'm';
-      else if (mins < 1440) duration = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
-      else duration = Math.floor(mins/1440) + 'd ' + Math.floor((mins%1440)/60) + 'h';
-    } else if (t.dauer) {
-      duration = t.dauer;
+
+  function fmtPrice(p) { return p ? '$'+p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}) : '—'; }
+  function calcDuration(open, close) {
+    if (!open) return '—';
+    const end = close ? new Date(close) : new Date();
+    const ms = end - new Date(open);
+    const mins = Math.floor(ms / 60000);
+    if (mins < 60) return mins + 'm';
+    if (mins < 1440) return Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+    return Math.floor(mins/1440) + 'd ' + Math.floor((mins%1440)/60) + 'h';
+  }
+
+  if (openTrades.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#555;padding:20px">Keine offenen Trades</td></tr>';
+  } else {
+    openTrades.forEach(t => {
+      const coin = (t.coin || '').replace('USDT','');
+      const dir = (t.direction || '').toUpperCase();
+      const dirClass = dir === 'LONG' ? 'long' : 'short';
+      const pnl = t.pnl || 0;
+      const roi = t.roi || 0;
+      const pnlClass = pnl >= 0 ? 'pos' : 'neg';
+      const duration = calcDuration(t.open_time, null);
+      // Status: trail-open wenn TP1 hit, sonst open
+      const status = t.tp1_hit ? '🔄 trail' : 'open';
+      const statusColor = t.tp1_hit ? 'color:#f59e0b;font-weight:700' : 'color:#8b949e';
+      tbody.innerHTML += `<tr>
+        <td>${t.id||''}</td>
+        <td style="color:#8b949e">${(t.open_time||'').replace('T',' ').slice(0,16)}</td>
+        <td><span class="coin">${coin}</span></td>
+        <td><span class="badge ${dirClass}">${dir}</span></td>
+        <td style="text-align:right">${fmtPrice(t.entry)}</td>
+        <td style="text-align:right">${fmtPrice(t.current_price||0)}</td>
+        <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
+        <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+        <td>${duration}</td>
+        <td style="${statusColor}">${status}</td>
+      </tr>`;
+    });
+  }
+
+  // Closed Trades Table (separate, below)
+  let closedEl = document.getElementById('closed-trade-tbody');
+  if (!closedEl) {
+    // Create closed trades section if not exists
+    const card = document.getElementById('trade-tbody').closest('.card');
+    if (card) {
+      const closedDiv = document.createElement('div');
+      closedDiv.innerHTML = `<h2 style="color:#f59e0b;margin-top:20px">Abgeschlossene Trades</h2>
+        <div style="overflow-x:auto"><table><thead><tr>
+          <th>#</th><th>Datum</th><th>Coin</th><th>Richt.</th>
+          <th>Entry</th><th>Exit</th><th>ROI %</th><th>Net PNL</th><th>Dauer</th><th>Ergebnis</th>
+        </tr></thead><tbody id="closed-trade-tbody"></tbody></table></div>`;
+      card.appendChild(closedDiv);
+      closedEl = document.getElementById('closed-trade-tbody');
     }
-    const status = t.close_reason || t.status || '—';
-    const isSL = status === 'SL' || status === 'LIQ' || pnl < 0;
-    const rowStyle = isSL ? 'background:rgba(239,68,68,0.15);border-left:3px solid #ef4444' : '';
-    tbody.innerHTML += `<tr style="${rowStyle}">
-      <td>${t.id || (trades.length - i)}</td>
-      <td style="color:#8b949e">${(t.open_time || t.datum || '').replace('T',' ').slice(0,16)}</td>
-      <td><span class="coin">${coin}</span></td>
-      <td><span class="badge ${dirClass}">${dir}</span></td>
-      <td style="text-align:right">$${entry.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6})}</td>
-      <td style="text-align:right">${exit ? '$'+exit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}) : '—'}</td>
-      <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
-      <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
-      <td>${duration}</td>
-      <td>${status}</td>
-    </tr>`;
-  });
+  }
+  if (closedEl) {
+    closedEl.innerHTML = '';
+    if (closedTrades.length === 0) {
+      closedEl.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#555;padding:20px">Noch keine abgeschlossenen Trades</td></tr>';
+    } else {
+      closedTrades.forEach(t => {
+        const coin = (t.coin || '').replace('USDT','');
+        const dir = (t.direction || '').toUpperCase();
+        const dirClass = dir === 'LONG' ? 'long' : 'short';
+        const pnl = t.pnl || 0;
+        const roi = t.roi || 0;
+        const pnlClass = pnl >= 0 ? 'pos' : 'neg';
+        const duration = calcDuration(t.open_time, t.close_time);
+        const reason = t.close_reason || '—';
+        const isLoss = pnl < 0;
+        const rowStyle = isLoss ? 'background:rgba(239,68,68,0.15);border-left:3px solid #ef4444' : 'background:rgba(34,197,94,0.05);border-left:3px solid #22c55e';
+        closedEl.innerHTML += `<tr style="${rowStyle}">
+          <td>${t.id||''}</td>
+          <td style="color:#8b949e">${(t.close_time||'').replace('T',' ').slice(0,16)}</td>
+          <td><span class="coin">${coin}</span></td>
+          <td><span class="badge ${dirClass}">${dir}</span></td>
+          <td style="text-align:right">${fmtPrice(t.entry)}</td>
+          <td style="text-align:right">${fmtPrice(t.close_price)}</td>
+          <td style="text-align:right" class="${pnlClass}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</td>
+          <td style="text-align:right" class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+          <td>${duration}</td>
+          <td>${reason}</td>
+        </tr>`;
+      });
+    }
+  }
 }
 
 // Signal log refresh
