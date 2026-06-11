@@ -401,8 +401,9 @@
       <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="optOpen">0</div></div>
       <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Letzter</div><div style="font-size:.85rem;font-weight:600;color:#8b949e" id="optLast">—</div></div>
     </div>
-    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
-      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
+    <div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Offene Trades</div>
+    <div style="overflow-y:auto;max-height:180px;min-height:100px;border:1px solid #21262d;border-radius:6px;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
       <tbody id="optOpenTbody"></tbody>
     </table></div>
     <div id="optClosedSection"></div>
@@ -424,8 +425,9 @@
       <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="confOpen">0</div></div>
       <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Pending</div><div style="font-size:1.1rem;font-weight:700;color:#8b5cf6" id="confPending">0</div></div>
     </div>
-    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
-      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
+    <div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Offene Trades</div>
+    <div style="overflow-y:auto;max-height:180px;min-height:100px;border:1px solid #21262d;border-radius:6px;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
       <tbody id="confOpenTbody"></tbody>
     </table></div>
     <div id="confClosedSection"></div>
@@ -1278,8 +1280,9 @@ async function loadBotCard(jsonFile, prefix) {
 
     // Closed trades section
     const cs = document.getElementById(prefix+'ClosedSection');
-    if(cs && closed.length>0){
-      let h='<div style="font-size:.7rem;color:#8b949e;margin-top:12px;margin-bottom:6px;text-transform:uppercase">Abgeschlossen</div><table style="width:100%;border-collapse:collapse;font-size:.75rem"><thead><tr style="border-bottom:1px solid #21262d;color:#8b949e"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Dauer</th><th>Ergebnis</th></tr></thead><tbody>';
+    if(cs){
+      let h='<div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Abgeschlossene Trades</div><div style="overflow-y:auto;max-height:180px;min-height:80px;border:1px solid #21262d;border-radius:6px"><table style="width:100%;border-collapse:collapse;font-size:.75rem"><thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Dauer</th><th>Ergebnis</th></tr></thead><tbody>';
+      if(closed.length===0){h+='<tr><td colspan="7" style="text-align:center;color:#444;padding:20px">Noch keine abgeschlossenen Trades</td></tr>';}
       closed.forEach(t=>{
         const dc=t.direction==='LONG'?'color:#22c55e':'color:#ef4444';
         const p=t.pnl||0;const pc=p>=0?'color:#22c55e':'color:#ef4444';
@@ -1288,7 +1291,7 @@ async function loadBotCard(jsonFile, prefix) {
         const fmt=x=>x>100?'$'+x.toFixed(2):(x>1?'$'+x.toFixed(4):'$'+x.toFixed(6));
         h+=`<tr style="${rs}"><td style="padding:3px 6px;font-weight:600">${t.coin}</td><td style="${dc};font-size:.7rem;font-weight:600">${t.direction}</td><td>${fmt(t.entry)}</td><td>${fmt(t.close_price||0)}</td><td style="${pc}">${p>=0?'+':''}$${p.toFixed(2)}</td><td style="color:#8b949e">${dur}</td><td>${t.close_reason||'—'}</td></tr>`;
       });
-      h+='</tbody></table>';cs.innerHTML=h;
+      h+='</tbody></table></div>';cs.innerHTML=h;
     }
   } catch(e) {}
 }
