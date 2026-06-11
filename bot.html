@@ -384,6 +384,36 @@
     </div>
   </div>
 
+  <!-- Optimal + Confirmation Cards -->
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
+    <!-- Optimal -->
+    <div style="background:#161616;border:1px solid #22c55e33;border-left:3px solid #22c55e;border-radius:10px;padding:16px">
+      <div style="margin-bottom:10px">
+        <h3 style="color:#22c55e;font-size:.95rem;margin-bottom:3px">KODA Optimal</h3>
+        <div style="color:#555;font-size:.7rem">SMA + Kaskaden | 2x | $50 | 42% SL | 55% TP | 85% WR verifiziert</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="optWR">—</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="optTrades">0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="optPnl">$0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="optOpen">0</div></div>
+      </div>
+    </div>
+    <!-- Confirmation -->
+    <div style="background:#161616;border:1px solid #f0388833;border-left:3px solid #f03888;border-radius:10px;padding:16px">
+      <div style="margin-bottom:10px">
+        <h3 style="color:#f03888;font-size:.95rem;margin-bottom:3px">KODA Confirmation</h3>
+        <div style="color:#555;font-size:.7rem">Observer/Executor | 5x | 70% TP | ms3 | 0.3% Bestätigung/8bars | BT: +$14,747</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="confWR">—</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="confTrades">0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="confPnl">$0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="confOpen">0</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- KODA SE-Analyzer Container -->
   <div style="border:2px solid #f59e0b;border-radius:14px;padding:18px;margin-bottom:24px;background:#0d0d0d">
 
@@ -1179,6 +1209,36 @@ async function loadVionaTrades() {
 }
 loadVionaTrades();
 setInterval(loadVionaTrades, 30000);
+
+// ── Optimal + Confirmation Bot Cards ──
+async function loadBotCard(jsonFile, prefix) {
+  try {
+    const r = await fetch(jsonFile + '?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) return;
+    const data = await r.json();
+    const allTrades = [...(data.trades_15m||[]),...(data.trades_30m||[]),...(data.trades_1h||[]),...(data.trades_4h||[]),...(data.trades||[])];
+    const closed = allTrades.filter(t => t.status === 'closed');
+    const open = allTrades.filter(t => t.status === 'open');
+    const wins = closed.filter(t => (t.pnl||0) > 0).length;
+    const wr = closed.length > 0 ? (wins/closed.length*100) : 0;
+    const pnl = closed.reduce((s,t) => s + (t.pnl||0), 0);
+
+    const wrEl = document.getElementById(prefix+'WR');
+    wrEl.textContent = closed.length > 0 ? wr.toFixed(1)+'%' : '—';
+    wrEl.style.color = wr >= 60 ? '#22c55e' : wr >= 50 ? '#f59e0b' : closed.length > 0 ? '#ef4444' : '#8b949e';
+    document.getElementById(prefix+'Trades').textContent = closed.length;
+    const pnlEl = document.getElementById(prefix+'Pnl');
+    pnlEl.textContent = (pnl>=0?'+':'')+'$'+pnl.toFixed(2);
+    pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
+    document.getElementById(prefix+'Open').textContent = open.length;
+  } catch(e) {}
+}
+function loadOptAndConf() {
+  loadBotCard('paper_trades_optimal.json', 'opt');
+  loadBotCard('paper_trades_confirm.json', 'conf');
+}
+loadOptAndConf();
+setInterval(loadOptAndConf, 30000);
 
 function saveSignalConfig() {
   alert('Coming soon — Signal-Bot Settings werden gespeichert.');
