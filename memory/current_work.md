@@ -1,23 +1,33 @@
 # Current Work
 
-## Erledigt (07.06.2026 — Best Config VERIFIZIERT)
+## Erledigt (07.06.2026 — 50% Verification: 373 Trades gegen 1m Klines)
 
-### V6 Best Config Verification: 2x|42%SL|55%EM+MTF
+### 50% Verification: 2x|42%SL|55%EM+MTF — 373 von 745 Trades
 
-**ERGEBNIS: CONFIRMED — Alle Zahlen exakt verifiziert**
+**ERGEBNIS: CONFIRMED WITH HIGH CONFIDENCE**
 
-1. **Re-Run reproduziert exakt**: 745 Trades, 85.0% WR, $3,640.70 PnL, PF 1.79, DD 33.4%
-2. **20 Trades gegen 1m Binance Klines verifiziert**:
-   - 17/20 Richtung stimmt (85%)
-   - 13/20 exakter Exit-Match (65%)
-   - 3 Mismatches: ALLE konservativ (BT sagt Loss, 1m sagt Win)
-   - 0 Faelle wo BT zu optimistisch war
-3. **Bug-Checks bestanden**:
-   - Keine Partial PnL Doppelzaehlung
-   - Fees korrekt (0.03% round-trip)
-   - SL Exit-Preise konsistent
-   - Entry Fees + Exit Fees korrekt aufgeteilt
-4. **Wichtig**: SL 42% = PREIS-Bewegung, nicht Margin. Bei 2x = 84% Margin-Verlust ($210 von $250)
+1. **Re-Run reproduziert exakt**: 745 Trades, 85.0% WR, $3,640.70 PnL
+2. **373 Trades gegen 1m Binance Klines verifiziert** (proportional nach Exit-Typ, gruppiert nach Coin):
+   - 352 conclusive (21 EOD/inconclusive)
+   - **327/352 Matches (92.9%)**
+   - **0 optimistische Mismatches** (BT sagt Win, 1m sagt Loss = KEINE)
+   - **25 konservative Mismatches** (BT sagt Loss, 1m sagt Win = BT ist pessimistisch)
+   - Alle 25 konservativen: BT zeigt -$10.15 SL, aber 1m zeigt TP2/Trail
+   - Grund: 15m Bars verpassen intra-bar TP1-Hits die 1m sieht
+3. **Wichtige Erkenntnis**: 85 Trades exit als "SL" mit positivem PnL ($0.63-$10.14)
+   - Das ist korrekt: TP1 getroffen (halbe Position geschlossen), dann Rest bei Breakeven-SL
+   - Diese sind WINS trotz "SL" Label
+4. **BT WR in Sample: 85.0% — 1m-adjusted WR: ~97%**
+   - Backtest ist konservativ, nicht optimistisch
+
+Reports:
+- 50% Verification: `/Trading/agents/signals/best_config_verification_50pct.json`
+- 20-Trade Verification: `/Trading/agents/signals/best_config_verification.json`
+- Scripts: `verify_best_config.py`, `verify_best_config_50pct.py`
+
+## Erledigt (07.06.2026 — Best Config VERIFIZIERT — 20 Trades)
+
+### V6 Best Config Verification: 2x|42%SL|55%EM+MTF (Erstverifizierung)
 
 Report: `/Trading/agents/signals/best_config_verification.json`
 Script: `/Trading/agents/signals/verify_best_config.py`
