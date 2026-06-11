@@ -400,8 +400,8 @@
     <div style="background:#161616;border:1px solid #f59e0b33;border-left:3px solid #f59e0b;border-radius:10px;padding:16px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div>
-          <h3 style="color:#f59e0b;font-size:.95rem;margin-bottom:3px">KODA SE Paper Bot</h3>
-          <div style="color:#555;font-size:.7rem" id="kodaSEDesc">SE-Analyzer | $1k/Trade | 1 Trade max | Grade A only</div>
+          <h3 style="color:#f59e0b;font-size:.95rem;margin-bottom:3px">KODA SE — Full Stack 7-Score + Kaskaden</h3>
+          <div style="color:#555;font-size:.7rem" id="kodaSEDesc">7-Score Factory7Signal© | 5x Hebel | $50/Trade | Kaskaden + MTF + Ribbon + Adaptive SL + TP1/TP2 | DD-Bremse</div>
         </div>
         <span id="kodaSEStatus" style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:#f59e0b15;color:#f59e0b">IDLE</span>
       </div>
@@ -428,9 +428,9 @@
         <h2>Bot Status</h2>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Modus</div><div id="bot-mode" style="font-size:1rem;font-weight:700;color:#f59e0b">PAPER</div></div>
-          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Strategie</div><div style="font-size:1rem;font-weight:700;color:#f59e0b">KODA SE-Analyzer</div></div>
-          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Position Size</div><div id="bot-size" style="font-size:1rem;font-weight:700">$1k x dynamic</div></div>
-          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">TP / SL</div><div style="font-size:1rem;font-weight:700">from signal</div></div>
+          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Strategie</div><div style="font-size:1rem;font-weight:700;color:#f59e0b">Full Stack 7-Score + Kaskaden</div></div>
+          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Position Size</div><div id="bot-size" style="font-size:1rem;font-weight:700">$50 x 5x = $250</div></div>
+          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">TP / SL</div><div style="font-size:1rem;font-weight:700">55% EM / 42% Price</div></div>
         </div>
       </div>
       <div class="card">
@@ -1121,9 +1121,9 @@ async function loadKodaSE() {
     const r = await fetch('paper_trades_koda_se.json?t=' + Date.now(), {cache:'no-store'});
     if (!r.ok) return;
     const data = await r.json();
-    const trades = data.trades || [];
-    const closed = trades.filter(t => t.status === 'closed');
-    const open = trades.filter(t => t.status === 'open');
+    const allTrades = [...(data.trades_15m||[]),...(data.trades_30m||[]),...(data.trades_1h||[]),...(data.trades_4h||[]),...(data.trades||[])];
+    const closed = allTrades.filter(t => t.status === 'closed');
+    const open = allTrades.filter(t => t.status === 'open');
     const wins = closed.filter(t => (t.pnl || 0) > 0).length;
     const wr = closed.length > 0 ? (wins / closed.length * 100) : 0;
     const totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
@@ -1140,14 +1140,20 @@ async function loadKodaSE() {
 
     document.getElementById('kodaSEOpen').textContent = open.length;
 
-    // Status badge
+    // Status badge — with drawdown brake awareness
     const statusEl = document.getElementById('kodaSEStatus');
-    if (open.length > 0) {
-      statusEl.textContent = 'TRADING';
+    const paused = data._drawdown_paused || false;
+    const slCount = data._consecutive_sl || 0;
+    if (paused) {
+      statusEl.textContent = '⛔ PAUSIERT — ' + slCount + ' SLs';
+      statusEl.style.color = '#ef4444';
+      statusEl.style.background = '#ef444415';
+    } else if (open.length > 0) {
+      statusEl.textContent = '● TRADING (' + open.length + ' offen)';
       statusEl.style.color = '#22c55e';
       statusEl.style.background = '#22c55e15';
     } else {
-      statusEl.textContent = 'ONLINE — Signal Erwartung';
+      statusEl.textContent = '● AKTIV — wartet auf Signal';
       statusEl.style.color = '#22c55e';
       statusEl.style.background = '#22c55e15';
     }
