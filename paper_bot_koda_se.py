@@ -909,12 +909,36 @@ def notify_trade_closed(trade, data=None):
         pnl_sign = "+" if total_pnl >= 0 else ""
         footer = f"\n· {total} Signale | {wins} positiv | WR: {wr:.0f}% | Gesamt: {pnl_sign}${total_pnl:.2f}"
 
-    msg = f"""{emoji} KODA SE — {coin} {d} CLOSED
-━━━━━━━━━━━━━━━━━━━━━━
-Entry: {fmt(entry)} → Exit: {fmt(close)}
-Reason: {reason}
-PnL: ${pnl:+.2f} ({roi:+.1f}%)
-━━━━━━━━━━━━━━━━━━━━━━{footer}
+    # Visually distinct closing message
+    if pnl > 0:
+        header = f"🏆💰 TRADE CLOSED — WIN 💰🏆"
+        result_line = f"✅ +${pnl:.2f} ({roi:+.1f}%) ✅"
+    else:
+        header = f"📉 TRADE CLOSED — LOSS 📉"
+        result_line = f"❌ ${pnl:.2f} ({roi:+.1f}%)"
+
+    duration = ""
+    if trade.get("open_time") and trade.get("close_time"):
+        try:
+            from datetime import datetime as dt2
+            t1 = dt2.fromisoformat(trade["open_time"])
+            t2 = dt2.fromisoformat(trade["close_time"])
+            mins = int((t2 - t1).total_seconds() / 60)
+            if mins < 60: duration = f"{mins}m"
+            elif mins < 1440: duration = f"{mins//60}h {mins%60}m"
+            else: duration = f"{mins//1440}d {(mins%1440)//60}h"
+        except: pass
+
+    msg = f"""{header}
+{'═'*30}
+{coin} {d} | {trade.get('tf','')} | {reason}
+
+Entry:  {fmt(entry)}
+Exit:   {fmt(close)}
+Dauer:  {duration}
+
+{result_line}
+{'═'*30}{footer}
 KODA SE · {datetime.now(TZ).strftime('%H:%M')} ET"""
 
     send_tg_channel(msg)
