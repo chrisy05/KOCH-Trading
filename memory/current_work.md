@@ -11,6 +11,15 @@
   - update_stats erkennt TP1+TRAIL und TP1+BE als Wins
   - Syntax verifiziert, Bot NICHT gestartet
 
+## Erledigt (07.06.2026 — Backtest)
+- Kaskaden-Ampel 30-Tage Backtest durchgefuehrt (May 10 - Jun 10, 2026)
+  - 24 Coins + BTC Cascade, Binance Futures 15m Daten
+  - CASCADE: 1011 Trades, 61.6% WR, $4373 PnL, PF 2.31
+  - V2 (ohne Cascade): 1262 Trades, 73.3% WR, -$2111 PnL, PF 0.84
+  - Cascade filtert 5192 von 6203 Signalen (84%), spart $6484 vs V2
+  - Adaptive SL: 2890x getriggert, 1661 Saves
+  - Ergebnis: /Trading/agents/signals/kaskaden_backtest.json
+
 ## Offen
 - Bot neu starten wenn Chris bestaetigt
 - Paper Bot V2K1 laeuft parallel zum Vergleich
