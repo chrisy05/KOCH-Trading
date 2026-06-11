@@ -104,13 +104,6 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
   <div class="card-badge badge-live">● LIVE</div>
 </a>
 
-<a href="index.html" class="card">
-  <div class="card-icon">📊</div>
-  <div class="card-title">Dashboard</div>
-  <div class="card-desc">KPIs, Trade-Uebersicht, Top Coins, Signalgeber-Performance (Viona, CK, KODA SE).</div>
-  <div class="card-badge badge-live">● LIVE</div>
-</a>
-
 </div>
 
 <!-- KODA SE Full Stack — Live Dashboard -->
@@ -191,7 +184,7 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
         statusEl.textContent='⛔ PAUSIERT';
       }else if(hb){
         const age=(Date.now()-new Date(hb).getTime())/60000;
-        if(age>5){statusEl.style.background='rgba(239,68,68,0.1)';statusEl.style.color='#ef4444';statusEl.textContent='⚠️ OFFLINE';}
+        if(age>10){statusEl.style.background='rgba(239,68,68,0.1)';statusEl.style.color='#ef4444';statusEl.textContent='⚠️ OFFLINE';}
         else{statusEl.style.background='rgba(34,197,94,0.1)';statusEl.style.color='#22c55e';statusEl.textContent='● AKTIV';}
       }
 
