@@ -718,16 +718,18 @@ async function loadData() {
 
     // Bot-Status prüfen (Heartbeat in JSON)
     const isRunning = checkBotRunning(data);
-    const tabId = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2','v2k3':'tabV2k3'}[activeBot];
+    const tabId = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2','v2k3':'tabV2k3','optimal':'tabOptimal'}[activeBot];
     const tabEl = document.getElementById(tabId);
-    if (isRunning === false) {
-      tabEl.style.background = '#7f1d1d';
-      tabEl.style.borderColor = '#ef4444';
-      document.getElementById('botLabel').innerHTML = '<span style="color:#ef4444;font-weight:bold">⛔ GESTOPPT</span> ' + (BOT_LABELS[activeBot] || '');
-    } else {
-      tabEl.style.background = '';
-      tabEl.style.borderColor = '';
-      document.getElementById('botLabel').textContent = BOT_LABELS[activeBot] || '';
+    if (tabEl) {
+      if (isRunning === false) {
+        tabEl.style.background = '#7f1d1d';
+        tabEl.style.borderColor = '#ef4444';
+        document.getElementById('botLabel').innerHTML = '<span style="color:#ef4444;font-weight:bold">⛔ GESTOPPT</span> ' + (BOT_LABELS[activeBot] || '');
+      } else {
+        tabEl.style.background = '';
+        tabEl.style.borderColor = '';
+        document.getElementById('botLabel').textContent = BOT_LABELS[activeBot] || '';
+      }
     }
 
     renderConfig(data.config || {});
