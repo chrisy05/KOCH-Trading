@@ -1085,6 +1085,14 @@ def check_open_trades(data):
                 continue
             current_price, recent_high, recent_low = price_data[coin]
 
+            # Update live price + unrealized PnL for dashboard display
+            trade["current_price"] = round(current_price, 8)
+            unrealized = calc_pnl(trade["direction"], trade["entry"], current_price, trade["size"])
+            if trade.get("tp1_hit") and trade.get("tp1_pnl"):
+                unrealized = unrealized * 0.5 + trade["tp1_pnl"]  # remaining 50% + realized TP1
+            trade["pnl"] = round(unrealized, 2)
+            trade["roi"] = round(unrealized / trade["margin"] * 100, 2) if trade["margin"] else 0
+
             # Get SL price (stored per trade, 42% price move)
             sl_price = trade.get("sl")
             if sl_price is None:
