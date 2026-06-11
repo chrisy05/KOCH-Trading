@@ -77,17 +77,8 @@
 <body>
 
 <!-- Login Overlay -->
-<div id="login-overlay">
-  <div class="login-box">
-    <h2>KODA Bot</h2>
-    <div class="subtitle">Autonomous Trading System</div>
-    <input type="password" id="pw-input" maxlength="4" placeholder="PIN" autofocus>
-    <div class="hint">4-stelliger PIN eingeben</div>
-  </div>
-</div>
-
 <!-- Main Content -->
-<div id="main-content">
+<div id="main-content" style="display:block">
 <header>
   <a href="index.html">← Dashboard</a>
   <span class="sep">|</span>
@@ -482,20 +473,9 @@
 </div>
 
 <script>
-// ── Auth ──
-const PIN = '4712';
-const pwInput = document.getElementById('pw-input');
-pwInput.addEventListener('input', function() {
-  if (this.value.length === 4) {
-    if (this.value === PIN) {
-      document.getElementById('login-overlay').style.display = 'none';
-      document.getElementById('main-content').style.display = 'block';
-      loadData();
-    } else {
-      this.classList.add('error');
-      this.value = '';
-      setTimeout(() => this.classList.remove('error'), 300);
-    }
+// ── Auth removed — direct access ──
+loadData();
+if (false) {
   }
 });
 
