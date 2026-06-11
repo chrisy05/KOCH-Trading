@@ -28,6 +28,18 @@
   - V2 haette mit gleicher Skalierung $-1,055 gemacht (Totalverlust)
   - Ergebnis: /Trading/agents/signals/kaskaden_backtest_realistic.json
 
+## Erledigt (07.06.2026 — 6-Month Backtest V2)
+- Kaskade vs V2 6-Monats-Backtest mit korrekten Timestamps und PnL-Bugfix
+  - Timestamps verifiziert: Apr 1 = $68k (korrekt), BTC Dez-Jun Preise validiert
+  - PnL Double-Counting Bug gefunden und gefixt (partial_pnl wurde doppelt gezaehlt)
+  - KASKADE: 2250 Trades, 62.5% WR, PnL -$648, Final $352 (von $1000)
+  - V2: 472 Trades, 54.9% WR, PnL -$963, Final $38 (quasi Totalverlust)
+  - Kaskade besser als V2 (+$314 PnL, +7.6pp WR), aber beide negativ
+  - Hauptproblem: April -$1581 (54% WR bei Kaskade), Dez -$511
+  - Beste Monate: Jan +$795, Feb +$512, Maerz +$236
+  - Max DD: Kaskade 95.7%, V2 96.9%
+  - Ergebnis: /Trading/agents/signals/kaskaden_6month_backtest_v2.json
+
 ## Offen
 - Bot neu starten wenn Chris bestaetigt
 - Paper Bot V2K1 laeuft parallel zum Vergleich
