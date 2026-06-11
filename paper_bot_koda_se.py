@@ -914,7 +914,7 @@ def notify_trade_closed(trade, data=None):
         header = f"🏆💰 TRADE CLOSED — WIN 💰🏆"
         result_line = f"✅ +${pnl:.2f} ({roi:+.1f}%) ✅"
     else:
-        header = f"📉 TRADE CLOSED — LOSS 📉"
+        header = f"🔴 TRADE CLOSED — LOSS 🔴"
         result_line = f"❌ ${pnl:.2f} ({roi:+.1f}%)"
 
     duration = ""
