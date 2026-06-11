@@ -43,9 +43,25 @@
 - V5b BEST: 2x40+MultiTF = 83.7% WR, $3,910 PnL, PF 2.07
 - V4 BEST: 5x|15%SL|100%EM|slope = 72.3% WR, $6,756 PnL
 
+## Liquidation Hunter Backtest (07.06.2026)
+
+### Ergebnis: Standalone NICHT profitabel
+- 10 Coins, 30 Tage, 15m, real Binance Klines
+- Mode A (Standalone): 107 Trades, 55.1% WR, -$178 PnL — Avg Loss > Avg Win
+- Mode B (Kaskaden): 5 Trades, 100% WR, +$48 — zu wenig Trades
+- Mode C (MTF): 32 Trades, 50% WR, -$6 — breakeven
+- Bester Sweep: 5x|40%SL|3.0 Ratio → 59.7% WR, -$2.86 (fast breakeven)
+- **Empfehlung**: Liqui-Ratio als 8. Score im bestehenden KODA-System testen
+
+### Dateien:
+- Script: /Trading/agents/signals/liqui_hunter_backtest.py
+- Results: /Trading/agents/signals/liqui_hunter_backtest.json
+- Protokoll: optimization_protocol.md (Abschnitt "Liquidation Hunter")
+
 ## Offen
 - ENTSCHEIDUNG: Welchen Modus fuer Live-Bot?
   - **Option G (V6 BEST balanced)**: 2x, 42%SL, 55%EM, +MTF → 85.0% WR, PF 1.79, $3,641
   - **Option H (V6 BEST risk-adj)**: 2x, 40%SL, 60%EM, +MTF+Slope+Vol → 84.1% WR, PF 2.09, DD 15%
   - Option D (V5b): 2x, 40%SL, 60%EM, +MultiTF → 83.7% WR, PF 2.07, $3,910
 - Bot neu starten wenn Chris bestaetigt
+- Optional: Liqui-Ratio als Add-On Score in V6 Best Config testen
