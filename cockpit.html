@@ -162,7 +162,42 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
     </div>
   </div>
   <div style="margin-top:12px;font-size:.68rem;color:#484f58">Backtest: 3,392 Trades | WR 60.3% | PnL +$8,971 | 1m-Verifiziert: 72.1% Match, 0 OptMM</div>
+  <div id="koda-se-status" style="margin-top:12px;padding:8px 12px;border-radius:6px;font-size:.8rem;font-weight:600;background:rgba(34,197,94,0.1);color:#22c55e">Lade Status...</div>
 </div>
+<script>
+(function(){
+  fetch('paper_trades_koda_se.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
+    const el=document.getElementById('koda-se-status');
+    const hb=d._heartbeat||'';
+    const paused=d._drawdown_paused||false;
+    const slCount=d._consecutive_sl||0;
+    const openTrades=[...(d.trades_15m||[]),...(d.trades_30m||[])].filter(t=>t.status==='open').length;
+    const closedTrades=[...(d.trades_15m||[]),...(d.trades_30m||[])].filter(t=>t.status==='closed');
+    const wins=closedTrades.filter(t=>t.pnl>0).length;
+    const losses=closedTrades.length-wins;
+    const pnl=closedTrades.reduce((s,t)=>s+(t.pnl||0),0);
+    const wr=closedTrades.length>0?(wins/closedTrades.length*100).toFixed(1):'--';
+
+    if(paused){
+      el.style.background='rgba(239,68,68,0.15)';el.style.color='#ef4444';
+      el.textContent='⛔ PAUSIERT — Drawdown-Bremse ('+slCount+' SLs in Folge). Manuelle Freigabe nötig.';
+    }else if(hb){
+      const age=(Date.now()-new Date(hb).getTime())/60000;
+      if(age>5){
+        el.style.background='rgba(239,68,68,0.1)';el.style.color='#ef4444';
+        el.textContent='⚠️ OFFLINE — Letzter Heartbeat vor '+Math.floor(age)+' Min';
+      }else{
+        el.style.background='rgba(34,197,94,0.1)';el.style.color='#22c55e';
+        el.textContent='● AKTIV | Offen: '+openTrades+' | W/L: '+wins+'/'+losses+' | WR: '+wr+'% | PnL: $'+pnl.toFixed(2)+' | HB: '+hb.slice(11,16);
+      }
+    }
+  }).catch(()=>{
+    const el=document.getElementById('koda-se-status');
+    el.style.background='rgba(239,68,68,0.1)';el.style.color='#ef4444';
+    el.textContent='❌ Daten nicht verfügbar';
+  });
+})();
+</script>
 
 <div style="max-width:900px;width:100%;margin-top:30px;background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px">
   <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Kapitalrechnung</div>

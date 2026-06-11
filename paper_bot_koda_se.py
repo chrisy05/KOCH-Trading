@@ -734,8 +734,10 @@ def load_data():
 
 
 def save_data(data):
-    data["_heartbeat"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
     """Save paper trades to JSON file."""
+    data["_heartbeat"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+    data["_drawdown_paused"] = _drawdown_paused
+    data["_consecutive_sl"] = _consecutive_sl_count
     try:
         with open(DATA_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
