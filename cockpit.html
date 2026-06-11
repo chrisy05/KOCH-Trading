@@ -104,13 +104,6 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
   <div class="card-badge badge-live">● LIVE</div>
 </a>
 
-<a href="paperbot.html#koda_se" class="card" onclick="localStorage.setItem('paperbot_tab','koda_se')">
-  <div class="card-icon">🤖</div>
-  <div class="card-title">KODA SE — Full Stack</div>
-  <div class="card-desc">7-Score (Factory7Signal©) + Kaskaden + MTF Gate + EMA Ribbon + Adaptive SL + TP1/TP2 Trailing. 5x Hebel. Drawdown-Bremse aktiv.</div>
-  <div class="card-badge badge-new">● NEU — 11.06.2026</div>
-</a>
-
 <a href="index.html" class="card">
   <div class="card-icon">📊</div>
   <div class="card-title">Dashboard</div>
@@ -120,82 +113,123 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
 
 </div>
 
-<!-- KODA SE Config & Trade Settings -->
+<!-- KODA SE Full Stack — Live Dashboard -->
 <div style="max-width:900px;width:100%;margin-top:30px;background:#161b22;border:1px solid #f0388855;border-radius:10px;padding:20px">
-  <div style="font-size:0.75rem;color:#f03888;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">KODA SE — Full Stack Config (11.06.2026)</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.82rem">
-    <div>
-      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">SIGNAL-SYSTEM</div>
-      <div style="color:#c9d1d9;line-height:1.6">
-        <b style="color:#58a6ff">7-Score Factory7Signal©</b><br>
-        Delta | Orderbook | Funding | Distance | Walls | POC | VA<br>
-        Min Score: 2/7 in eine Richtung<br>
-        Min Probability: 60%
-      </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div style="font-size:0.85rem;color:#f03888;text-transform:uppercase;letter-spacing:1px;font-weight:700">🤖 KODA SE — Full Stack 7-Score + Kaskaden</div>
+    <div id="koda-se-status" style="padding:4px 12px;border-radius:10px;font-size:.72rem;font-weight:600;background:rgba(34,197,94,0.1);color:#22c55e">...</div>
+  </div>
+
+  <!-- Live KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+    <div style="background:#0d1117;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:.65rem;color:#8b949e;margin-bottom:4px">OFFEN</div>
+      <div id="kse-open" style="font-size:1.3rem;font-weight:700;color:#f59e0b">--</div>
     </div>
-    <div>
-      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">ENTRY-FILTER</div>
-      <div style="color:#c9d1d9;line-height:1.6">
-        Kaskaden-Ampel (SMA10/20/50 Alignment)<br>
-        BTC 1H MTF Gate (SMA20 vs SMA50)<br>
-        EMA Ribbon Gate (8 EMAs + EMA100)<br>
-        Knot Point Block (Ribbon eng = kein Entry)
-      </div>
+    <div style="background:#0d1117;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:.65rem;color:#8b949e;margin-bottom:4px">W / L</div>
+      <div id="kse-wl" style="font-size:1.3rem;font-weight:700;color:#c9d1d9">--</div>
     </div>
-    <div>
-      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">TRADE-EINSTELLUNGEN</div>
-      <div style="color:#c9d1d9;line-height:1.6">
-        <b>Hebel:</b> 5x | <b>Margin:</b> $50/Trade<br>
-        <b>Budget:</b> $1,000 | <b>Max Trades:</b> 20<br>
-        <b>SL:</b> 42% Price (LIQ bei ~20%)<br>
-        <b>TP:</b> 55% Expected Move
-      </div>
+    <div style="background:#0d1117;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:.65rem;color:#8b949e;margin-bottom:4px">WIN RATE</div>
+      <div id="kse-wr" style="font-size:1.3rem;font-weight:700;color:#c9d1d9">--</div>
     </div>
-    <div>
-      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">TRADE MANAGEMENT</div>
-      <div style="color:#c9d1d9;line-height:1.6">
-        TP1: 50% Position schliessen, SL→Entry<br>
-        TP2: 1.5x TP1 oder 3% Trailing Stop<br>
-        Adaptive SL: EMA Ribbon eng → SL enger<br>
-        <b style="color:#f59e0b">Drawdown-Bremse: 5 SLs → Pause + TG</b>
-      </div>
+    <div style="background:#0d1117;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:.65rem;color:#8b949e;margin-bottom:4px">TOTAL PNL</div>
+      <div id="kse-pnl" style="font-size:1.3rem;font-weight:700;color:#c9d1d9">--</div>
+    </div>
+    <div style="background:#0d1117;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:.65rem;color:#8b949e;margin-bottom:4px">SL COUNTER</div>
+      <div id="kse-slc" style="font-size:1.3rem;font-weight:700;color:#c9d1d9">0/5</div>
     </div>
   </div>
-  <div style="margin-top:12px;font-size:.68rem;color:#484f58">Backtest: 3,392 Trades | WR 60.3% | PnL +$8,971 | 1m-Verifiziert: 72.1% Match, 0 OptMM</div>
-  <div id="koda-se-status" style="margin-top:12px;padding:8px 12px;border-radius:6px;font-size:.8rem;font-weight:600;background:rgba(34,197,94,0.1);color:#22c55e">Lade Status...</div>
+
+  <!-- Open Trades Table -->
+  <div style="font-size:.7rem;color:#8b949e;margin-bottom:6px">OFFENE TRADES</div>
+  <div style="max-height:200px;overflow-y:auto;margin-bottom:14px">
+    <table style="width:100%;border-collapse:collapse;font-size:.78rem" id="kse-open-table">
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e">
+        <th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>TF</th><th>Lev</th><th>Entry</th><th>TP</th><th>Prob</th><th>PnL</th><th>Dauer</th><th>Kaskade</th>
+      </tr></thead>
+      <tbody id="kse-open-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Config Summary -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.75rem;border-top:1px solid #21262d;padding-top:12px">
+    <div style="color:#8b949e;line-height:1.7">
+      <b style="color:#58a6ff">Signal:</b> 7-Score Factory7Signal© (Delta, OB, Funding, Distance, Walls, POC, VA)<br>
+      <b style="color:#58a6ff">Filter:</b> Kaskaden-Ampel + BTC MTF Gate + EMA Ribbon + Knot Block
+    </div>
+    <div style="color:#8b949e;line-height:1.7">
+      <b style="color:#58a6ff">Trade:</b> 5x Hebel | $50 Margin | 42% SL | 55% EM TP<br>
+      <b style="color:#58a6ff">Mgmt:</b> TP1/TP2 Trailing | Adaptive SL | <span style="color:#f59e0b">DD-Bremse: 5 SLs→Pause</span>
+    </div>
+  </div>
+  <div style="margin-top:8px;font-size:.65rem;color:#484f58">Backtest: 3,392 Trades | WR 60.3% | PnL +$8,971 | 1m-Verifiziert: 72.1% Match, 0 OptMM</div>
 </div>
+
 <script>
 (function(){
-  fetch('paper_trades_koda_se.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
-    const el=document.getElementById('koda-se-status');
-    const hb=d._heartbeat||'';
-    const paused=d._drawdown_paused||false;
-    const slCount=d._consecutive_sl||0;
-    const openTrades=[...(d.trades_15m||[]),...(d.trades_30m||[])].filter(t=>t.status==='open').length;
-    const closedTrades=[...(d.trades_15m||[]),...(d.trades_30m||[])].filter(t=>t.status==='closed');
-    const wins=closedTrades.filter(t=>t.pnl>0).length;
-    const losses=closedTrades.length-wins;
-    const pnl=closedTrades.reduce((s,t)=>s+(t.pnl||0),0);
-    const wr=closedTrades.length>0?(wins/closedTrades.length*100).toFixed(1):'--';
+  function loadKodaSE(){
+    fetch('paper_trades_koda_se.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
+      const statusEl=document.getElementById('koda-se-status');
+      const hb=d._heartbeat||'';
+      const paused=d._drawdown_paused||false;
+      const slCount=d._consecutive_sl||0;
+      const allTrades=[...(d.trades_15m||[]),...(d.trades_30m||[]),...(d.trades_1h||[]),...(d.trades_4h||[])];
+      const openTrades=allTrades.filter(t=>t.status==='open');
+      const closedTrades=allTrades.filter(t=>t.status==='closed');
+      const wins=closedTrades.filter(t=>t.pnl>0).length;
+      const losses=closedTrades.length-wins;
+      const pnl=closedTrades.reduce((s,t)=>s+(t.pnl||0),0);
+      const wr=closedTrades.length>0?(wins/closedTrades.length*100).toFixed(1):'--';
 
-    if(paused){
-      el.style.background='rgba(239,68,68,0.15)';el.style.color='#ef4444';
-      el.textContent='⛔ PAUSIERT — Drawdown-Bremse ('+slCount+' SLs in Folge). Manuelle Freigabe nötig.';
-    }else if(hb){
-      const age=(Date.now()-new Date(hb).getTime())/60000;
-      if(age>5){
-        el.style.background='rgba(239,68,68,0.1)';el.style.color='#ef4444';
-        el.textContent='⚠️ OFFLINE — Letzter Heartbeat vor '+Math.floor(age)+' Min';
-      }else{
-        el.style.background='rgba(34,197,94,0.1)';el.style.color='#22c55e';
-        el.textContent='● AKTIV | Offen: '+openTrades+' | W/L: '+wins+'/'+losses+' | WR: '+wr+'% | PnL: $'+pnl.toFixed(2)+' | HB: '+hb.slice(11,16);
+      // Status badge
+      if(paused){
+        statusEl.style.background='rgba(239,68,68,0.15)';statusEl.style.color='#ef4444';
+        statusEl.textContent='⛔ PAUSIERT';
+      }else if(hb){
+        const age=(Date.now()-new Date(hb).getTime())/60000;
+        if(age>5){statusEl.style.background='rgba(239,68,68,0.1)';statusEl.style.color='#ef4444';statusEl.textContent='⚠️ OFFLINE';}
+        else{statusEl.style.background='rgba(34,197,94,0.1)';statusEl.style.color='#22c55e';statusEl.textContent='● AKTIV';}
       }
-    }
-  }).catch(()=>{
-    const el=document.getElementById('koda-se-status');
-    el.style.background='rgba(239,68,68,0.1)';el.style.color='#ef4444';
-    el.textContent='❌ Daten nicht verfügbar';
-  });
+
+      // KPIs
+      document.getElementById('kse-open').textContent=openTrades.length;
+      document.getElementById('kse-wl').innerHTML='<span style="color:#22c55e">'+wins+'</span> / <span style="color:#ef4444">'+losses+'</span>';
+      const wrEl=document.getElementById('kse-wr');wrEl.textContent=wr+'%';wrEl.style.color=parseFloat(wr)>=55?'#22c55e':'#ef4444';
+      const pnlEl=document.getElementById('kse-pnl');pnlEl.textContent='$'+pnl.toFixed(2);pnlEl.style.color=pnl>=0?'#22c55e':'#ef4444';
+      const slcEl=document.getElementById('kse-slc');slcEl.textContent=slCount+'/5';slcEl.style.color=slCount>=3?'#ef4444':slCount>=1?'#f59e0b':'#22c55e';
+
+      // Open trades table
+      const tbody=document.getElementById('kse-open-tbody');
+      if(openTrades.length===0){
+        tbody.innerHTML='<tr><td colspan="10" style="padding:10px;color:#484f58;text-align:center">Keine offenen Trades</td></tr>';
+      }else{
+        let html='';
+        openTrades.forEach(t=>{
+          const dirCls=t.direction==='LONG'?'color:#22c55e':'color:#ef4444';
+          const pnlVal=t.pnl||0;const pnlCls=pnlVal>=0?'color:#22c55e':'color:#ef4444';
+          const dur=t.open_time?Math.floor((Date.now()-new Date(t.open_time).getTime())/60000)+'m':'--';
+          html+='<tr style="border-bottom:1px solid #161b22">'+
+            '<td style="padding:3px 6px;font-weight:600">'+t.coin+'</td>'+
+            '<td style="'+dirCls+';font-weight:600;font-size:.7rem">'+t.direction+'</td>'+
+            '<td style="color:#8b949e">'+t.tf+'</td>'+
+            '<td style="color:#58a6ff">'+t.leverage+'x</td>'+
+            '<td>'+parseFloat(t.entry).toPrecision(5)+'</td>'+
+            '<td>'+parseFloat(t.tp).toPrecision(5)+'</td>'+
+            '<td>'+(t.probability||'--')+'%</td>'+
+            '<td style="'+pnlCls+'">$'+pnlVal.toFixed(2)+'</td>'+
+            '<td style="color:#8b949e">'+dur+'</td>'+
+            '<td style="font-size:.65rem;color:#58a6ff">'+(t.cascade_code||'--')+'</td></tr>';
+        });
+        tbody.innerHTML=html;
+      }
+    }).catch(()=>{});
+  }
+  loadKodaSE();
+  setInterval(loadKodaSE,30000); // Refresh alle 30s
 })();
 </script>
 
