@@ -20,6 +20,14 @@
   - Adaptive SL: 2890x getriggert, 1661 Saves
   - Ergebnis: /Trading/agents/signals/kaskaden_backtest.json
 
+## Erledigt (07.06.2026 — Realistic Backtest)
+- Kaskaden Backtest mit Budget-Constraints ($1000 Start, $50/Trade, 10x)
+  - 766 von 1011 Trades genommen (245 wegen Slot-Limit uebersprungen, 0 wegen Budget)
+  - 60.8% WR, Endbalance $2,301, Net PnL $1,301, ROI +130%
+  - Peak $2,398, Max DD 50.9%, Max Concurrent 23
+  - V2 haette mit gleicher Skalierung $-1,055 gemacht (Totalverlust)
+  - Ergebnis: /Trading/agents/signals/kaskaden_backtest_realistic.json
+
 ## Offen
 - Bot neu starten wenn Chris bestaetigt
 - Paper Bot V2K1 laeuft parallel zum Vergleich
