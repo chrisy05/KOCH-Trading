@@ -746,11 +746,14 @@ def save_data(data):
 
 
 def next_trade_id(data, tf_key):
-    """Get next trade ID for a given timeframe."""
-    trades = data.get(tf_key, [])
-    if not trades:
+    """Get next trade ID — global across ALL timeframes."""
+    all_ids = []
+    for key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+        for t in data.get(key, []):
+            all_ids.append(t.get("id", 0))
+    if not all_ids:
         return 1
-    return max(t.get("id", 0) for t in trades) + 1
+    return max(all_ids) + 1
 
 
 def calc_liquidation(entry, direction, margin, size):
