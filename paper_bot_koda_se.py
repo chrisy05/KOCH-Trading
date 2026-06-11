@@ -877,7 +877,19 @@ KODA SE · {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"""
     send_tg_channel(msg)
 
 
-def notify_trade_closed(trade):
+def get_overall_stats(data):
+    """Get total closed trades, wins, WR, PnL across all TFs."""
+    all_closed = []
+    for tf in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+        all_closed.extend([t for t in data.get(tf, []) if t.get("status") == "closed"])
+    total = len(all_closed)
+    wins = len([t for t in all_closed if (t.get("pnl") or 0) > 0])
+    wr = (wins / total * 100) if total > 0 else 0
+    total_pnl = sum(t.get("pnl", 0) for t in all_closed)
+    return total, wins, wr, total_pnl
+
+
+def notify_trade_closed(trade, data=None):
     """Post result to KODA SE channel when bot closes a trade."""
     coin = trade["coin"]
     d = trade["direction"]
@@ -890,12 +902,19 @@ def notify_trade_closed(trade):
     emoji = "✅" if pnl > 0 else "❌"
     fmt = lambda x: f"${x:,.2f}" if x > 100 else (f"${x:.4f}" if x > 1 else f"${x:.6f}")
 
+    # Footer with overall stats
+    footer = ""
+    if data:
+        total, wins, wr, total_pnl = get_overall_stats(data)
+        pnl_sign = "+" if total_pnl >= 0 else ""
+        footer = f"\n· {total} Signale | {wins} positiv | WR: {wr:.0f}% | Gesamt: {pnl_sign}${total_pnl:.2f}"
+
     msg = f"""{emoji} KODA SE — {coin} {d} CLOSED
 ━━━━━━━━━━━━━━━━━━━━━━
 Entry: {fmt(entry)} → Exit: {fmt(close)}
 Reason: {reason}
 PnL: ${pnl:+.2f} ({roi:+.1f}%)
-━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━{footer}
 KODA SE · {datetime.now(TZ).strftime('%H:%M')} ET"""
 
     send_tg_channel(msg)
@@ -951,6 +970,7 @@ def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascad
 
 _consecutive_sl_count = 0
 _drawdown_paused = False
+_current_data = None  # global ref for TG notifications
 
 def send_drawdown_alert(sl_count):
     """Send Telegram alert when drawdown brake activates — direct to Chris + channel."""
@@ -983,7 +1003,7 @@ def close_trade(trade, close_price, reason):
     log(f"  CLOSED {trade['direction']} {trade['coin']} @ {close_price:.6f} | {reason} | PnL: ${pnl:.2f} ({roi:.1f}%) | {emoji}")
 
     # Notify Telegram
-    notify_trade_closed(trade)
+    notify_trade_closed(trade, _current_data)
 
     # Drawdown brake tracking
     if pnl <= 0:
@@ -1153,7 +1173,7 @@ def check_open_trades(data):
                         trade["close_reason"] = "TP1+BE"
                         trade["status"] = "closed"
                         log(f"  TP2 BE: {coin} LONG | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
-                        notify_trade_closed(trade)
+                        notify_trade_closed(trade, _current_data)
                     elif recent_low <= trail_stop:
                         tp2_pnl = calc_pnl("LONG", trade["entry"], trail_stop, trade["size"]) * 0.5
                         total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
@@ -1163,7 +1183,7 @@ def check_open_trades(data):
                         trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
                         trade["close_reason"] = "TP1+TRAIL"
                         trade["status"] = "closed"
-                        notify_trade_closed(trade)
+                        notify_trade_closed(trade, _current_data)
                         log(f"  TP2 TRAIL: {coin} LONG | Peak {peak:.6f} → Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
 
             else:  # SHORT
@@ -1199,7 +1219,7 @@ def check_open_trades(data):
                         trade["close_reason"] = "TP1+BE"
                         trade["status"] = "closed"
                         log(f"  TP2 BE: {coin} SHORT | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
-                        notify_trade_closed(trade)
+                        notify_trade_closed(trade, _current_data)
                     elif recent_high >= trail_stop:
                         tp2_pnl = calc_pnl("SHORT", trade["entry"], trail_stop, trade["size"]) * 0.5
                         total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
@@ -1210,7 +1230,7 @@ def check_open_trades(data):
                         trade["close_reason"] = "TP1+TRAIL"
                         trade["status"] = "closed"
                         log(f"  TP2 TRAIL: {coin} SHORT | Peak {peak:.6f} → Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
-                        notify_trade_closed(trade)
+                        notify_trade_closed(trade, _current_data)
 
 
 def update_stats(data):
@@ -1490,7 +1510,9 @@ def main():
     log(f"Timeframes: 15m (50%) + 30m (50%)")
     log("")
 
+    global _current_data
     data = load_data()
+    _current_data = data
 
     last_15m_scan = -1
     last_30m_scan = -1
