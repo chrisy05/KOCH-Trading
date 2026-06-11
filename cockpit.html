@@ -104,13 +104,64 @@ h1{color:#58a6ff;font-size:2rem;margin-bottom:6px;text-align:center}
   <div class="card-badge badge-live">● LIVE</div>
 </a>
 
+<a href="paperbot.html#koda_se" class="card" onclick="localStorage.setItem('paperbot_tab','koda_se')">
+  <div class="card-icon">🤖</div>
+  <div class="card-title">KODA SE — Full Stack</div>
+  <div class="card-desc">7-Score (Factory7Signal©) + Kaskaden + MTF Gate + EMA Ribbon + Adaptive SL + TP1/TP2 Trailing. 5x Hebel. Drawdown-Bremse aktiv.</div>
+  <div class="card-badge badge-new">● NEU — 11.06.2026</div>
+</a>
+
 <a href="index.html" class="card">
   <div class="card-icon">📊</div>
   <div class="card-title">Dashboard</div>
-  <div class="card-desc">KPIs, Trade-Uebersicht, Top Coins, Signalgeber-Performance.</div>
+  <div class="card-desc">KPIs, Trade-Uebersicht, Top Coins, Signalgeber-Performance (Viona, CK, KODA SE).</div>
   <div class="card-badge badge-live">● LIVE</div>
 </a>
 
+</div>
+
+<!-- KODA SE Config & Trade Settings -->
+<div style="max-width:900px;width:100%;margin-top:30px;background:#161b22;border:1px solid #f0388855;border-radius:10px;padding:20px">
+  <div style="font-size:0.75rem;color:#f03888;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">KODA SE — Full Stack Config (11.06.2026)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.82rem">
+    <div>
+      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">SIGNAL-SYSTEM</div>
+      <div style="color:#c9d1d9;line-height:1.6">
+        <b style="color:#58a6ff">7-Score Factory7Signal©</b><br>
+        Delta | Orderbook | Funding | Distance | Walls | POC | VA<br>
+        Min Score: 2/7 in eine Richtung<br>
+        Min Probability: 60%
+      </div>
+    </div>
+    <div>
+      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">ENTRY-FILTER</div>
+      <div style="color:#c9d1d9;line-height:1.6">
+        Kaskaden-Ampel (SMA10/20/50 Alignment)<br>
+        BTC 1H MTF Gate (SMA20 vs SMA50)<br>
+        EMA Ribbon Gate (8 EMAs + EMA100)<br>
+        Knot Point Block (Ribbon eng = kein Entry)
+      </div>
+    </div>
+    <div>
+      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">TRADE-EINSTELLUNGEN</div>
+      <div style="color:#c9d1d9;line-height:1.6">
+        <b>Hebel:</b> 5x | <b>Margin:</b> $50/Trade<br>
+        <b>Budget:</b> $1,000 | <b>Max Trades:</b> 20<br>
+        <b>SL:</b> 42% Price (LIQ bei ~20%)<br>
+        <b>TP:</b> 55% Expected Move
+      </div>
+    </div>
+    <div>
+      <div style="color:#8b949e;font-size:.7rem;margin-bottom:4px">TRADE MANAGEMENT</div>
+      <div style="color:#c9d1d9;line-height:1.6">
+        TP1: 50% Position schliessen, SL→Entry<br>
+        TP2: 1.5x TP1 oder 3% Trailing Stop<br>
+        Adaptive SL: EMA Ribbon eng → SL enger<br>
+        <b style="color:#f59e0b">Drawdown-Bremse: 5 SLs → Pause + TG</b>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:12px;font-size:.68rem;color:#484f58">Backtest: 3,392 Trades | WR 60.3% | PnL +$8,971 | 1m-Verifiziert: 72.1% Match, 0 OptMM</div>
 </div>
 
 <div style="max-width:900px;width:100%;margin-top:30px;background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px">
