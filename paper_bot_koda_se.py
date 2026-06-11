@@ -788,8 +788,10 @@ def calc_pnl(direction, entry, close_price, size):
         return (entry - close_price) * size
 
 
-BOT_TOKEN = "8716936978:AAFfWX0XskwCM9iioEmbWzGYgSqYpLNPoPY"
-CHRIS_CHAT_ID = "351653518"
+KODA_SE_BOT_TOKEN = "8203429320:AAE3L0PZoguVsY_IEwcM_uPDaJNWUXjvHXI"  # @koda_signal_bot
+KODA_SE_CHANNEL_ID = "-1003770314055"  # KODA SE Signal Kanal
+CHRIS_CHAT_ID = "351653518"  # für Drawdown-Alarm direkt an Chris
+TRADING_BOT_TOKEN = "8716936978:AAFfWX0XskwCM9iioEmbWzGYgSqYpLNPoPY"  # für Drawdown-Alarm
 _signal_counter = 0
 
 def _load_signal_counter():
@@ -809,16 +811,27 @@ def _save_signal_counter():
 
 _load_signal_counter()
 
-def send_tg(text):
-    """Send message to Chris via Telegram."""
+def send_tg_channel(text):
+    """Send signal to KODA SE channel via @koda_signal_bot."""
     try:
         import urllib.parse
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        url = f"https://api.telegram.org/bot{KODA_SE_BOT_TOKEN}/sendMessage"
+        data = urllib.parse.urlencode({"chat_id": KODA_SE_CHANNEL_ID, "text": text}).encode()
+        req = urllib.request.Request(url, data=data, method="POST")
+        urllib.request.urlopen(req, timeout=10, context=ctx)
+    except Exception as e:
+        log(f"TG channel send failed: {e}")
+
+def send_tg_chris(text):
+    """Send direct message to Chris (for alerts)."""
+    try:
+        import urllib.parse
+        url = f"https://api.telegram.org/bot{TRADING_BOT_TOKEN}/sendMessage"
         data = urllib.parse.urlencode({"chat_id": CHRIS_CHAT_ID, "text": text}).encode()
         req = urllib.request.Request(url, data=data, method="POST")
         urllib.request.urlopen(req, timeout=10, context=ctx)
     except Exception as e:
-        log(f"TG send failed: {e}")
+        log(f"TG chris send failed: {e}")
 
 
 def notify_trade_opened(trade):
@@ -858,11 +871,11 @@ Factory7Signal© Full Stack
 ━━━━━━━━━━━━━━━━━━━━━━
 KODA SE · {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"""
 
-    send_tg(msg)
+    send_tg_channel(msg)
 
 
 def notify_trade_closed(trade):
-    """Post result to Telegram when bot closes a trade."""
+    """Post result to KODA SE channel when bot closes a trade."""
     coin = trade["coin"]
     d = trade["direction"]
     pnl = trade["pnl"]
@@ -882,7 +895,7 @@ PnL: ${pnl:+.2f} ({roi:+.1f}%)
 ━━━━━━━━━━━━━━━━━━━━━━
 KODA SE · {datetime.now(TZ).strftime('%H:%M')} ET"""
 
-    send_tg(msg)
+    send_tg_channel(msg)
 
 
 def open_trade(data, tf_key, coin, direction, entry, tp, probability, tf, cascade_lights=0, cascade_code="00000"):
@@ -937,24 +950,16 @@ _consecutive_sl_count = 0
 _drawdown_paused = False
 
 def send_drawdown_alert(sl_count):
-    """Send Telegram alert when drawdown brake activates."""
-    try:
-        import urllib.parse
-        BOT_TOKEN = "8716936978:AAFfWX0XskwCM9iioEmbWzGYgSqYpLNPoPY"
-        CHAT_ID = "351653518"
-        text = (f"⚠️ DRAWDOWN-BREMSE AKTIV — KODA SE Bot\n\n"
-                f"{sl_count} Verluste in Folge!\n"
-                f"Bot ist PAUSIERT. Keine neuen Trades.\n"
-                f"Offene Trades laufen weiter (TP/SL aktiv).\n\n"
-                f"Bitte D/W Analyse durchführen.\n"
-                f"Zum Fortfahren: Bot manuell neu starten.")
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        data = urllib.parse.urlencode({"chat_id": CHAT_ID, "text": text}).encode()
-        req = urllib.request.Request(url, data=data, method="POST")
-        urllib.request.urlopen(req, timeout=10, context=ctx)
-        log(f"DRAWDOWN ALERT sent to Telegram ({sl_count} SLs in row)")
-    except Exception as e:
-        log(f"Failed to send drawdown alert: {e}")
+    """Send Telegram alert when drawdown brake activates — direct to Chris + channel."""
+    text = (f"⚠️ DRAWDOWN-BREMSE AKTIV — KODA SE Bot\n\n"
+            f"{sl_count} Verluste in Folge!\n"
+            f"Bot ist PAUSIERT. Keine neuen Trades.\n"
+            f"Offene Trades laufen weiter (TP/SL aktiv).\n\n"
+            f"Bitte D/W Analyse durchführen.\n"
+            f"Zum Fortfahren: Bot manuell neu starten.")
+    send_tg_chris(text)    # direkt an Chris
+    send_tg_channel(text)  # auch im Kanal
+    log(f"DRAWDOWN ALERT sent ({sl_count} SLs in row)")
 
 
 def close_trade(trade, close_price, reason):
