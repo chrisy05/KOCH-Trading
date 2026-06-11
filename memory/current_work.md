@@ -40,6 +40,19 @@
   - Max DD: Kaskade 95.7%, V2 96.9%
   - Ergebnis: /Trading/agents/signals/kaskaden_6month_backtest_v2.json
 
+## Erledigt (07.06.2026 — Split TF Backtest 15m+4H)
+- Kaskade Split-Timeframe Backtest: 15m Signal + 4H Execution
+  - Signal auf 15m (stuendlich), TP/SL aus 4H ATR14 (EM = ATR * sqrt(6) * 0.5)
+  - 509 Trades, 54.8% WR, PnL -$959, Final $41 (von $1000)
+  - Avg Win $12.81 vs Avg Loss -$19.72 (4H ATR bringt groessere TP-Distanz)
+  - Avg TP Distance 2.75% (vs ~1.5% bei 15m-only)
+  - Problem: WR zu niedrig fuer das Risk/Reward bei 4% SL
+  - Dez allein -$556 (241 Trades), danach kein Kapital mehr
+  - Self-Verification: 10/10 passed (100%)
+  - Vergleich: 15m+4H leicht besser als 15m-only (-$959 vs -$969)
+  - 1H-only bleibt bester Run (-$648, 62.5% WR, 2250 Trades)
+  - Ergebnis: /Trading/agents/signals/kaskaden_6month_15m_4h.json
+
 ## Offen
 - Bot neu starten wenn Chris bestaetigt
 - Paper Bot V2K1 laeuft parallel zum Vergleich
