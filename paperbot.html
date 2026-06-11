@@ -96,6 +96,7 @@ footer{text-align:center;padding:20px;color:#484f58;font-size:.7rem;border-top:1
       <button class="tab-btn" id="tabV2k2" onclick="switchBot('v2k2')">V2K2 (SMA)</button>
       <button class="tab-btn" id="tabV2k3" onclick="switchBot('v2k3')">V2K3 (Regime)</button>
       <button class="tab-btn" id="tabOptimal" onclick="switchBot('optimal')">Optimal</button>
+      <button class="tab-btn" id="tabKodaSe" onclick="switchBot('koda_se')">KODA SE</button>
     </div>
     <span class="bot-label" id="botLabel">Core: SL 70%, TP 70%, Min 60%</span>
     <nav class="nav">
@@ -268,7 +269,8 @@ const BOT_FILES = {
   'v2k1': 'paper_trades_v2k1.json',
   'v2k2': 'paper_trades_v2k2.json',
   'v2k3': 'paper_trades_v2k3.json',
-  'optimal': 'paper_trades_optimal.json'
+  'optimal': 'paper_trades_optimal.json',
+  'koda_se': 'paper_trades_koda_se.json'
 };
 const BOT_LABELS = {
   'core': 'Core: SL 70%, TP 70%, Min 60%',
@@ -277,7 +279,8 @@ const BOT_LABELS = {
   'v2k1': 'V2K1: Basis (= V2, frisch gestartet)',
   'v2k2': 'V2K2: V2 + SMA-Stufen Hebelbremse',
   'v2k3': 'V2K3: V2K2 + Regime-Detektor + MTF-Alignment',
-  'optimal': 'KODA Optimal: 2x, 42% SL, 55% EM, MTF Gate'
+  'optimal': 'KODA Optimal: 2x, 42% SL, 55% EM, MTF Gate',
+  'koda_se': 'KODA SE Full Stack: 5x, 42% SL, 55% EM, 7-Score + Kaskaden'
 };
 const BOT_STRATEGIES = {
   'core': 'SMA Crossover + 7-Score Probability | Signal: SMA20/50 Cross + Score ≥4/7 | TP: 70% Expected Move | SL: 70% Margin | Kein MTF Gate, kein Kaskaden-Filter',
@@ -286,13 +289,14 @@ const BOT_STRATEGIES = {
   'v2k1': 'V2-Kopie + Kaskaden-Ampel | Signal: SMA Cross + Score ≥4/7 | Kaskaden: 5m/15m/30m/1H SMA10/20/50 Alignment | TP1/TP2 Trailing (50% bei TP1, Rest 3% Trail) | Adaptive SL (EMA Ribbon)',
   'v2k2': 'V2 + Kaskaden + SMA-Stufen Hebelbremse | Wie V2K1, zusätzlich: Hebel wird reduziert wenn weniger SMAs aligned sind (5 grün=10x, 3 grün=5x, etc.)',
   'v2k3': 'V2 + Kaskaden + Regime-Detektor + MTF-Alignment | Wie V2K2, zusätzlich: Erkennt Trend/Range/Reversal Regime und passt TP/SL dynamisch an',
-  'optimal': 'Beste getestete Strategie (85% WR verifiziert) | 5-Score (Delta, Funding, Distance, POC, VA) + Kaskaden-Ampel + BTC 1H MTF Gate + EMA Ribbon Gate + TP1/TP2 Trailing + Adaptive SL | 2x Hebel, 42% Price-SL, 55% EM TP'
+  'optimal': 'Beste getestete Strategie (85% WR verifiziert) | 5-Score (Delta, Funding, Distance, POC, VA) + Kaskaden-Ampel + BTC 1H MTF Gate + EMA Ribbon Gate + TP1/TP2 Trailing + Adaptive SL | 2x Hebel, 42% Price-SL, 55% EM TP',
+  'koda_se': 'Full Stack 7-Score (Factory7Signal©) + Kaskaden + Alle Filter | 7 Scores: Delta, OB, Funding, Distance, Walls, POC, VA | Kaskaden-Ampel + BTC MTF Gate + EMA Ribbon + Adaptive SL + TP1/TP2 Trailing | 5x Hebel | Drawdown-Bremse: 5 SLs → Pause + Telegram'
 };
 
 function switchBot(bot) {
   activeBot = bot;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const tabIds = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2','v2k3':'tabV2k3','optimal':'tabOptimal'};
+  const tabIds = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2','v2k3':'tabV2k3','optimal':'tabOptimal','koda_se':'tabKodaSe'};
   document.getElementById(tabIds[bot]).classList.add('active');
   document.getElementById('botLabel').textContent = BOT_LABELS[bot];
   document.getElementById('strategyDesc').textContent = BOT_STRATEGIES[bot] || '';
@@ -335,7 +339,7 @@ async function loadConfigFields() {
 
 async function controlBot(action) {
   const statusEl = document.getElementById('cfgStatus');
-  const botNames = {'core': 'paper_bot.py', 'v2': 'paper_bot_v2.py', 'v3': 'paper_bot_v3.py', 'v2k1': 'paper_bot_v2k1.py', 'v2k2': 'paper_bot_v2k2.py', 'v2k3': 'paper_bot_v2k3.py', 'optimal': 'paper_bot_optimal.py'};
+  const botNames = {'core': 'paper_bot.py', 'v2': 'paper_bot_v2.py', 'v3': 'paper_bot_v3.py', 'v2k1': 'paper_bot_v2k1.py', 'v2k2': 'paper_bot_v2k2.py', 'v2k3': 'paper_bot_v2k3.py', 'optimal': 'paper_bot_optimal.py', 'koda_se': 'paper_bot_koda_se.py'};
   const botScript = botNames[activeBot];
 
   if (action === 'stop' && !confirm('Bot ' + activeBot.toUpperCase() + ' beenden?')) return;
@@ -731,7 +735,7 @@ async function loadData() {
 
     // Bot-Status prüfen (Heartbeat in JSON)
     const isRunning = checkBotRunning(data);
-    const tabId = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2','v2k3':'tabV2k3','optimal':'tabOptimal'}[activeBot];
+    const tabId = {'core':'tabCore','v2':'tabV2','v3':'tabV3','v2k1':'tabV2k1','v2k2':'tabV2k2','v2k3':'tabV2k3','optimal':'tabOptimal','koda_se':'tabKodaSe'}[activeBot];
     const tabEl = document.getElementById(tabId);
     if (tabEl) {
       if (isRunning === false) {
