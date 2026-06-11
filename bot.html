@@ -505,8 +505,10 @@ function loadData() {
   fetch('paper_trades_koda_se.json?t=' + Date.now(), {cache:'no-store'})
     .then(r => r.ok ? r.json() : null)
     .then(data => {
-      if (data && data.trades) render(data.trades);
-      else render([]);
+      if (data) {
+        const allTrades = [...(data.trades_15m||[]),...(data.trades_30m||[]),...(data.trades_1h||[]),...(data.trades_4h||[]),...(data.trades||[])];
+        render(allTrades);
+      } else render([]);
     })
     .catch(() => render([]));
   // Also load signal log
