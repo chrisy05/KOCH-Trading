@@ -1153,6 +1153,7 @@ def check_open_trades(data):
                         trade["close_reason"] = "TP1+BE"
                         trade["status"] = "closed"
                         log(f"  TP2 BE: {coin} LONG | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
+                        notify_trade_closed(trade)
                     elif recent_low <= trail_stop:
                         tp2_pnl = calc_pnl("LONG", trade["entry"], trail_stop, trade["size"]) * 0.5
                         total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
@@ -1162,6 +1163,7 @@ def check_open_trades(data):
                         trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
                         trade["close_reason"] = "TP1+TRAIL"
                         trade["status"] = "closed"
+                        notify_trade_closed(trade)
                         log(f"  TP2 TRAIL: {coin} LONG | Peak {peak:.6f} → Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
 
             else:  # SHORT
@@ -1197,6 +1199,7 @@ def check_open_trades(data):
                         trade["close_reason"] = "TP1+BE"
                         trade["status"] = "closed"
                         log(f"  TP2 BE: {coin} SHORT | Back to entry | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
+                        notify_trade_closed(trade)
                     elif recent_high >= trail_stop:
                         tp2_pnl = calc_pnl("SHORT", trade["entry"], trail_stop, trade["size"]) * 0.5
                         total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
@@ -1207,6 +1210,7 @@ def check_open_trades(data):
                         trade["close_reason"] = "TP1+TRAIL"
                         trade["status"] = "closed"
                         log(f"  TP2 TRAIL: {coin} SHORT | Peak {peak:.6f} → Trail {trail_stop:.6f} | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
+                        notify_trade_closed(trade)
 
 
 def update_stats(data):
