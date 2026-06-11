@@ -454,34 +454,16 @@
       </div>
     </div>
 
-    <!-- KODA SE KPI Row -->
-    <div class="grid-4">
-      <div class="stat-box"><div class="label">Bot Trades</div><div class="value white" id="kpi-trades">0</div><div class="sub" id="kpi-trades-sub">—</div></div>
-      <div class="stat-box"><div class="label">Winrate</div><div class="value green" id="kpi-wr">—</div><div class="sub" id="kpi-wr-sub"></div></div>
-      <div class="stat-box"><div class="label">Net PNL</div><div class="value" id="kpi-pnl">$0.00</div><div class="sub" id="kpi-pnl-sub">USDT realisiert</div></div>
-      <div class="stat-box"><div class="label">Avg Trade</div><div class="value" id="kpi-avg">—</div><div class="sub">pro Trade</div></div>
-    </div>
+    <!-- KODA SE Open + Closed Trade Tables -->
+    <div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Offene Trades</div>
+    <div style="overflow-y:auto;max-height:220px;min-height:100px;border:1px solid #21262d;border-radius:6px;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#0d0d0d"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
+      <tbody id="seOpenTbody"></tbody>
+    </table></div>
+    <div id="seClosedSection"></div>
 
-    <!-- Bot Status -->
-    <div class="grid-2">
-      <div class="card">
-        <h2>Bot Status</h2>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Modus</div><div id="bot-mode" style="font-size:1rem;font-weight:700;color:#f59e0b">PAPER</div></div>
-          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Strategie</div><div style="font-size:1rem;font-weight:700;color:#f59e0b">Full Stack 7-Score + Kaskaden</div></div>
-          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">Position Size</div><div id="bot-size" style="font-size:1rem;font-weight:700">$50 x 5x = $250</div></div>
-          <div><div style="font-size:.7rem;color:#555;text-transform:uppercase;margin-bottom:4px">TP / SL</div><div style="font-size:1rem;font-weight:700">55% EM / 42% Price</div></div>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Performance nach Coin</h2>
-        <div id="coin-perf"></div>
-      </div>
-    </div>
-
-    <!-- Signal Log -->
-    <div class="card">
-    <!-- Bot Trade Log -->
+    <div class="card" style="margin-top:14px">
+    <!-- Bot Trade Log (legacy) -->
     <div class="card">
       <h2 style="color:#f59e0b">Offene Trades</h2>
       <div style="overflow-x:auto">
@@ -1193,6 +1175,9 @@ async function loadKodaSE() {
 }
 loadKodaSE();
 setInterval(loadKodaSE, 30000);
+// Also load SE trades into card tables
+function loadSETables(){loadBotCard('paper_trades_koda_se.json','se');}
+loadSETables(); setInterval(loadSETables, 30000);
 
 // ── Viona Signal Trade Log ──
 async function loadVionaTrades() {
