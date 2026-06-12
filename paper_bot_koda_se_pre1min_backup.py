@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-KODA SE Paper Bot — Full Stack 7-Score + Kaskaden (FULL 1min)
-Upgraded 12.06.2026: Complete 1min operation — signal, entry, and TP/SL all on 1min klines.
-Config: FULL 5x|55%TP|ms2 — 7-Score + Kaskaden + all filters
+KODA SE Paper Bot — Full Stack 7-Score + Kaskaden
+Upgraded 11.06.2026 from optimization results (546 configs tested, 1m verified)
+Config: FULL 5x|55%TP|ms2 — Best PnL ($8,971), 0 optimistic mismatches
 7-Score: Delta, OB, Funding, Distance, Walls, POC, VA
 Filters: Kaskaden-Ampel + MTF Gate + EMA Ribbon + Adaptive SL + TP1/TP2 Trailing
 Drawdown-Bremse: 5 SLs in Folge → Pause + Telegram-Alarm
@@ -28,9 +28,16 @@ CONFIG = {
     "tp_range_pct": 55,       # 55% of expected move (TP1)
     "sl_price_pct": 42,       # 42% PRICE move (NOT margin-based)
     "sl_pct": 0,              # Disable margin-based SL — we use price-based
-    "max_open_1m": 20,
+    "sl_pct_1h": 0,
+    "max_open_15m": 20,
+    "max_open_30m": 20,
+    "max_trades_per_coin_1h": 1,
+    "max_open_4h": 0,
     "total_budget": 1000,     # $1k Budget
-    "tf_budget_1m": 100,      # 100% für 1m
+    "tf_budget_15m": 50,      # 50% für 15m
+    "tf_budget_30m": 50,      # 50% für 30m
+    "tf_budget_1h": 0,
+    "tf_budget_4h": 0,
 }
 
 # Drawdown-Bremse
@@ -78,7 +85,7 @@ def api(url, timeout=10):
         return None
 
 
-def fetch_klines(symbol, interval="1m", limit=1000):
+def fetch_klines(symbol, interval="15m", limit=800):
     """Fetch klines from Binance Futures."""
     url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit={limit}"
     data = api(url)
@@ -369,7 +376,7 @@ def calc_atr(klines, period=14):
     return sum(tr_vals[-period:]) / min(period, len(tr_vals))
 
 
-def full_analyze(coin, tf="1m", limit=1000):
+def full_analyze(coin, tf="15m", limit=800):
     """
     Full coin analysis replicating kalkulator.html logic.
     Returns: dict with coin_bias, probability, direction, entry, tp, expected_move, etc.
@@ -516,7 +523,7 @@ def full_analyze(coin, tf="1m", limit=1000):
     atr14 = calc_atr(klines, 14)
     # Expected Move: ATR14 * sqrt(96) * 0.5 on 15m
     # For 30m: sqrt(48) * 0.5
-    tf_mins = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
+    tf_mins = {"5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
     bars_per_day = 1440 / tf_mins.get(tf, 15)
     expected_move = atr14 * math.sqrt(bars_per_day) * 0.5  # dampened
 
@@ -671,20 +678,25 @@ def load_data():
         try:
             with open(DATA_FILE, "r") as f:
                 data = json.load(f)
-            # Ensure 1m keys exist
+            # Ensure new TF keys exist (backward compat)
             empty_stats = {"total": 0, "wins": 0, "losses": 0, "winrate": 0.0,
                            "total_pnl": 0.0, "avg_pnl": 0.0, "avg_duration": "0m"}
-            if "trades_1m" not in data:
-                data["trades_1m"] = []
-            if "stats_1m" not in data:
-                data["stats_1m"] = dict(empty_stats)
+            for key in ["trades_30m", "trades_4h"]:
+                if key not in data:
+                    data[key] = []
+            for key in ["stats_30m", "stats_4h"]:
+                if key not in data:
+                    data[key] = dict(empty_stats)
             # Config aktuell halten
             data.setdefault("config", {}).update({
                 "capital": CONFIG["capital"], "leverage": CONFIG["leverage"],
                 "total_budget": CONFIG.get("total_budget", 1000),
-                "tf_budget_1m": CONFIG.get("tf_budget_1m", 100),
+                "tf_budget_15m": CONFIG.get("tf_budget_15m", 50),
+                "tf_budget_30m": CONFIG.get("tf_budget_30m", 50),
+                "tf_budget_1h": CONFIG.get("tf_budget_1h", 0),
+                "tf_budget_4h": CONFIG.get("tf_budget_4h", 0),
                 "sl_price_pct": CONFIG.get("sl_price_pct", 42),
-                "bot_name": "KODA SE 1m",
+                "bot_name": "KODA Optimal",
             })
             return data
         except Exception:
@@ -1034,10 +1046,10 @@ def close_trade(trade, close_price, reason):
     return trade
 
 
-def get_recent_highlow(sym, minutes=1):
-    """Get high/low from last 1min candle(s) for precise 1min execution."""
+def get_recent_highlow(sym, minutes=5):
+    """Get high/low from recent klines to catch wicks."""
     try:
-        url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1m&limit={max(minutes, 2)}"
+        url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1m&limit={minutes}"
         req = urllib.request.Request(url, headers={"User-Agent": "PaperBot/1.0"})
         with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
             klines = json.loads(resp.read().decode())
@@ -1048,33 +1060,6 @@ def get_recent_highlow(sym, minutes=1):
         return high, low
     except:
         return None, None
-
-
-def check_1min_confirmation(sym, direction):
-    """
-    1min entry confirmation: last closed 1min candle must agree with direction.
-    LONG: 1min close > open (green candle)
-    SHORT: 1min close < open (red candle)
-    Returns (confirmed: bool, entry_price: float or None)
-    """
-    try:
-        url = f"https://fapi.binance.com/fapi/v1/klines?symbol={sym}&interval=1m&limit=3"
-        req = urllib.request.Request(url, headers={"User-Agent": "PaperBot/1.0"})
-        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
-            klines = json.loads(resp.read().decode())
-        if not klines or len(klines) < 2:
-            return False, None
-        # Use second-to-last candle (last CLOSED 1min candle)
-        last_closed = klines[-2]
-        o, c = float(last_closed[1]), float(last_closed[4])
-        current = float(klines[-1][4])  # current price from latest (open) candle
-        if direction == "LONG" and c > o:
-            return True, current
-        elif direction == "SHORT" and c < o:
-            return True, current
-        return False, current
-    except:
-        return False, None
 
 
 def check_adaptive_sl(trade, klines_for_coin):
@@ -1133,11 +1118,11 @@ def check_open_trades(data):
         for coin in coins_needed:
             sym = f"{coin}USDT"
             p = get_current_price(sym)
-            h, l = get_recent_highlow(sym, 2)  # last 2x 1min candles
+            h, l = get_recent_highlow(sym, 3)
             if p is not None:
                 price_data[coin] = (p, h or p, l or p)
-            # Fetch 1min klines for adaptive SL check (1min execution)
-            kl = fetch_klines(sym, "1m", 40)
+            # Fetch klines for adaptive SL check (use 15m, small amount)
+            kl = fetch_klines(sym, "15m", 40)
             if kl:
                 klines_cache[coin] = kl
             time.sleep(0.05)
@@ -1494,35 +1479,6 @@ def scan_and_trade(data, tf, limit, tf_key):
                     log(f"  Max open {tf} trades reached. Stopping scan.")
                     break
 
-                # ── 1min Entry Confirmation ──
-                sym_check = f"{coin.upper()}USDT"
-                confirmed, entry_1m = check_1min_confirmation(sym_check, direction)
-                if not confirmed:
-                    log(f"  1min CONFIRM FAIL: {coin} {direction} — last 1min candle doesn't confirm. Queued for retry.")
-                    # Add to pending signals for retry in next 1min check
-                    if not hasattr(scan_and_trade, '_pending'):
-                        scan_and_trade._pending = []
-                    scan_and_trade._pending.append({
-                        "coin": coin, "direction": direction, "tp": tp, "probability": probability,
-                        "tf": tf, "tf_key": tf_key, "lights_in_dir": lights_in_dir,
-                        "cascade_details": cascade_details, "retries": 0, "max_retries": 5,
-                    })
-                    continue
-
-                # Use 1min price for better entry
-                if entry_1m is not None:
-                    # Recalculate TP with 1min entry price
-                    price_diff_pct = abs(entry_1m - entry) / entry * 100
-                    if price_diff_pct < 1.0:  # Max 1% difference allowed
-                        old_entry = entry
-                        entry = entry_1m
-                        # Adjust TP proportionally
-                        if direction == "LONG":
-                            tp = entry + abs(tp - old_entry)
-                        else:
-                            tp = entry - abs(old_entry - tp)
-                        log(f"  1min ENTRY: {coin} {direction} | Signal price {old_entry:.6f} → 1min entry {entry:.6f}")
-
                 # Build cascade code
                 code_map = {"BULL": "1", "BEAR": "2", "SIDE": "0", "NO_DATA": "0"}
                 c_code = "".join(code_map.get(cascade_details.get(tf_c, "0"), "0") for tf_c in ["5m", "15m", "30m", "1h", "4h"])
@@ -1553,63 +1509,6 @@ def log(msg):
 # ═══════════════════════════════════════════════════════════════
 # MAIN LOOP
 # ═══════════════════════════════════════════════════════════════
-
-def check_pending_1min_entries(data):
-    """Check pending signals that failed 1min confirmation — retry on next 1min candle."""
-    if not hasattr(scan_and_trade, '_pending') or not scan_and_trade._pending:
-        return
-
-    still_pending = []
-    for sig in scan_and_trade._pending:
-        sig["retries"] += 1
-        if sig["retries"] > sig["max_retries"]:
-            log(f"  1min EXPIRED: {sig['coin']} {sig['direction']} — {sig['max_retries']} retries, signal dropped.")
-            continue
-
-        coin = sig["coin"]
-        direction = sig["direction"]
-        sym = f"{coin}USDT"
-
-        # Check if coin already has open trade
-        all_open = [t for tfk in ["trades_15m", "trades_30m"]
-                    for t in data.get(tfk, []) if t["status"] == "open"]
-        if coin in set(t["coin"] for t in all_open):
-            continue
-
-        confirmed, entry_1m = check_1min_confirmation(sym, direction)
-        if not confirmed:
-            still_pending.append(sig)
-            continue
-
-        # Confirmed — open trade with 1min price
-        entry = entry_1m if entry_1m else get_current_price(sym)
-        if entry is None:
-            still_pending.append(sig)
-            continue
-
-        tp = sig["tp"]
-        # Adjust TP to new entry
-        if direction == "LONG":
-            tp_dist = abs(tp - entry)
-            tp = entry + tp_dist
-            if tp <= entry:
-                continue
-        else:
-            tp_dist = abs(entry - tp)
-            tp = entry - tp_dist
-            if tp >= entry:
-                continue
-
-        code_map = {"BULL": "1", "BEAR": "2", "SIDE": "0", "NO_DATA": "0"}
-        c_details = sig.get("cascade_details", {})
-        c_code = "".join(code_map.get(c_details.get(tf_c, "0"), "0") for tf_c in ["5m", "15m", "30m", "1h", "4h"])
-
-        log(f"  1min CONFIRM OK (retry #{sig['retries']}): {coin} {direction} @ {entry:.6f}")
-        open_trade(data, sig["tf_key"], coin, direction, entry, tp, sig["probability"], sig["tf"],
-                   cascade_lights=sig["lights_in_dir"], cascade_code=c_code)
-
-    scan_and_trade._pending = still_pending
-
 
 def print_status(data):
     """Print current status summary."""
