@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-KODA SE Paper Bot — Full Stack 7-Score + Kaskaden (1min Trading)
-Upgraded 12.06.2026: 1min scan cycle — signal selection logic unchanged,
-but scans every 1min and trades on 1m timeframe.
+KODA SE Paper Bot — Full Stack 7-Score + Kaskaden (FULL 1min)
+Upgraded 12.06.2026: Complete 1min operation — signal, entry, and TP/SL all on 1min klines.
 Config: FULL 5x|55%TP|ms2 — 7-Score + Kaskaden + all filters
 7-Score: Delta, OB, Funding, Distance, Walls, POC, VA
 Filters: Kaskaden-Ampel + MTF Gate + EMA Ribbon + Adaptive SL + TP1/TP2 Trailing
@@ -1122,7 +1121,7 @@ def check_adaptive_sl(trade, klines_for_coin):
 
 def check_open_trades(data):
     """Check all open trades for TP, SL, or liquidation hits using kline highs/lows."""
-    for tf_key in ["trades_1m"]:  # 1m trading
+    for tf_key in ["trades_15m", "trades_30m"]:  # Only 15m and 30m active
         open_trades = [t for t in data[tf_key] if t["status"] == "open"]
         if not open_trades:
             continue
@@ -1365,8 +1364,9 @@ def scan_and_trade(data, tf, limit, tf_key):
         return
 
     open_trades = [t for t in data[tf_key] if t["status"] == "open"]
-    # Check ALL open trades — 1 coin = 1 trade max
-    all_open = [t for t in data.get("trades_1m", []) if t["status"] == "open"]
+    # Check ALL open trades across ALL timeframes — 1 coin = 1 trade max
+    all_open = [t for tfk in ["trades_15m", "trades_30m"]
+                for t in data.get(tfk, []) if t["status"] == "open"]
     open_coins = set(t["coin"] for t in all_open)
 
     # Max open trades limit
@@ -1389,7 +1389,9 @@ def scan_and_trade(data, tf, limit, tf_key):
         return
 
     # Budget check
-    all_closed_trades = [t for t in data.get("trades_1m", []) if t["status"] == "closed"]
+    all_closed_trades = []
+    for tfk in ["trades_15m", "trades_30m"]:
+        all_closed_trades.extend([t for t in data.get(tfk, []) if t["status"] == "closed"])
     realized_pnl = sum(t.get("pnl", 0) or 0 for t in all_closed_trades)
     margin_used = sum(t.get("margin", CONFIG["capital"]) for t in all_open)
     current_budget = CONFIG.get("total_budget", 1000) + realized_pnl
