@@ -1278,7 +1278,7 @@ def check_open_trades(data):
 
 def update_stats(data):
     """Update statistics for both timeframes."""
-    for tf_key, stats_key in [("trades_15m", "stats_15m"), ("trades_30m", "stats_30m"), ("trades_1h", "stats_1h"), ("trades_4h", "stats_4h")]:
+    for tf_key, stats_key in [("trades_1m", "stats_1m")]:
         closed = [t for t in data[tf_key] if t["status"] == "closed"]
         if not closed:
             data[stats_key] = {
@@ -1403,7 +1403,7 @@ def scan_and_trade(data, tf, limit, tf_key):
 
     # Build recent LIQ history for cooldown check
     recent_liqs = {}
-    for tfk in ["trades_15m", "trades_30m"]:
+    for tfk in ["trades_1m"]:
         for t in data.get(tfk, []):
             if t.get("close_reason") == "LIQ" and t.get("close_time"):
                 try:
@@ -1569,8 +1569,7 @@ def check_pending_1min_entries(data):
         sym = f"{coin}USDT"
 
         # Check if coin already has open trade
-        all_open = [t for tfk in ["trades_15m", "trades_30m"]
-                    for t in data.get(tfk, []) if t["status"] == "open"]
+        all_open = [t for t in data.get("trades_1m", []) if t["status"] == "open"]
         if coin in set(t["coin"] for t in all_open):
             continue
 
