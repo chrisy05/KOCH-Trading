@@ -859,7 +859,7 @@ def notify_trade_opened(trade):
 
     fmt = lambda x: f"${x:,.2f}" if x > 100 else (f"${x:.4f}" if x > 1 else f"${x:.6f}")
 
-    msg = f"""{arrow} KODA SE #{_signal_counter} — {coin} {d}
+    msg = f"""[KODA SE] {arrow} #{_signal_counter} — {coin} {d}
 ━━━━━━━━━━━━━━━━━━━━━━
 Prob: {prob}% | TF: {tf} | Kaskade: {cascade}
 
@@ -872,7 +872,7 @@ Hebel: {lev}x | Margin: ${trade['margin']}
 
 Factory7Signal© Full Stack
 ━━━━━━━━━━━━━━━━━━━━━━
-KODA SE · {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"""
+KODA SE | 5x|55%TP|ms2 · {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"""
 
     send_tg_channel(msg)
 
@@ -930,7 +930,7 @@ def notify_trade_closed(trade, data=None):
             else: duration = f"{mins//1440}d {(mins%1440)//60}h"
         except: pass
 
-    msg = f"""{header}
+    msg = f"""[KODA SE] {header}
 {'═'*30}
 {coin} {d} | {trade.get('tf','')} | {reason}
 
@@ -940,7 +940,7 @@ Dauer:  {duration}
 
 {result_line}
 {'═'*30}{footer}
-KODA SE · {datetime.now(TZ).strftime('%H:%M')} ET"""
+KODA SE | 5x|55%TP|ms2 · {datetime.now(TZ).strftime('%H:%M')} ET"""
 
     send_tg_channel(msg)
 

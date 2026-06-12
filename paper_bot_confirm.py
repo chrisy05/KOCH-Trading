@@ -820,15 +820,8 @@ def _save_signal_counter():
 _load_signal_counter()
 
 def send_tg_channel(text):
-    """Send signal to KODA SE channel via @koda_signal_bot."""
-    try:
-        import urllib.parse
-        url = f"https://api.telegram.org/bot{KODA_SE_BOT_TOKEN}/sendMessage"
-        data = urllib.parse.urlencode({"chat_id": KODA_SE_CHANNEL_ID, "text": text}).encode()
-        req = urllib.request.Request(url, data=data, method="POST")
-        urllib.request.urlopen(req, timeout=10, context=ctx)
-    except Exception as e:
-        log(f"TG channel send failed: {e}")
+    """DISABLED — Confirmation Bot does not post to TG channel. Data visible on bot.html only."""
+    pass
 
 def send_tg_chris(text):
     """Send direct message to Chris (for alerts)."""
