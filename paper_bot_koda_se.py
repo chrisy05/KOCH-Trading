@@ -1185,7 +1185,8 @@ def check_open_trades(data):
 
                     # Trailing stop: 3% retrace from peak
                     trail_stop = peak * (1 - 0.03)
-                    be_stop = trade["entry"]
+                    # BE stop: entry + fees buffer (0.15% covers round-trip fees at 5x)
+                    be_stop = trade["entry"] * 1.0015
 
                     if recent_low <= be_stop:
                         tp2_pnl = 0.0
@@ -1231,7 +1232,8 @@ def check_open_trades(data):
                         peak = recent_low
 
                     trail_stop = peak * (1 + 0.03)
-                    be_stop = trade["entry"]
+                    # BE stop: entry - fees buffer (0.15% covers round-trip fees at 5x)
+                    be_stop = trade["entry"] * 0.9985
 
                     if recent_high >= be_stop:
                         tp2_pnl = 0.0
