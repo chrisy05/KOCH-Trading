@@ -794,7 +794,7 @@ def calc_pnl(direction, entry, close_price, size):
 KODA_SE_BOT_TOKEN = "8203429320:AAE3L0PZoguVsY_IEwcM_uPDaJNWUXjvHXI"  # @koda_signal_bot
 KODA_SE_CHANNEL_ID = "-1003770314055"  # KODA SE Signal Kanal
 CHRIS_CHAT_ID = "351653518"  # für Drawdown-Alarm direkt an Chris
-TRADING_BOT_TOKEN = "8716936978:AAGauC-r4RmpGvtSR9qS72TR-aJvRaVBPB8"  # für Drawdown-Alarm
+TRADING_BOT_TOKEN = os.environ.get("TRADING_BOT_TOKEN", "")  # für Drawdown-Alarm
 _signal_counter = 0
 
 def _load_signal_counter():
