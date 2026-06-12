@@ -883,8 +883,7 @@ def get_overall_stats(data):
     for tf in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
         all_closed.extend([t for t in data.get(tf, []) if t.get("status") == "closed"])
     total = len(all_closed)
-    # TP1+BE and TP1+TRAIL count as wins (TP1 was reached)
-    wins = len([t for t in all_closed if (t.get("pnl") or 0) > 0 or t.get("close_reason") in ("TP1+BE", "TP1+TRAIL")])
+    wins = len([t for t in all_closed if (t.get("pnl") or 0) > 0])
     wr = (wins / total * 100) if total > 0 else 0
     total_pnl = sum(t.get("pnl", 0) for t in all_closed)
     return total, wins, wr, total_pnl
@@ -911,11 +910,10 @@ def notify_trade_closed(trade, data=None):
         footer = f"\n· {total} Signale | {wins} positiv | WR: {wr:.0f}% | Gesamt: {pnl_sign}${total_pnl:.2f}"
 
     # Visually distinct closing message
-    # TP1+BE is always a win (TP1 was reached, even if fees make PnL slightly negative)
-    is_win = pnl > 0 or reason in ("TP1+BE", "TP1+TRAIL")
-    if is_win:
+    # Simple: positive PnL = WIN, negative = LOSS. No exceptions.
+    if pnl > 0:
         header = f"🏆💰 TRADE CLOSED — WIN 💰🏆"
-        result_line = f"✅ +${abs(pnl):.2f} ({roi:+.1f}%) ✅" if pnl > 0 else f"✅ BE ${pnl:+.2f} (Fees) ✅"
+        result_line = f"✅ +${pnl:.2f} ({roi:+.1f}%) ✅"
     else:
         header = f"🔴 TRADE CLOSED — LOSS 🔴"
         result_line = f"❌ ${pnl:.2f} ({roi:+.1f}%)"
