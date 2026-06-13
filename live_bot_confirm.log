@@ -592,3 +592,52 @@ Scan complete: 6 signals found, 2 queued for confirmation
 [2026-06-13 14:03:03]   Pending: 9 | Just confirmed/expired: 0
 [2026-06-13 14:04:05]   Pending: 9 | Just confirmed/expired: 0
 [2026-06-13 14:05:04]   Pending: 9 | Just confirmed/expired: 0
+[2026-06-13 14:06:01]   CONFIRMED: LONG SYN | Signal: 0.038060 -> Now: 0.038440 (0.3% reached)
+[2026-06-13 14:06:01]   [LIVE] Executing LONG SYN on Bybit...
+[2026-06-13 14:06:01]   BYBIT ERROR: /v5/position/switch-isolated -> 100028: unified account is forbidden
+[2026-06-13 14:06:02]   BYBIT ERROR: /v5/position/set-leverage -> 110074: closed symbol error: This SYNUSDT contract is not live
+[2026-06-13 14:06:03]   BYBIT ERROR: /v5/order/create -> 110074: This contract is not live
+[2026-06-13 14:06:03]   ORDER FAILED: Buy 3902 SYNUSDT | Response: {'retCode': 110074, 'retMsg': 'This contract is not live', 'result': {}, 'retExtInfo': {}, 'time': 1781373963455}
+[2026-06-13 14:06:03]   [LIVE] ORDER FAILED for SYN. Skipping trade.
+[2026-06-13 14:06:06]   CONFIRMED: LONG JUP | Signal: 0.172000 -> Now: 0.172600 (0.3% reached)
+[2026-06-13 14:06:06]   [LIVE] Executing LONG JUP on Bybit...
+[2026-06-13 14:06:06]   BYBIT ERROR: /v5/position/switch-isolated -> 100028: unified account is forbidden
+[2026-06-13 14:06:06]   BYBIT ERROR: /v5/position/set-leverage -> 110043: leverage not modified
+[2026-06-13 14:06:07]   ORDER PLACED: Buy 869 JUPUSDT | OrderID: b0ed187d-50ca-44ee-976c-79bade15784c
+[2026-06-13 14:06:08]   TP/SL SET: JUPUSDT @ TP=0.173675, SL=0.12082
+[2026-06-13 14:06:08]   [LIVE] Trade opened successfully: LONG JUP | OrderID: b0ed187d-50ca-44ee-976c-79bade15784c
+[2026-06-13 14:06:08]   OPENED LONG JUP @ 0.172600 | TP: 0.173675 | SL: 0.120820 (30% price) | Liq: 0.155426 | Prob: 66% | TF: 15m | Cascade: 3
+[2026-06-13 14:06:09] TG send failed (-1003770314055): HTTP Error 400: Bad Request
+[2026-06-13 14:06:11]   Pending: 7 | Just confirmed/expired: 2
+[2026-06-13 14:07:01]   ADAPTIVE SL: JUP LONG | SL tightened 0.120820 -> 0.129450
+[2026-06-13 14:07:01]   TP/SL SET: JUPUSDT @ SL=0.12945
+[2026-06-13 14:07:03]   CONFIRMED: LONG TON | Signal: 1.739400 -> Now: 1.745200 (0.3% reached)
+[2026-06-13 14:07:03]   [LIVE] Executing LONG TON on Bybit...
+[2026-06-13 14:07:03]   BYBIT ERROR: /v5/position/switch-isolated -> 100028: unified account is forbidden
+[2026-06-13 14:07:04]   BYBIT ERROR: /v5/position/set-leverage -> 110043: leverage not modified
+[2026-06-13 14:07:05]   BYBIT ERROR: /v5/order/create -> 30228: No new positions during delisting.
+[2026-06-13 14:07:05]   ORDER FAILED: Buy 86.0 TONUSDT | Response: {'retCode': 30228, 'retMsg': 'No new positions during delisting.', 'result': {}, 'retExtInfo': {}, 'time': 1781374025463}
+[2026-06-13 14:07:05]   [LIVE] ORDER FAILED for TON. Skipping trade.
+[2026-06-13 14:07:08]   CONFIRMED: LONG AXL | Signal: 0.048370 -> Now: 0.048530 (0.3% reached)
+[2026-06-13 14:07:08]   [LIVE] Executing LONG AXL on Bybit...
+[2026-06-13 14:07:08]   BYBIT ERROR: /v5/position/switch-isolated -> 100028: unified account is forbidden
+[2026-06-13 14:07:09]   BYBIT ERROR: /v5/position/set-leverage -> 110043: leverage not modified
+[2026-06-13 14:07:10]   BYBIT ERROR: /v5/order/create -> 10001: Qty invalid
+[2026-06-13 14:07:10]   ORDER FAILED: Buy 3090.9 AXLUSDT | Response: {'retCode': 10001, 'retMsg': 'Qty invalid', 'result': {}, 'retExtInfo': {}, 'time': 1781374030122}
+[2026-06-13 14:07:10]   [LIVE] ORDER FAILED for AXL. Skipping trade.
+[2026-06-13 14:07:11]   Pending: 5 | Just confirmed/expired: 2
+[2026-06-13 14:08:15]   Pending: 5 | Just confirmed/expired: 0
+[2026-06-13 14:09:02]   EXPIRED: LONG KAS | Signal: 0.031350 -> Now: 0.031410 (not confirmed in 8 checks)
+[2026-06-13 14:09:03]   EXPIRED: LONG ID | Signal: 0.029140 -> Now: 0.029200 (not confirmed in 8 checks)
+[2026-06-13 14:09:03]   EXPIRED: LONG AXS | Signal: 0.968000 -> Now: 0.970000 (not confirmed in 8 checks)
+[2026-06-13 14:09:04]   CONFIRMED: LONG ORCA | Signal: 1.143000 -> Now: 1.148000 (0.3% reached)
+[2026-06-13 14:09:04]   [LIVE] Executing LONG ORCA on Bybit...
+[2026-06-13 14:09:04]   BYBIT ERROR: /v5/position/switch-isolated -> 100028: unified account is forbidden
+[2026-06-13 14:09:05]   BYBIT ERROR: /v5/position/set-leverage -> 110043: leverage not modified
+[2026-06-13 14:09:06]   ORDER PLACED: Buy 130.7 ORCAUSDT | OrderID: 5e40519e-6e98-4960-878a-05b503995515
+[2026-06-13 14:09:07]   TP/SL SET: ORCAUSDT @ TP=1.1687, SL=0.8036
+[2026-06-13 14:09:07]   [LIVE] Trade opened successfully: LONG ORCA | OrderID: 5e40519e-6e98-4960-878a-05b503995515
+[2026-06-13 14:09:07]   OPENED LONG ORCA @ 1.148000 | TP: 1.168720 | SL: 0.803600 (30% price) | Liq: 1.033774 | Prob: 65% | TF: 15m | Cascade: 3
+[2026-06-13 14:09:08] TG send failed (-1003770314055): HTTP Error 400: Bad Request
+[2026-06-13 14:09:08]   EXPIRED: LONG MORPHO | Signal: 1.942600 -> Now: 1.941800 (not confirmed in 8 checks)
+[2026-06-13 14:09:08]   Pending: 0 | Just confirmed/expired: 5
