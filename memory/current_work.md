@@ -1,5 +1,26 @@
 # Current Work
 
+## Erledigt (13.06.2026 — 1-Minute SL-Backtest: SL% fast irrelevant)
+
+### 1m Klines SL-Backtest: 20 Coins, 14 Tage, 4 SL-Varianten
+
+**Ergebnis:** SL-Prozentsatz macht bei KODA Confirmation praktisch KEINEN Unterschied.
+
+| SL% | Trades | WR% | PnL | Max DD |
+|-----|--------|-----|-----|--------|
+| 20% | 5348 | 87.9% | $1,310 | -$69 |
+| 30% | 5348 | 87.9% | $1,412 | -$28 |
+| 42% | 5348 | 87.9% | $1,412 | -$28 |
+| 50% | 5348 | 87.9% | $1,412 | -$28 |
+
+**Grund:** Bei 1% TP1 + 2% Trail + BE werden Trades durch TP1/Trail/BE beendet, nicht durch SL. Der SL wird fast nie getroffen. Nur bei 20% gibt es minimale Unterschiede (1 Trade weniger, $100 weniger PnL).
+
+**Empfehlung:** 30% SL reicht (gleiche Performance wie 42/50%, weniger Exposure).
+
+**Dateien:**
+- Script: `/Trading/backtest_sl_1min.py`
+- Results: `/Trading/backtest_sl_1min_results.json`
+
 ## Erledigt (07.06.2026 — KODA Optimal Paper Bot erstellt)
 
 ### KODA Optimal Paper Bot — V6 Best Config als Paper Bot

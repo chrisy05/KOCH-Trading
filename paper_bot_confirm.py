@@ -24,7 +24,7 @@ CONFIG = {
     "leverage": 5,             # 5x
     "min_probability": 60,
     "tp_range_pct": 70,       # 70% of expected move (TP1) — ms3 config
-    "sl_price_pct": 42,       # 42% PRICE move (NOT margin-based)
+    "sl_price_pct": 30,       # 30% PRICE move (backtested on 1m klines — identical to 42%)
     "sl_pct": 0,              # Disable margin-based SL — we use price-based
     "sl_pct_1h": 0,
     "max_open_15m": 20,
@@ -798,10 +798,10 @@ def calc_pnl(direction, entry, close_price, size):
         return (entry - close_price) * size
 
 
-KODA_SE_BOT_TOKEN = "8203429320:AAE3L0PZoguVsY_IEwcM_uPDaJNWUXjvHXI"  # @koda_signal_bot
+KODA_SE_BOT_TOKEN = "8623243424:AAEqo7FlHPqZzZHrpLMQJFBxGnNY382YhW4"  # @ck3_claude_bot KODA Terminal
 KODA_SE_CHANNEL_ID = "-1003770314055"  # KODA SE Signal Kanal
 CHRIS_CHAT_ID = "351653518"  # für Drawdown-Alarm direkt an Chris
-TRADING_BOT_TOKEN = os.environ.get("TRADING_BOT_TOKEN", "")  # für Drawdown-Alarm
+TRADING_BOT_TOKEN = "8623243424:AAEqo7FlHPqZzZHrpLMQJFBxGnNY382YhW4"  # KODA Terminal Bot
 _signal_counter = 0
 
 def _load_signal_counter():
@@ -1157,6 +1157,18 @@ def check_open_trades(data):
                         trade["sl_tightened"] = True
                         log(f"  ADAPTIVE SL: {coin} {trade['direction']} | SL tightened {old_sl:.6f} → {sl_price:.6f}")
 
+            # ── 24h Force Close: no TP1 after 24h → close at market ──
+            if not trade.get("tp1_hit", False) and trade.get("open_time"):
+                try:
+                    open_dt = datetime.fromisoformat(trade["open_time"]).replace(tzinfo=TZ if datetime.fromisoformat(trade["open_time"]).tzinfo is None else datetime.fromisoformat(trade["open_time"]).tzinfo)
+                    age_hours = (datetime.now(TZ) - open_dt).total_seconds() / 3600
+                    if age_hours >= 24:
+                        close_trade(trade, current_price, "24H_TIMEOUT")
+                        log(f"  24H TIMEOUT: {coin} {trade['direction']} | No TP1 after {age_hours:.1f}h | PnL: ${trade['pnl']:.2f}")
+                        continue
+                except Exception:
+                    pass
+
             # ── TP1/TP2 Trailing Stop Logic ──
             tp1_hit = trade.get("tp1_hit", False)
 
@@ -1183,8 +1195,8 @@ def check_open_trades(data):
                         trade["peak_price"] = recent_high
                         peak = recent_high
 
-                    # Trailing stop: 3% retrace from peak
-                    trail_stop = peak * (1 - 0.03)
+                    # Trailing stop: 2% retrace from peak
+                    trail_stop = peak * (1 - 0.02)
                     be_stop = trade["entry"] * (1.0015 if trade["direction"] == "LONG" else 0.9985)
 
                     if recent_low <= be_stop:
@@ -1230,7 +1242,7 @@ def check_open_trades(data):
                         trade["peak_price"] = recent_low
                         peak = recent_low
 
-                    trail_stop = peak * (1 + 0.03)
+                    trail_stop = peak * (1 + 0.02)
                     be_stop = trade["entry"] * (1.0015 if trade["direction"] == "LONG" else 0.9985)
 
                     if recent_high >= be_stop:
@@ -1630,8 +1642,8 @@ def main():
             if minute % 5 == 0:
                 try:
                     import subprocess
-                    subprocess.run(["git", "add", "paper_trades_optimal.json"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
-                    subprocess.run(["git", "commit", "-m", "KODA Optimal paper bot data update"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
+                    subprocess.run(["git", "add", "paper_trades_confirm.json"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
+                    subprocess.run(["git", "commit", "-m", "KODA Confirmation paper bot data update"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
                     subprocess.run(["git", "push"], cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=30)
                 except:
                     pass
