@@ -1122,7 +1122,7 @@ def check_adaptive_sl(trade, klines_for_coin):
 
 def check_open_trades(data):
     """Check all open trades for TP, SL, or liquidation hits using kline highs/lows."""
-    for tf_key in ["trades_1m"]:  # 1m trading
+    for tf_key in ["trades_15m", "trades_30m"]:  # check all active TFs
         open_trades = [t for t in data[tf_key] if t["status"] == "open"]
         if not open_trades:
             continue
