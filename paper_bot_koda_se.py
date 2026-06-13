@@ -48,10 +48,12 @@ if os.path.exists(_CFG_OVERRIDE):
         pass
 
 COINS = [
-    "GLM", "AVAX", "KAS", "MINA", "XRP", "FLOW",
-    "AXL", "CELR", "CYS", "IOST", "CAKE", "KAITO",
-    "TRX", "SUN", "GRT", "DUSK", "BAT", "SYN",
-    "TON", "HBAR", "DOT", "LTC", "LINK", "SOL",
+    # Tier 1: Bewährt im Paper Trading
+    "GLM", "CYS", "SYN", "AXL", "TON", "DUSK",
+    "IOST", "CELR", "GRT", "KAS",
+    # Tier 2: Top Screener-Picks (neu)
+    "ID", "OP", "ENJ", "MOVR", "MORPHO", "BERA",
+    "JUP", "KMNO", "AXS", "ORCA",
 ]
 
 TZ = timezone(timedelta(hours=-4))

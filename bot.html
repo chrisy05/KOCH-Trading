@@ -403,7 +403,7 @@
     </div>
     <div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Offene Trades</div>
     <div style="overflow-y:auto;max-height:180px;min-height:100px;border:1px solid #21262d;border-radius:6px;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
-      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>ROI</th><th>Dauer</th><th>Status</th></tr></thead>
       <tbody id="optOpenTbody"></tbody>
     </table></div>
     <div id="optClosedSection"></div>
@@ -427,7 +427,7 @@
     </div>
     <div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Offene Trades</div>
     <div style="overflow-y:auto;max-height:180px;min-height:100px;border:1px solid #21262d;border-radius:6px;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
-      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>ROI</th><th>Dauer</th><th>Status</th></tr></thead>
       <tbody id="confOpenTbody"></tbody>
     </table></div>
     <div id="confClosedSection"></div>
@@ -1235,29 +1235,31 @@ async function loadBotCard(jsonFile, prefix) {
     // Open trades table
     const otb = document.getElementById(prefix+'OpenTbody');
     if(otb){
-      if(open.length===0){otb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#444;padding:10px">Keine offenen Trades</td></tr>';}
+      if(open.length===0){otb.innerHTML='<tr><td colspan="8" style="text-align:center;color:#444;padding:10px">Keine offenen Trades</td></tr>';}
       else{let h='';open.forEach(t=>{
         const dc=t.direction==='LONG'?'color:#22c55e':'color:#ef4444';
         const p=t.pnl||0;const pc=p>=0?'color:#22c55e':'color:#ef4444';
+        const roi=t.roi||(t.margin?p/t.margin*100:0);const rc=roi>=0?'color:#22c55e':'color:#ef4444';
         const dur=t.open_time?Math.floor((Date.now()-new Date(t.open_time).getTime())/60000)+'m':'—';
         const st=t.tp1_hit?'🔄 trail':'open';
         const fmt=x=>x>100?'$'+x.toFixed(2):(x>1?'$'+x.toFixed(4):'$'+x.toFixed(6));
-        h+=`<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px 6px;font-weight:600">${t.coin}</td><td style="${dc};font-size:.7rem;font-weight:600">${t.direction}</td><td>${fmt(t.entry)}</td><td>${fmt(t.current_price||t.entry)}</td><td style="${pc}">${p>=0?'+':''}$${p.toFixed(2)}</td><td style="color:#8b949e">${dur}</td><td style="color:${t.tp1_hit?'#f59e0b':'#8b949e'}">${st}</td></tr>`;
+        h+=`<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px 6px;font-weight:600">${t.coin}</td><td style="${dc};font-size:.7rem;font-weight:600">${t.direction}</td><td>${fmt(t.entry)}</td><td>${fmt(t.current_price||t.entry)}</td><td style="${pc}">${p>=0?'+':''}$${p.toFixed(2)}</td><td style="${rc};font-weight:600">${roi>=0?'+':''}${roi.toFixed(1)}%</td><td style="color:#8b949e">${dur}</td><td style="color:${t.tp1_hit?'#f59e0b':'#8b949e'}">${st}</td></tr>`;
       });otb.innerHTML=h;}
     }
 
     // Closed trades section
     const cs = document.getElementById(prefix+'ClosedSection');
     if(cs){
-      let h='<div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Abgeschlossene Trades</div><div style="overflow-y:auto;max-height:180px;min-height:80px;border:1px solid #21262d;border-radius:6px"><table style="width:100%;border-collapse:collapse;font-size:.75rem"><thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Dauer</th><th>Ergebnis</th></tr></thead><tbody>';
-      if(closed.length===0){h+='<tr><td colspan="7" style="text-align:center;color:#444;padding:20px">Noch keine abgeschlossenen Trades</td></tr>';}
+      let h='<div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Abgeschlossene Trades</div><div style="overflow-y:auto;max-height:180px;min-height:80px;border:1px solid #21262d;border-radius:6px"><table style="width:100%;border-collapse:collapse;font-size:.75rem"><thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#161616"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Exit</th><th>PnL</th><th>ROI</th><th>Dauer</th><th>Ergebnis</th></tr></thead><tbody>';
+      if(closed.length===0){h+='<tr><td colspan="8" style="text-align:center;color:#444;padding:20px">Noch keine abgeschlossenen Trades</td></tr>';}
       closed.forEach(t=>{
         const dc=t.direction==='LONG'?'color:#22c55e':'color:#ef4444';
         const p=t.pnl||0;const pc=p>=0?'color:#22c55e':'color:#ef4444';
+        const roi=t.roi||(t.margin?p/t.margin*100:0);const rc=roi>=0?'color:#22c55e':'color:#ef4444';
         const rs=p>=0?'background:rgba(34,197,94,0.05);border-left:2px solid #22c55e':'background:rgba(239,68,68,0.08);border-left:2px solid #ef4444';
         let dur='—';if(t.open_time&&t.close_time){const m=Math.floor((new Date(t.close_time)-new Date(t.open_time))/60000);dur=m<60?m+'m':Math.floor(m/60)+'h '+m%60+'m';}
         const fmt=x=>x>100?'$'+x.toFixed(2):(x>1?'$'+x.toFixed(4):'$'+x.toFixed(6));
-        h+=`<tr style="${rs}"><td style="padding:3px 6px;font-weight:600">${t.coin}</td><td style="${dc};font-size:.7rem;font-weight:600">${t.direction}</td><td>${fmt(t.entry)}</td><td>${fmt(t.close_price||0)}</td><td style="${pc}">${p>=0?'+':''}$${p.toFixed(2)}</td><td style="color:#8b949e">${dur}</td><td>${t.close_reason||'—'}</td></tr>`;
+        h+=`<tr style="${rs}"><td style="padding:3px 6px;font-weight:600">${t.coin}</td><td style="${dc};font-size:.7rem;font-weight:600">${t.direction}</td><td>${fmt(t.entry)}</td><td>${fmt(t.close_price||0)}</td><td style="${pc}">${p>=0?'+':''}$${p.toFixed(2)}</td><td style="${rc};font-weight:600">${roi>=0?'+':''}${roi.toFixed(1)}%</td><td style="color:#8b949e">${dur}</td><td>${t.close_reason||'—'}</td></tr>`;
       });
       h+='</tbody></table></div>';cs.innerHTML=h;
     }
