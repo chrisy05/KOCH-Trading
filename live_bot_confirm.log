@@ -2352,3 +2352,27 @@ Scan complete: 5 signals found, 3 queued for confirmation
 [2026-06-13 20:03:15]   Pending: 6 | Just confirmed/expired: 0
 [2026-06-13 20:04:10]   Pending: 6 | Just confirmed/expired: 0
 [2026-06-13 20:05:11]   Pending: 6 | Just confirmed/expired: 0
+[2026-06-13 20:06:14]   CONFIRMED: LONG SYN | Signal: 0.037800 -> Now: 0.038840 (0.3% reached)
+[2026-06-13 20:06:14]   [LIVE] Executing LONG SYN on Bybit...
+[2026-06-13 20:06:15]   BYBIT ERROR: /v5/position/switch-isolated -> 100028: unified account is forbidden
+[2026-06-13 20:06:15]   BYBIT ERROR: /v5/position/set-leverage -> 110074: closed symbol error: This SYNUSDT contract is not live
+[2026-06-13 20:06:16]   BYBIT ERROR: /v5/order/create -> 110074: This contract is not live
+[2026-06-13 20:06:16]   ORDER FAILED: Buy 3861 SYNUSDT | Response: {'retCode': 110074, 'retMsg': 'This contract is not live', 'result': {}, 'retExtInfo': {}, 'time': 1781395576250}
+[2026-06-13 20:06:16]   [LIVE] ORDER FAILED for SYN. Skipping trade.
+[2026-06-13 20:06:17]   Pending: 5 | Just confirmed/expired: 1
+[2026-06-13 20:07:12]   CONFIRMED: LONG CYS | Signal: 0.465200 -> Now: 0.466700 (0.3% reached)
+[2026-06-13 20:07:12]   [LIVE] Executing LONG CYS on Bybit...
+[2026-06-13 20:07:12]   BYBIT ERROR: /v5/position/switch-isolated -> 100028: unified account is forbidden
+[2026-06-13 20:07:13]   BYBIT ERROR: /v5/position/set-leverage -> 110043: leverage not modified
+[2026-06-13 20:07:14]   ORDER PLACED: Buy 321 CYSUSDT | OrderID: c0b9026f-3958-44bc-95eb-1db5e6a2a93a
+[2026-06-13 20:07:15]   TP/SL SET: CYSUSDT @ TP=0.469845, SL=0.32669
+[2026-06-13 20:07:15]   [LIVE] Trade opened successfully: LONG CYS | OrderID: c0b9026f-3958-44bc-95eb-1db5e6a2a93a
+[2026-06-13 20:07:15]   OPENED LONG CYS @ 0.466700 | TP: 0.469845 | SL: 0.326690 (30% price) | Liq: 0.420263 | Prob: 71% | TF: 30m | Cascade: 4
+[2026-06-13 20:07:15] TG send failed (-1003770314055): HTTP Error 400: Bad Request
+[2026-06-13 20:07:16]   Pending: 4 | Just confirmed/expired: 1
+[2026-06-13 20:08:12]   Pending: 4 | Just confirmed/expired: 0
+[2026-06-13 20:09:28]   EXPIRED: LONG TON | Signal: 1.720600 -> Now: 1.722200 (not confirmed in 8 checks)
+[2026-06-13 20:09:29]   EXPIRED: LONG MOVR | Signal: 1.317000 -> Now: 1.318000 (not confirmed in 8 checks)
+[2026-06-13 20:09:29]   EXPIRED: LONG JUP | Signal: 0.173200 -> Now: 0.173500 (not confirmed in 8 checks)
+[2026-06-13 20:09:30]   EXPIRED: LONG MORPHO | Signal: 1.957800 -> Now: 1.957400 (not confirmed in 8 checks)
+[2026-06-13 20:09:30]   Pending: 0 | Just confirmed/expired: 4
