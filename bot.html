@@ -433,38 +433,36 @@
     <div id="confClosedSection"></div>
   </div>
 
-  <!-- KODA SE-Analyzer Container -->
+  <!-- KODA Cascade 4 Container -->
   <div style="border:2px solid #f59e0b;border-radius:14px;padding:18px;margin-bottom:24px;background:#0d0d0d">
 
-    <!-- KODA SE Paper Bot Card -->
+    <!-- Cascade 4 Paper Bot Card -->
     <div style="background:#161616;border:1px solid #f59e0b33;border-left:3px solid #f59e0b;border-radius:10px;padding:16px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div>
-          <h3 style="color:#f59e0b;font-size:.95rem;margin-bottom:3px">KODA SE — Full Stack 7-Score + Kaskaden</h3>
-          <div style="color:#555;font-size:.7rem" id="kodaSEDesc">7-Score Factory7Signal© | 5x Hebel | $50/Trade | Kaskaden + MTF + Ribbon + Adaptive SL + TP1/TP2 | DD-Bremse</div>
+          <h3 style="color:#f59e0b;font-size:.95rem;margin-bottom:3px">KODA Cascade 4 — Confirmation + Full Stack</h3>
+          <div style="color:#555;font-size:.7rem" id="c4Desc">Cascade≥4 | 10x | $50 | 70% MSL | 60% TP | Confirmation 0.3%/8min | 2% Trail | Fees | 90% WR verifiziert</div>
         </div>
-        <span id="kodaSEStatus" style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:#f59e0b15;color:#f59e0b">IDLE</span>
+        <span id="c4Status" style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:#f59e0b15;color:#f59e0b">IDLE</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center">
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="kodaSEWR">--</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="kodaSETrades">0</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="kodaSEPnl">$0</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="kodaSEOpen">0</div></div>
-        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Letzter Trade</div><div style="font-size:.85rem;font-weight:600;color:#8b949e" id="kodaSELast">--</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">WR</div><div style="font-size:1.1rem;font-weight:700" id="c4WR">--</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Trades</div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff" id="c4Trades">0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">PnL</div><div style="font-size:1.1rem;font-weight:700" id="c4Pnl">$0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Open</div><div style="font-size:1.1rem;font-weight:700;color:#f59e0b" id="c4Open">0</div></div>
+        <div><div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">Letzter Trade</div><div style="font-size:.85rem;font-weight:600;color:#8b949e" id="c4Last">--</div></div>
       </div>
     </div>
 
-    <!-- KODA SE Open + Closed Trade Tables -->
+    <!-- Cascade 4 Open + Closed Trade Tables -->
     <div style="font-size:.7rem;color:#8b949e;margin-bottom:4px;text-transform:uppercase">Offene Trades</div>
     <div style="overflow-y:auto;max-height:220px;min-height:100px;border:1px solid #21262d;border-radius:6px;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:.75rem">
-      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#0d0d0d"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>Dauer</th><th>Status</th></tr></thead>
-      <tbody id="seOpenTbody"></tbody>
+      <thead><tr style="border-bottom:1px solid #21262d;color:#8b949e;position:sticky;top:0;background:#0d0d0d"><th style="padding:4px 6px;text-align:left">Coin</th><th>Dir</th><th>Entry</th><th>Aktuell</th><th>PnL</th><th>ROI</th><th>Dauer</th><th>Status</th></tr></thead>
+      <tbody id="c4OpenTbody"></tbody>
     </table></div>
-    <div id="seClosedSection"></div>
+    <div id="c4ClosedSection"></div>
 
-    <!-- Legacy trade log removed — using seOpenTbody/seClosedSection above -->
-
-  </div><!-- end KODA SE container -->
+  </div><!-- end Cascade 4 container -->
 </div>
 
 <div style="display:flex;justify-content:space-between;align-items:center;padding:10px"><a href="cockpit.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">← Cockpit</a><a href="index.html" style="color:#58a6ff;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Dashboard</a><a href="kapitalfluss.html" style="color:#4a7a9b;text-decoration:none;font-size:0.8rem;padding:4px 12px;border:1px solid #21262d;border-radius:4px">Kapitalfluss →</a></div>
@@ -1096,10 +1094,10 @@ function loadAllPaperBots() {
 loadAllPaperBots();
 setInterval(loadAllPaperBots, 30000);
 
-// ── KODA SE Paper Bot ──
-async function loadKodaSE() {
+// ── KODA Cascade 4 Paper Bot ──
+async function loadCascade4() {
   try {
-    const r = await fetch('paper_trades_koda_se.json?t=' + Date.now(), {cache:'no-store'});
+    const r = await fetch('paper_trades_cascade4.json?t=' + Date.now(), {cache:'no-store'});
     if (!r.ok) return;
     const data = await r.json();
     const allTrades = [...(data.trades_15m||[]),...(data.trades_30m||[]),...(data.trades_1h||[]),...(data.trades_4h||[]),...(data.trades||[])];
@@ -1109,20 +1107,19 @@ async function loadKodaSE() {
     const wr = closed.length > 0 ? (wins / closed.length * 100) : 0;
     const totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
 
-    const wrEl = document.getElementById('kodaSEWR');
+    const wrEl = document.getElementById('c4WR');
     wrEl.textContent = closed.length > 0 ? wr.toFixed(1) + '%' : '--';
     wrEl.style.color = wr >= 60 ? '#22c55e' : wr >= 50 ? '#f59e0b' : closed.length > 0 ? '#ef4444' : '#8b949e';
 
-    document.getElementById('kodaSETrades').textContent = closed.length;
+    document.getElementById('c4Trades').textContent = closed.length;
 
-    const pnlEl = document.getElementById('kodaSEPnl');
+    const pnlEl = document.getElementById('c4Pnl');
     pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
     pnlEl.style.color = totalPnl >= 0 ? '#22c55e' : '#ef4444';
 
-    document.getElementById('kodaSEOpen').textContent = open.length;
+    document.getElementById('c4Open').textContent = open.length;
 
-    // Status badge — with drawdown brake awareness
-    const statusEl = document.getElementById('kodaSEStatus');
+    const statusEl = document.getElementById('c4Status');
     const paused = data._drawdown_paused || false;
     const slCount = data._consecutive_sl || 0;
     if (paused) {
@@ -1139,8 +1136,7 @@ async function loadKodaSE() {
       statusEl.style.background = '#22c55e15';
     }
 
-    // Last trade info
-    const lastEl = document.getElementById('kodaSELast');
+    const lastEl = document.getElementById('c4Last');
     if (closed.length > 0) {
       const last = closed[closed.length - 1];
       lastEl.textContent = last.coin + ' ' + last.direction + ' ' + (last.close_reason || '');
@@ -1149,18 +1145,12 @@ async function loadKodaSE() {
       lastEl.textContent = open[0].coin + ' ' + open[0].direction + ' (open)';
       lastEl.style.color = '#f59e0b';
     }
-
-    // Description from config
-    if (data.config && data.config.description) {
-      document.getElementById('kodaSEDesc').textContent = data.config.description;
-    }
   } catch(e) {}
 }
-loadKodaSE();
-setInterval(loadKodaSE, 30000);
-// Also load SE trades into card tables
-function loadSETables(){loadBotCard('paper_trades_koda_se.json','se');}
-loadSETables(); setInterval(loadSETables, 30000);
+loadCascade4();
+setInterval(loadCascade4, 30000);
+function loadC4Tables(){loadBotCard('paper_trades_cascade4.json','c4');}
+loadC4Tables(); setInterval(loadC4Tables, 30000);
 
 // ── Viona Signal Trade Log ──
 async function loadVionaTrades() {
