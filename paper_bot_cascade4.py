@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 KODA Cascade 4 Bot — Verified Confirmation Strategy with Cascade>=4 Filter
-Config: 10x|70%MSL|60%TP + Confirmation(0.3%/8bars) + Cascade>=4
+Config: 10x|70%MSL|60%TP + Confirmation(0.3%/8bars) + Cascade>=4 + Phase Detection
 Based on backtest_combo.py C2 results: 90% WR, $263/14d, PnL/DD 6.85
+Phase Detection from backtest_phase_detection_c4.py: turns C4 from -$325 to +$2,741
 All 4 critical math fixes from backtest_confirmation_fixed.py applied.
 """
 
@@ -39,6 +40,22 @@ CONFIRM_PCT = 0.003            # 0.3% confirmation
 CONFIRM_BARS = 8               # 8 minutes timeout
 TRAIL_PCT = 0.02               # 2% trailing
 FEE_RATE = 0.0011              # 0.11% round trip
+
+# Phase Detection config
+PHASE_ENTRY_MIN_SCORE = 6.0    # Minimum phase score for entry
+PHASE_SCORES = {'C': 2.0, 'B': 1.5, 'A': 1.0, 'D': -1.0, 'X': 0.0}
+PHASE_TFS = ["5m", "15m", "30m", "1h", "4h"]
+PHASE_SL_LEVELS = {
+    0: 0.07,   # Normal: 70% margin / 10x = 7% price
+    1: 0.05,   # 5m Phase D: tighten to 50% margin = 5% price
+    2: 0.03,   # 15m Phase D: tighten to 30% margin = 3% price
+    3: 0.00,   # 30m Phase D: close immediately (PHASE_EXIT)
+}
+
+# SMA history for phase detection convergence/divergence tracking
+_sma_history = {}  # coin -> {tf -> {"sma10": [last 4], "sma20": [last 4], "sma50": last}}
+_phase_cache = {}  # coin -> {"ts": timestamp, "phases": {tf: (phase, direction)}, "score": float}
+PHASE_CACHE_SECONDS = 120  # Cache phase data for 2 minutes
 
 # Drawdown brake
 DRAWDOWN_BRAKE_SL_COUNT = 5
@@ -641,6 +658,242 @@ def get_cascade_signal():
 
 
 # ===============================================================
+# PHASE DETECTION (from backtest_phase_detection_c4.py)
+# ===============================================================
+
+def _detect_phase_direction(sma10, sma20, sma50, sma10_hist, sma20_hist, direction):
+    """Detect phase for a single direction. Returns phase letter (A/B/C/D/X).
+    Extracted from backtest_phase_detection_c4.py — tested and verified."""
+    if direction == 'LONG':
+        if sma10 > sma20 > sma50:
+            # Check for Phase D (weakening): SMA10-SMA20 gap narrowing
+            gap_now = sma10 - sma20
+            gaps = [sma10_hist[-(i+1)] - sma20_hist[-(i+1)] for i in range(min(3, len(sma10_hist)))]
+            if len(gaps) >= 2 and all(g > 0 for g in gaps):
+                if gap_now < gaps[-1] and (len(gaps) < 3 or gap_now < gaps[-2]):
+                    return 'D'
+            return 'C'
+
+        if sma10 > sma20:
+            # Check for Phase A (fresh cross): SMA10 just crossed above SMA20
+            crossed_recently = False
+            for i in range(1, min(4, len(sma10_hist))):
+                if sma10_hist[-(i+1)] <= sma20_hist[-(i+1)]:
+                    crossed_recently = True
+                    break
+            if crossed_recently:
+                return 'A'
+
+            # Phase B: SMA20 approaching SMA50 (gap narrowing)
+            gap_20_50_now = abs(sma20 - sma50)
+            if len(sma20_hist) >= 2:
+                gap_20_50_prev = abs(sma20_hist[-2] - sma50)
+                if gap_20_50_now < gap_20_50_prev:
+                    return 'B'
+            return 'B'
+
+        return 'X'
+
+    else:  # SHORT
+        if sma10 < sma20 < sma50:
+            gap_now = sma20 - sma10
+            gaps = [sma20_hist[-(i+1)] - sma10_hist[-(i+1)] for i in range(min(3, len(sma10_hist)))]
+            if len(gaps) >= 2 and all(g > 0 for g in gaps):
+                if gap_now < gaps[-1] and (len(gaps) < 3 or gap_now < gaps[-2]):
+                    return 'D'
+            return 'C'
+
+        if sma10 < sma20:
+            crossed_recently = False
+            for i in range(1, min(4, len(sma10_hist))):
+                if sma10_hist[-(i+1)] >= sma20_hist[-(i+1)]:
+                    crossed_recently = True
+                    break
+            if crossed_recently:
+                return 'A'
+
+            gap_20_50_now = abs(sma50 - sma20)
+            if len(sma20_hist) >= 2:
+                gap_20_50_prev = abs(sma50 - sma20_hist[-2])
+                if gap_20_50_now < gap_20_50_prev:
+                    return 'B'
+            return 'B'
+
+        return 'X'
+
+
+def get_phase(sma10, sma20, sma50, sma10_hist, sma20_hist):
+    """Determine phase and direction for a timeframe.
+    Returns (phase_letter, direction) e.g. ('C', 'LONG') or ('X', None)."""
+    if sma10 is None or sma20 is None or sma50 is None:
+        return 'X', None
+    if len(sma10_hist) < 4 or len(sma20_hist) < 4:
+        return 'X', None
+
+    long_phase = _detect_phase_direction(sma10, sma20, sma50, sma10_hist, sma20_hist, 'LONG')
+    short_phase = _detect_phase_direction(sma10, sma20, sma50, sma10_hist, sma20_hist, 'SHORT')
+
+    if long_phase != 'X':
+        return long_phase, 'LONG'
+    if short_phase != 'X':
+        return short_phase, 'SHORT'
+    return 'X', None
+
+
+def fetch_sma_data_for_tf(symbol, tf, limit=55):
+    """Fetch klines for a TF and compute SMA10/20/50 with history for phase detection.
+    Returns (sma10, sma20, sma50, sma10_hist, sma20_hist) or None on failure."""
+    klines = fetch_klines(symbol, tf, limit)
+    if not klines or len(klines) < 50:
+        return None
+    closes = [k["close"] for k in klines]
+
+    # Compute SMAs at multiple recent points for history
+    sma10_hist = []
+    sma20_hist = []
+    # We need at least 4 historical SMA values (current + 3 prior)
+    # Compute for last 4 candle positions
+    for offset in range(3, -1, -1):
+        idx = len(closes) - 1 - offset
+        if idx < 49:  # Need at least 50 closes for SMA50
+            continue
+        s = closes[:idx+1]
+        sma10_hist.append(sum(s[-10:]) / 10)
+        sma20_hist.append(sum(s[-20:]) / 20)
+
+    if len(sma10_hist) < 4 or len(sma20_hist) < 4:
+        return None
+
+    sma10 = sma10_hist[-1]
+    sma20 = sma20_hist[-1]
+    sma50 = sum(closes[-50:]) / 50
+
+    return sma10, sma20, sma50, sma10_hist, sma20_hist
+
+
+def get_coin_phases(coin, direction=None):
+    """Get phase detection for a coin across all 5 TFs.
+    Uses cache to avoid excessive API calls. Returns dict {tf: (phase, dir)}.
+    If direction is specified, only returns phases matching that direction."""
+    global _phase_cache
+
+    cache_key = coin
+    now_ts = time.time()
+
+    if cache_key in _phase_cache and (now_ts - _phase_cache[cache_key]["ts"]) < PHASE_CACHE_SECONDS:
+        phases = _phase_cache[cache_key]["phases"]
+    else:
+        sym = f"{coin}USDT"
+        phases = {}
+        for tf in PHASE_TFS:
+            try:
+                result = fetch_sma_data_for_tf(sym, tf, 55)
+                if result is None:
+                    continue
+                sma10, sma20, sma50, sma10_hist, sma20_hist = result
+                phase, phase_dir = get_phase(sma10, sma20, sma50, sma10_hist, sma20_hist)
+                phases[tf] = (phase, phase_dir)
+                time.sleep(0.05)  # Rate limiting
+            except Exception as e:
+                log(f"  PHASE: Error fetching {coin} {tf}: {e}")
+                continue
+
+        _phase_cache[cache_key] = {"ts": now_ts, "phases": phases}
+
+    return phases
+
+
+def calculate_phase_score(coin, direction):
+    """Calculate multi-TF phase score for entry decision.
+    Returns (score, has_phase_d, phase_details_str, phases_dict).
+    Entry allowed if score >= 6 AND no Phase D anywhere AND consistent direction."""
+    phases = get_coin_phases(coin)
+
+    if not phases:
+        return 0, False, "NO_DATA", {}
+
+    score = 0.0
+    has_phase_d = False
+    opposite_count = 0
+    details_parts = []
+
+    for tf in PHASE_TFS:
+        if tf not in phases:
+            details_parts.append(f"{tf}:?")
+            continue
+
+        phase, phase_dir = phases[tf]
+
+        if phase_dir == direction:
+            score += PHASE_SCORES[phase]
+            if phase == 'D':
+                has_phase_d = True
+            details_parts.append(f"{tf}:{phase}")
+        elif phase_dir is not None and phase_dir != direction:
+            # Opposite direction detected
+            opposite_count += 1
+            details_parts.append(f"{tf}:{phase}(!{phase_dir})")
+        else:
+            # Phase X (no trend)
+            details_parts.append(f"{tf}:X")
+
+    # If any TF shows opposite direction, block entry (from backtest logic)
+    if opposite_count > 0:
+        has_phase_d = True  # Treat opposite direction as blocking
+
+    details_str = " ".join(details_parts)
+    return score, has_phase_d, details_str, phases
+
+
+def check_phase_sl(trade, coin):
+    """Check phase degradation for SL management of open trades.
+    Returns: 'CLOSE' (30m Phase D), 'TIGHTEN_L2' (15m Phase D),
+             'TIGHTEN_L1' (5m Phase D), or None (no action)."""
+    try:
+        phases = get_coin_phases(coin)
+        if not phases:
+            return None  # Graceful fallback: no data = no action
+
+        direction = trade["direction"]
+        sl_level = 0
+        tf_triggered = None
+
+        # Check degradation in order: 5m -> 15m -> 30m
+        tf_order = ['5m', '15m', '30m']
+        for i, tf in enumerate(tf_order):
+            if tf not in phases:
+                continue
+            phase, phase_dir = phases[tf]
+
+            # Phase D in our direction OR opposite direction detected
+            is_degrading = False
+            if phase == 'D' and phase_dir == direction:
+                is_degrading = True
+            elif phase_dir is not None and phase_dir != direction and phase != 'X':
+                # TF has flipped to opposite direction
+                is_degrading = True
+
+            if is_degrading:
+                new_level = i + 1  # 5m=1, 15m=2, 30m=3
+                if new_level > sl_level:
+                    sl_level = new_level
+                    tf_triggered = tf
+
+        if sl_level >= 3:
+            return "CLOSE"       # 30m Phase D -> close immediately
+        elif sl_level >= 2:
+            return "TIGHTEN_L2"  # 15m Phase D -> 30% margin SL (3% price)
+        elif sl_level >= 1:
+            return "TIGHTEN_L1"  # 5m Phase D -> 50% margin SL (5% price)
+        else:
+            return None
+
+    except Exception as e:
+        log(f"  PHASE SL: Error checking {coin}: {e}")
+        return None  # Graceful fallback
+
+
+# ===============================================================
 # CRITICAL FIX 1: SL is MARGIN-based
 # ===============================================================
 
@@ -823,7 +1076,8 @@ def get_overall_stats(data):
 
 
 def open_trade(data, tf_key, coin, direction, entry, tp_signal, probability, tf,
-               cascade_lights=0, cascade_code="00000", expected_move=0):
+               cascade_lights=0, cascade_code="00000", expected_move=0,
+               phase_score=0, phase_details=""):
     """
     Open a new paper trade.
     CRITICAL FIX 3: TP is recalculated from the confirmation entry price,
@@ -885,11 +1139,15 @@ def open_trade(data, tf_key, coin, direction, entry, tp_signal, probability, tf,
         # Cascade tracking
         "cascade_lights": cascade_lights,
         "cascade_code": cascade_code,
+        # Phase detection tracking
+        "phase_score": phase_score,
+        "phase_details": phase_details,
+        "phase_sl_level": 0,  # 0=normal, 1=5m_D, 2=15m_D, 3=30m_D(close)
     }
 
     data[tf_key].append(trade)
     sl_pct = CONFIG["sl_margin_pct"] / CONFIG["leverage"]
-    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | SL: {sl:.6f} ({sl_pct:.1f}% price = {CONFIG['sl_margin_pct']}% margin) | Prob: {probability}% | TF: {tf} | Cascade: {cascade_lights}")
+    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | SL: {sl:.6f} ({sl_pct:.1f}% price = {CONFIG['sl_margin_pct']}% margin) | Prob: {probability}% | TF: {tf} | Cascade: {cascade_lights} | Phase: {phase_score:.1f}")
     return trade
 
 
@@ -999,6 +1257,49 @@ def check_open_trades(data):
                         continue
                 except Exception:
                     pass
+
+            # Phase-based SL management (progressive tightening)
+            phase_action = check_phase_sl(trade, coin)
+            if phase_action == "CLOSE":
+                # 30m Phase D detected -> close immediately
+                close_trade(trade, current_price, "PHASE_EXIT")
+                log(f"  PHASE EXIT: {coin} {trade['direction']} — 30m Phase D detected")
+                continue
+            elif phase_action == "TIGHTEN_L2":
+                # 15m Phase D -> tighten SL to 30% margin (3% price at 10x)
+                new_sl_pct = PHASE_SL_LEVELS[2]
+                if trade["direction"] == "LONG":
+                    new_sl = trade["entry"] * (1 - new_sl_pct)
+                    if new_sl > sl_price:
+                        trade["sl"] = round(new_sl, 8)
+                        trade["phase_sl_level"] = 2
+                        log(f"  PHASE SL L2: {coin} {trade['direction']} — 15m Phase D | SL tightened to {new_sl:.6f} (3% price)")
+                else:
+                    new_sl = trade["entry"] * (1 + new_sl_pct)
+                    if new_sl < sl_price:
+                        trade["sl"] = round(new_sl, 8)
+                        trade["phase_sl_level"] = 2
+                        log(f"  PHASE SL L2: {coin} {trade['direction']} — 15m Phase D | SL tightened to {new_sl:.6f} (3% price)")
+            elif phase_action == "TIGHTEN_L1":
+                # 5m Phase D -> tighten SL to 50% margin (5% price at 10x)
+                current_phase_level = trade.get("phase_sl_level", 0)
+                if current_phase_level < 1:  # Only tighten if not already at L1+
+                    new_sl_pct = PHASE_SL_LEVELS[1]
+                    if trade["direction"] == "LONG":
+                        new_sl = trade["entry"] * (1 - new_sl_pct)
+                        if new_sl > sl_price:
+                            trade["sl"] = round(new_sl, 8)
+                            trade["phase_sl_level"] = 1
+                            log(f"  PHASE SL L1: {coin} {trade['direction']} — 5m Phase D | SL tightened to {new_sl:.6f} (5% price)")
+                    else:
+                        new_sl = trade["entry"] * (1 + new_sl_pct)
+                        if new_sl < sl_price:
+                            trade["sl"] = round(new_sl, 8)
+                            trade["phase_sl_level"] = 1
+                            log(f"  PHASE SL L1: {coin} {trade['direction']} — 5m Phase D | SL tightened to {new_sl:.6f} (5% price)")
+
+            # Re-read sl_price after potential phase tightening
+            sl_price = trade.get("sl", sl_price)
 
             # TP1/TP2 Trailing Stop Logic
             tp1_hit = trade.get("tp1_hit", False)
@@ -1151,7 +1452,7 @@ def update_stats(data):
             continue
 
         wins = [t for t in closed if t.get("close_reason") in ("TP", "TP1+TRAIL", "TP1+BE", "COLLECTIVE_EXIT")]
-        losses = [t for t in closed if t.get("close_reason") in ("SL", "LIQ")]
+        losses = [t for t in closed if t.get("close_reason") in ("SL", "LIQ", "PHASE_EXIT")]
         total_pnl = sum(t["pnl"] for t in closed if t["pnl"])
 
         durations = []
@@ -1323,6 +1624,24 @@ def scan_and_trade(data, tf, limit, tf_key):
                     log(f"  CASCADE SKIP: {coin} {direction} -- only {lights_in_dir} lights. Need >={CASCADE_MIN}.")
                     continue
 
+                # Phase Detection gate: score >= 6, no Phase D, consistent direction
+                try:
+                    phase_score, has_phase_d, phase_details, phases_dict = calculate_phase_score(coin, direction)
+                    log(f"          Phase: score={phase_score:.1f} | D={has_phase_d} | {phase_details}")
+
+                    if has_phase_d:
+                        log(f"  PHASE SKIP: {coin} {direction} — Phase D or opposite direction detected | {phase_details}")
+                        continue
+                    if phase_score < PHASE_ENTRY_MIN_SCORE:
+                        log(f"  PHASE SKIP: {coin} {direction} — Score {phase_score:.1f} < {PHASE_ENTRY_MIN_SCORE:.1f} | {phase_details}")
+                        continue
+
+                    log(f"  PHASE OK: {coin} {direction} — Score {phase_score:.1f} >= {PHASE_ENTRY_MIN_SCORE:.1f} | {phase_details}")
+                except Exception as e:
+                    log(f"  PHASE WARN: {coin} — Phase detection failed ({e}), allowing trade as fallback")
+                    phase_score = 0
+                    phase_details = "FALLBACK"
+
                 # Check max open limit again
                 current_open = len([t for t in data[tf_key] if t["status"] == "open"])
                 if current_open >= max_open:
@@ -1339,6 +1658,8 @@ def scan_and_trade(data, tf, limit, tf_key):
                     "tp": tp, "probability": probability, "tf": tf, "tf_key": tf_key,
                     "cascade_lights": lights_in_dir, "cascade_code": c_code,
                     "expected_move": result["expected_move"],
+                    "phase_score": phase_score,
+                    "phase_details": phase_details,
                     "signal_time": datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
                     "checks_remaining": CONFIRM_BARS,
                 })
@@ -1391,7 +1712,9 @@ def check_pending_confirmations(data):
             log(f"  CONFIRMED: {d} {coin} | Signal: {signal_price:.6f} -> Now: {price:.6f} ({CONFIRM_PCT*100:.1f}% reached)")
             open_trade(data, sig["tf_key"], coin, d, price, sig["tp"], sig["probability"], sig["tf"],
                        cascade_lights=sig["cascade_lights"], cascade_code=sig["cascade_code"],
-                       expected_move=sig.get("expected_move", 0))
+                       expected_move=sig.get("expected_move", 0),
+                       phase_score=sig.get("phase_score", 0),
+                       phase_details=sig.get("phase_details", ""))
         elif sig["checks_remaining"] <= 0:
             log(f"  EXPIRED: {d} {coin} | Signal: {signal_price:.6f} -> Now: {price:.6f} (not confirmed in {CONFIRM_BARS} checks)")
         else:
@@ -1435,6 +1758,8 @@ def main():
     log(f"TP1/TP2: 50% close at TP1, SL->BE (fee-covered), {TRAIL_PCT*100:.0f}% trail from peak")
     log(f"24h Force Close: trades without TP1 after 24h")
     log(f"Collective Exit: ROI>30% single + sum>=100% -> close all profitable TP1 trades")
+    log(f"PHASE DETECTION: Entry score >= {PHASE_ENTRY_MIN_SCORE} required, no Phase D")
+    log(f"PHASE SL: 5m_D->50%margin | 15m_D->30%margin | 30m_D->CLOSE")
     log(f"Coins: {len(COINS)} | Data file: {DATA_FILE}")
     log(f"Timeframes: 15m ({CONFIG['tf_budget_15m']}%) + 30m ({CONFIG['tf_budget_30m']}%)")
     log("")
