@@ -914,38 +914,38 @@ def full_analyze(coin, tf="15m", limit=800):
     }
 
 # ===============================================================
-# MTF GATE: BTC 1H SMA20 vs SMA50
+# MTF GATE: BTC 1H SMA10 vs SMA20 (relaxed, consistent with cascade)
 # ===============================================================
 
-_mtf_cache = {"ts": 0, "sma20": None, "sma50": None}
+_mtf_cache = {"ts": 0, "sma10": None, "sma20": None}
 MTF_CACHE_SECONDS = 300
 
 
 def check_mtf_gate(direction):
-    """Only allow LONG when BTC 1H SMA20 > SMA50, SHORT when SMA20 < SMA50."""
+    """Only allow LONG when BTC 1H SMA10 > SMA20, SHORT when SMA10 < SMA20. Relaxed since 16.06."""
     now_ts = time.time()
-    if _mtf_cache["sma20"] is not None and (now_ts - _mtf_cache["ts"]) < MTF_CACHE_SECONDS:
+    if _mtf_cache["sma10"] is not None and (now_ts - _mtf_cache["ts"]) < MTF_CACHE_SECONDS:
+        sma10 = _mtf_cache["sma10"]
         sma20 = _mtf_cache["sma20"]
-        sma50 = _mtf_cache["sma50"]
     else:
-        klines = fetch_klines("BTCUSDT", "1h", 55)
-        if not klines or len(klines) < 50:
+        klines = fetch_klines("BTCUSDT", "1h", 25)
+        if not klines or len(klines) < 20:
             log("  MTF GATE: No BTC 1H data -- blocking trade")
             return False
         closes = [k["close"] for k in klines]
+        sma10 = sum(closes[-10:]) / 10
         sma20 = sum(closes[-20:]) / 20
-        sma50 = sum(closes[-50:]) / 50
         _mtf_cache["ts"] = now_ts
+        _mtf_cache["sma10"] = sma10
         _mtf_cache["sma20"] = sma20
-        _mtf_cache["sma50"] = sma50
         time.sleep(0.1)
 
-    if direction == "LONG" and sma20 > sma50:
+    if direction == "LONG" and sma10 > sma20:
         return True
-    if direction == "SHORT" and sma20 < sma50:
+    if direction == "SHORT" and sma10 < sma20:
         return True
 
-    log(f"  MTF GATE BLOCKED: {direction} but BTC 1H SMA20={sma20:.0f} SMA50={sma50:.0f}")
+    log(f"  MTF GATE BLOCKED: {direction} but BTC 1H SMA10={sma10:.0f} SMA20={sma20:.0f}")
     return False
 
 # ===============================================================
