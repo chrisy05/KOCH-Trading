@@ -1,5 +1,271 @@
 # Current Work
 
+## Erledigt (12.06.2026 — Trend+Pullback+Momentum Backtest: NICHT profitabel)
+
+### 10 Configs (7x 15m + 3x 30m) + 6 Extra ohne 7-Score, 3 Monate, 23 Coins
+
+**Script:** `/Trading/backtest_pullback_momentum.py`
+**Results:** `/Trading/backtest_pullback_momentum_results.json`
+
+**KONZEPT:** Statt alles aligned (Cascade >=4 auf ALLEN TFs), neuer Ansatz:
+- Higher TFs (30m/1h/4h): Trend bestaetigt (SMA10>20>50)
+- Signal TF (15m): Pullback aktiv (SMA10<SMA20 oder Price<SMA20)
+- Signal TF: TMO dreht aus Extremzone = Momentum-Reversal
+- = Entry am Pullback-Boden, MIT dem Trend
+
+**ERGEBNIS: Pullback+Momentum FUNKTIONIERT NICHT**
+
+| # | Config | Trades | WR% | Net PnL | PnL/DD |
+|---|--------|--------|-----|---------|--------|
+| 1 | Strict 3/3+cross ±1bar | 6 | 33.3% | $5 | 0.43 |
+| 2 | Loose 2/3+cross ±2bar | 69 | 56.5% | $41 | 1.28 |
+| 3 | Price PB+rising TMO | 3 | 33.3% | $2 | 0.43 |
+| 4 | Relaxed (no extreme) | 76 | 52.6% | -$27 | -0.32 |
+| 7 | **Baseline C4+Phase** | **910** | **52.3%** | **$2,720** | **5.22** |
+
+30m Signals: 0-1 Trades — komplett unbrauchbar.
+
+**Ohne 7-Score Filter (Extra-Test):**
+| Config | Trades | WR% | Net PnL |
+|--------|--------|-----|---------|
+| B. Loose+no7score | 450 | 47.1% | -$105 |
+| C. Relaxed+no7score | 474 | 46.0% | -$216 |
+| F. 30m Relaxed+no7score | 8 | 62.5% | +$47 |
+
+**Key Findings:**
+1. **KEIN Config erreicht >70% WR** — bester ist Loose 15m mit 56.5%
+2. **Kernproblem: Pullback widerspricht 7-Score** — Pullback auf Signal-TF = SMA nicht aligned = niedrigerer Score. Prob>=60% filtert fast alles raus
+3. **Ohne 7-Score: WR sinkt unter 50%** — TMO-Reversal am Pullback-Boden ist kein zuverlaessiges Signal
+4. **Strict Config (3/3 TF aligned + TMO cross) = zu selektiv** — nur 6 Trades in 3 Monaten
+5. **Relaxed Config (TMO<0 und steigend) = unzuverlaessig** — 52.6% WR, negatives PnL
+6. **C4+Phase FULL bleibt 66x besser** ($2,720 vs $41 best Pullback)
+
+**Fazit:** Die Theorie "Entry am Pullback-Boden mit Trend" klingt gut, funktioniert aber nicht:
+- TMO Extreme auf 15m = zu selten wenn Higher TFs im Trend
+- Pullback-SMA + Momentum-Reversal = entweder zu wenig Trades ODER zu schlechte WR
+- Cascade-basierter Ansatz (alles aligned) bleibt klar ueberlegen
+
+## Erledigt (12.06.2026 — Momentum Crossover Entry Backtest: TMO+RSI = NICHT brauchbar)
+
+### 7 Configs, 3 Monate, 23 Coins — TMO/RSI Crossover als Entry-Filter
+
+**Script:** `/Trading/backtest_momentum_entry.py`
+**Results:** `/Trading/backtest_momentum_entry_results.json`
+
+**ERGEBNIS: Momentum Crossover Filter KILLT Trade-Anzahl**
+
+| # | Config | Trades | /Day | WR% | Net PnL | PnL/DD |
+|---|--------|--------|------|-----|---------|--------|
+| 1 | Baseline (C4+Phase) | 910 | 10.1 | 52.3% | $2,720 | 5.22 |
+| 2 | +TMO strict (±1 bar) | 18 | 0.2 | 55.6% | $99 | 2.71 |
+| 3 | +RSI (30/70 cross) | 0 | 0.0 | — | $0 | — |
+| 4 | +TMO loose (±2 bar, zone 0.5x) | 39 | 0.4 | 59.0% | $159 | 3.81 |
+| 5 | +TMO+tightTP (50%) | 18 | 0.2 | 55.6% | $94 | 2.48 |
+| 6 | +TMO+wideTP (70%) | 18 | 0.2 | 50.0% | $71 | 1.99 |
+| 7 | +TMO OR RSI | 18 | 0.2 | 55.6% | $99 | 2.71 |
+
+**Key Findings:**
+1. RSI Crossover: ZERO Trades — RSI Extreme (OS/OB) widerspricht Phase C + Cascade >=4 fundamental
+2. TMO Crossover: Nur 18-39 Trades (2-4% der Baseline) — viel zu selektiv
+3. WR steigt leicht (+3-7pp) aber viel zu wenig Trades fuer PnL
+4. PnL/DD sinkt bei ALLEN Configs vs Baseline (5.22 -> 1.99-3.81)
+5. Kernproblem: Momentum-Extreme = Mean Reversion Signal, Phase C + Cascade = Trend-Following Signal — gegensaetzlich
+
+**Fazit:** Momentum Crossover aus Extremzonen ist NICHT kompatibel mit Trend-Following Entries (Phase Detection + Cascade). Diese Filter widersprechen sich logisch.
+
+## Erledigt (12.06.2026 — KODA Cascade 4 LIVE Bot erstellt)
+
+### live_bot_cascade4.py — Merged Paper Bot Logic + Bybit API
+
+**Datei:** `/Trading/dashboard/live_bot_cascade4.py`
+
+**Was:** KODA Cascade 4 LIVE Bot erstellt durch Merge von:
+- `paper_bot_cascade4.py` (komplette Signal/Trading-Logik inkl. Phase Detection)
+- `live_bot_confirm.py` (Bybit V5 API Infrastruktur)
+
+**Config:**
+- $15/Trade, 10x Leverage, $1000 Budget
+- SL: 70% MARGIN (= 7% Price bei 10x) — MARGIN-basiert, nicht Price-basiert
+- TP: 60% Expected Move, berechnet vom Confirmation Entry
+- Fees: 0.11% RT in PnL eingerechnet
+- BE Stop: entry * (1 + 0.0021) fuer LONG
+
+**Alle Features:**
+1. 7-Score Analysis + Cascade >= 4 Filter
+2. Phase Detection Entry Gate (Score >= 6, keine Phase D)
+3. Phase Detection SL Management (5m D->5%, 15m D->3%, 30m D->close)
+4. Confirmation Stage (0.3% in 8 bars)
+5. TP1/TP2 Trailing (50% close, SL->BE fee-covered, 2% trail)
+6. 24h Force Close ohne TP1
+7. Collective Profit Exit (ROI>30% + sum>=100%)
+8. Drawdown Brake (5 SLs -> pause + TG alert)
+9. K3 Fix: Budget recheck vor jedem Trade Open
+10. Bybit API: Market Orders, set_tp_sl, Position Monitoring, Cross-Reference
+
+**Dual Mode:**
+- `python3 live_bot_cascade4.py` — dry-run
+- `python3 live_bot_cascade4.py --live` — REAL ORDERS
+
+**Telegram:** Token 8623243424, Chat 351653518, Channel DISABLED
+**Data:** `live_trades_cascade4.json` (git push alle 5 min)
+**Log:** `live_bot_cascade4.log`
+**24 Coins:** GLM, AVAX, KAS, MINA, XRP, FLOW, AXL, CELR, CYS, IOST, CAKE, KAITO, TRX, SUN, GRT, DUSK, BAT, SYN, TON, HBAR, DOT, LTC, LINK, SOL
+
+**BYBIT_QTY_DECIMALS:** Alle Coins aus live_bot_confirm.py uebernommen + neue Cascade4-Coins hinzugefuegt (XRPUSDT:1, FLOWUSDT:1, MINAUSDT:1, CAKEUSDT:1, etc.)
+
+**Status:** py_compile OK. Chris muss Start bestaetigen.
+
+## Offen
+- Bot starten wenn Chris bestaetigt
+- Erst dry-run testen, dann --live
+
+## Erledigt (12.06.2026 — Trade Verification Report: 44 Trades gegen Telegram Chat Export)
+
+### extra_trades.json (#77-#120) vs Telegram Chat Export mit Screenshots
+
+**Report:** `/Trading/trade_verification_report.json`
+
+**Ergebnis:**
+- 25 Trades: SCREENSHOT MATCH (alle Werte exakt bestaetigt via Bitget/BingX/Phemex Screenshots)
+- 3 Trades: PARTIAL MATCH (Screenshot vorhanden, kleine Abweichungen erklaerbar)
+- 15 Trades: TEXT MATCH (Chat-Nachrichten bestaetigen Daten, kein Screenshot)
+- 1 Trade: NO EVIDENCE (#80 BNT LONG $2.14 — kleiner Trade ohne Screenshot/Chat)
+- 0 MISMATCHES
+
+**Verifizierte Screenshots (key trades):**
+- #77 BTC SHORT: PnL -56.29 exakt, Entry 80871.4, Exit 80811.7 (Bitget)
+- #81 NEO LONG: PnL +1574.47, ROI 42.92%, 12x (Bitget)
+- #82-85 Close All Unfall: Alle 4 Trades exakt bestaetigt (IMX/JASMY/SUSHI/ETH)
+- #89 FIDA SHORT: PnL -146.28, ROI -29.26% (Bitget)
+- #90 SOL LONG 70x: PnL +44.46 (BingX)
+- #94 IP SHORT: PnL +202.66 (Bitget)
+- #97 FIL SHORT: PnL -157.67 (Bitget)
+- #98 JASMY LONG 5x: PnL -85.66 (Bitget)
+- #99 SOL SHORT 65x: PnL +324.25 (BingX)
+- #101 SOL SHORT 70x: PnL +317.76 (BingX)
+- #107 XLM LONG: PnL +931.62, 37 Tage (Phemex)
+- #113 THETA SHORT 9x: Bei +$462 Peak, SL bei +$25.54 (Bitget)
+- #118 WLD SHORT: PnL +228.66 net (Bitget)
+- #119 KAS SHORT 9x: PnL +32.63 net (Bitget)
+- #120 CRV SHORT 5x: PnL +222.27 (Bitget)
+
+## Erledigt (12.06.2026 — Phase Detection in paper_bot_koda_se.py integriert)
+
+### Phase Detection FULL (Entry + SL) in KODA SE C5 Signal Bot
+
+**Datei:** `/Trading/dashboard/paper_bot_koda_se.py`
+
+**Identische Phase Detection wie paper_bot_cascade4.py hinzugefuegt:**
+1. **Phase Detection Funktionen** — `_detect_phase_direction()`, `get_phase()`, `fetch_sma_data_for_tf()`, `get_coin_phases()`, `calculate_phase_score()`, `check_phase_sl()`
+2. **Phase Entry Gate** (in `scan_and_trade()`, nach Cascade>=5 Gate): Score >= 6, keine Phase D, konsistente Richtung
+3. **Phase SL Management** (in `check_open_trades()`, vor TP1/TP2 Logik): Progressive SL-Verschaerfung
+4. **Phase Cache** — `_phase_cache` dict, 120s Cache
+5. **Phase Tracking** — `phase_score`, `phase_details`, `phase_sl_level` in Trade-Dict
+
+**Unveraenderte KODA-SE-C5 Besonderheiten:**
+- CASCADE_MIN = 5 (nicht 4)
+- TP = 50% EM (nicht 60%)
+- Signal Channel AKTIV (posted zu TG Channel)
+- Log prefix [KODA-SE-C5]
+- Fees separat berechnet (calc_fee Funktion)
+
+**Status:** Syntax OK (py_compile). Chris muss Neustart bestaetigen.
+
+## Erledigt (12.06.2026 — Phase Detection in paper_bot_cascade4.py integriert)
+
+### Phase Detection FULL (Entry + SL) in Cascade 4 Paper Bot
+
+**Datei:** `/Trading/dashboard/paper_bot_cascade4.py` (1840 Zeilen, von 1516)
+
+**Was wurde hinzugefuegt:**
+1. **Phase Detection Funktionen** — `get_phase()`, `_detect_phase_direction()` (exakt aus backtest_phase_detection_c4.py)
+2. **Phase Entry Gate** — `calculate_phase_score()`: Score >= 6, keine Phase D, konsistente Richtung
+3. **Phase SL Management** — `check_phase_sl()`: Progressive SL-Verschaerfung bei Degradation
+4. **SMA-Daten pro TF** — `fetch_sma_data_for_tf()` holt SMA10/20/50 + 4-Punkt-History
+5. **Caching** — Phase-Daten 120s gecacht um API-Calls zu minimieren
+
+**Phase Entry (in scan_and_trade, NACH Cascade-Gate):**
+- Score berechnet aus 5 TFs (5m/15m/30m/1h/4h): C=2, B=1.5, A=1, D=-1, X=0
+- Entry nur wenn Score >= 6.0 UND keine Phase D UND keine Gegenrichtung
+- Graceful Fallback: Wenn Phase-Daten nicht verfuegbar, Trade wird trotzdem erlaubt
+
+**Phase SL (in check_open_trades, VOR TP1/TP2 Logik):**
+- 5m Phase D → SL auf 50% Margin (5% Price bei 10x) verschaerft
+- 15m Phase D → SL auf 30% Margin (3% Price) verschaerft
+- 30m Phase D → Trade sofort geschlossen (PHASE_EXIT)
+- SL wird NUR verschaerft, nie gelockert (nur in Richtung Tightening)
+
+**Bestehende Funktionalitaet UNVERAENDERT:**
+- Cascade >=4 Filter, Confirmation, TP/SL, Trailing, Fees, BE Stop, 24h Timeout
+- Drawdown Brake, Collective Profit Exit, Budget Management
+- Alle 4 kritischen Math-Fixes
+
+**Status:** Syntax OK, Tests bestanden. Chris muss Start bestaetigen.
+
+## Erledigt (12.06.2026 — Phase Detection vs Cascade >=4 Backtest)
+
+### 4 Configs, 3 Monate, 23 Coins, Cascade >=4 + TP 60% EM
+
+**Script:** `/Trading/backtest_phase_detection_c4.py`
+**Results:** `/Trading/backtest_phase_detection_c4_results.json`
+
+**ERGEBNIS — Phase Detection turns C4 from NEGATIVE to POSITIVE:**
+
+| Config | Trades | WR% | Net PnL | MaxDD | PnL/DD | Jan PnL |
+|--------|--------|-----|---------|-------|--------|---------|
+| C4 baseline (fixed SL, 60%EM) | 2,220 | 62.8% | -$325 | $3,655 | -0.09 | -$1,147 |
+| C4 + Phase Entry + Fixed SL | 781 | 67.7% | +$2,413 | $1,340 | 1.80 | +$501 |
+| C4 + Phase SL | 6,756 | 43.4% | +$2,302 | $1,547 | 1.49 | -$3 |
+| C4 + Phase FULL | 908 | 52.4% | +$2,741 | $500 | 5.48 | +$654 |
+
+**Monthly Breakdown (C4 + Phase FULL):**
+- Dec: $660 | Jan: +$654 | Feb: +$1,427
+
+**Key Findings:**
+1. **Phase Detection rettet C4** — von -$325 net auf +$2,741 (Phase FULL)
+2. **Phase Entry alleine** bringt C4 auf +$2,413 (WR 67.7%, 781 Trades)
+3. **Phase SL alleine** explodiert auf 6,756 Trades (fruehe Exits = schneller Re-Entry), trotzdem +$2,302
+4. **Phase FULL hat besten Risk/Reward** — PnL/DD = 5.48, nur $500 MaxDD
+5. **Januar wird profitabel**: -$1,147 wird zu +$654 (Phase FULL)
+6. **C5 Phase FULL bleibt besser**: $3,487 net, PnL/DD 6.67 vs C4: $2,741, PnL/DD 5.48
+7. **Phase SL erzeugt massiv PHASE_EXIT** (5,856 von 6,756 Trades) — sehr aggressiv
+
+**Vergleich C5 vs C4 mit Phase FULL:**
+- C5: 1,074t | 55.1% WR | +$3,487 | $523 DD | PnL/DD 6.67
+- C4: 908t | 52.4% WR | +$2,741 | $500 DD | PnL/DD 5.48
+- C5 gewinnt in allen Metriken
+
+## Erledigt (12.06.2026 — Phase Detection vs Cascade Backtest)
+
+### 4 Configs, 3 Monate, 23 Coins, 1m Klines
+
+**Script:** `/Trading/backtest_phase_detection.py`
+**Results:** `/Trading/backtest_phase_detection_results.json`
+
+**ERGEBNIS:**
+
+| Config | Trades | WR% | Net PnL | MaxDD | PnL/DD | Jan PnL |
+|--------|--------|-----|---------|-------|--------|---------|
+| Cascade >=5 (baseline) | 1124 | 64.6% | +$339 | $2,778 | 0.12 | -$1,149 |
+| Phase Entry + Fixed SL | 934 | 74.1% | +$3,873 | $1,137 | 3.41 | +$598 |
+| Cascade Entry + Phase SL | 2289 | 46.0% | +$2,053 | $848 | 2.42 | -$27 |
+| Phase Entry + Phase SL (FULL) | 1074 | 55.1% | +$3,487 | $523 | 6.67 | +$639 |
+
+**Key Findings:**
+1. **Phase Entry ist der groesste Hebel** — WR springt von 64.6% auf 74.1%, Januar wird profitabel
+2. **Phase SL alleine verdoppelt Trades** (2289 vs 1124) weil frueherer Exit = schnellerer Re-Entry
+3. **Phase FULL hat besten Risk/Reward** — PnL/DD = 6.67x, nur $523 MaxDD
+4. **Januar: -$1,149 wird zu +$639** — Phase Detection erkennt Baeren-Phasen und vermeidet falsche Entries
+5. **Phase SL ONLY senkt WR auf 46%** aber viele kleine Exits statt wenige grosse Verluste
+
+**Phase Detection Modell:**
+- 5 TFs (5m/15m/30m/1h/4h), SMA10/20/50
+- Phase A (Fresh cross), B (Building), C (Confirmed), D (Weakening), X (No trend)
+- Entry: Score >=6, keine Phase D, konsistente Richtung
+- SL: Progressive Tightening bei Phase D (5m=caution, 15m=warning, 30m=exit)
+
+**EMPFEHLUNG:** Phase Entry + Phase SL (FULL) als neuer Bot-Standard
+
 ## Erledigt (12.06.2026 — Margin x Leverage Optimization Backtest)
 
 ### 10 Configs x 2 Cascade-Levels, 3 Monate, 22 Coins
