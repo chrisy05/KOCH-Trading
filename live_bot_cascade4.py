@@ -979,10 +979,11 @@ def get_cascade_signal():
         sma20 = sum(closes[-20:]) / 20
         sma50 = sum(closes[-50:]) / 50
 
-        if sma10 > sma20 > sma50:
+        # Relaxed cascade: SMA10 vs SMA20 only (SMA50 ignored for BTC alignment)
+        if sma10 > sma20:
             bull_count += 1
             details[tf] = "BULL"
-        elif sma10 < sma20 < sma50:
+        elif sma10 < sma20:
             bear_count += 1
             details[tf] = "BEAR"
         else:
