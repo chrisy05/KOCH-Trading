@@ -41,6 +41,9 @@ CONFIRM_BARS = 8               # 8 minutes timeout
 TRAIL_PCT = 0.02               # 2% trailing
 FEE_RATE = 0.0011              # 0.11% round trip
 
+# Slope Filter Config 2: Reject if SMA10 slope > 1.0%
+SLOPE_MAX = 1.0  # max SMA10 slope in % (3-bar change)
+
 # Phase Detection config
 PHASE_ENTRY_MIN_SCORE = 6.0    # Minimum phase score for entry
 PHASE_SCORES = {'C': 2.0, 'B': 1.5, 'A': 1.0, 'D': -1.0, 'X': 0.0}
@@ -657,6 +660,32 @@ def get_cascade_signal():
     _cascade_cache["ts"] = now_ts
     _cascade_cache["result"] = result
     return result
+
+
+# ===============================================================
+# SLOPE FILTER (Config 2: SMA10 slope < 1.0%)
+# ===============================================================
+
+def check_slope_filter(klines, direction):
+    """Reject overextended entries. Returns (passed, details_dict)."""
+    if not klines or len(klines) < 15:
+        return True, {}  # graceful fallback
+
+    closes = [k["close"] for k in klines]
+
+    # Calculate SMA10 now and 3 bars ago
+    sma10_now = sum(closes[-10:]) / 10
+    sma10_3ago = sum(closes[-13:-3]) / 10 if len(closes) >= 13 else sma10_now
+
+    # Slope as % change
+    sma10_slope = abs(sma10_now - sma10_3ago) / sma10_now * 100
+
+    details = {"sma10_slope": round(sma10_slope, 3)}
+
+    if sma10_slope > SLOPE_MAX:
+        return False, details
+
+    return True, details
 
 
 # ===============================================================
@@ -1643,6 +1672,13 @@ def scan_and_trade(data, tf, limit, tf_key):
                     log(f"  PHASE WARN: {coin} — Phase detection failed ({e}), allowing trade as fallback")
                     phase_score = 0
                     phase_details = "FALLBACK"
+
+                # Slope filter (Config 2: reject if SMA10 slope > 1.0%)
+                klines_for_slope = result.get("klines", [])
+                slope_ok, slope_details = check_slope_filter(klines_for_slope, direction)
+                if not slope_ok:
+                    log(f"  SLOPE SKIP: {coin} {direction} — SMA10 slope {slope_details['sma10_slope']:.2f}% > {SLOPE_MAX}%")
+                    continue
 
                 # Check max open limit again
                 current_open = len([t for t in data[tf_key] if t["status"] == "open"])

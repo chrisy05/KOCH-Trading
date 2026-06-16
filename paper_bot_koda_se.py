@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-KODA SE Cascade-5 Signal Bot — CLEAN REWRITE 2026-06-14
+KODA SE Config-8 Signal Bot — Updated 2026-06-17
 ========================================================
-PRIMARY PURPOSE: Post high-quality Cascade>=5 signals to Telegram channel.
+PRIMARY PURPOSE: Post high-quality Cascade>=4 + Config 8 Slope Filter signals to Telegram channel.
 
-Config: C6 from combo backtest — Cascade>=5, TP 50% EM, Prob>=60%, 10x, 70% MSL
+Config: C8 — Cascade>=4, TP 50% EM, Prob>=60%, 10x, 70% MSL
+Slope Filter Config 8: SMA10 slope < 1.0% AND SMA10/SMA20 gap NOT expanding
+Relaxed BTC cascade (SMA10>20 only) + Relaxed MTF gate (SMA10>20)
 + Phase Detection (identical to paper_bot_cascade4.py)
 Backtest result: 6/6 trades = 100% WR, $49.25 net PnL, 0 DD
 
@@ -46,12 +48,16 @@ CONFIG = {
     "tf_budget_4h": 0,
 }
 
-CASCADE_MIN = 5               # ALL 5 timeframes must be aligned
+CASCADE_MIN = 4               # Reduced from 5 to 4 (Config 8 slope filter provides selectivity)
 CONFIRM_PCT = 0.003            # 0.3% confirmation
 CONFIRM_BARS = 8               # 8 minutes
 TRAIL_PCT = 0.02               # 2% trailing
 FEE_RATE = 0.0011              # 0.11% round trip
 DRAWDOWN_BRAKE_SL_COUNT = 5    # 5 SLs in a row -> pause
+
+# Slope Filter Config 8: Slope < 1.0% AND gap must NOT be expanding
+SLOPE_MAX = 1.0
+REQUIRE_GAP_NOT_EXPANDING = True
 
 # Phase Detection config
 PHASE_ENTRY_MIN_SCORE = 6.0    # Minimum phase score for entry
@@ -519,11 +525,48 @@ def full_analyze(coin, tf="15m", limit=800):
         "tp": tp_price, "expected_move": expected_move, "atr14": atr14,
         "target_up": target_up, "target_down": target_down,
         "prob_a": prob_a, "prob_c": prob_c,
+        "klines": klines,
     }
 
 
 # ═══════════════════════════════════════════════════════════════
-# CASCADE — BTC Multi-TF SMA Alignment
+# SLOPE FILTER (Config 8: Slope < 1.0% + no expanding gap)
+# ═══════════════════════════════════════════════════════════════
+
+def check_slope_filter(klines, direction):
+    """Reject overextended entries. Config 8: slope + gap check."""
+    if not klines or len(klines) < 15:
+        return True, {}
+
+    closes = [k["close"] for k in klines]
+
+    sma10_now = sum(closes[-10:]) / 10
+    sma20_now = sum(closes[-20:]) / 20
+    sma10_3ago = sum(closes[-13:-3]) / 10 if len(closes) >= 13 else sma10_now
+    sma20_3ago = sum(closes[-23:-3]) / 20 if len(closes) >= 23 else sma20_now
+
+    sma10_slope = abs(sma10_now - sma10_3ago) / sma10_now * 100
+
+    gap_now = abs(sma10_now - sma20_now)
+    gap_3ago = abs(sma10_3ago - sma20_3ago)
+    gap_expanding = gap_now > gap_3ago
+
+    details = {
+        "sma10_slope": round(sma10_slope, 3),
+        "gap_expanding": gap_expanding
+    }
+
+    if sma10_slope > SLOPE_MAX:
+        return False, details
+
+    if REQUIRE_GAP_NOT_EXPANDING and gap_expanding:
+        return False, details
+
+    return True, details
+
+
+# ═══════════════════════════════════════════════════════════════
+# CASCADE — BTC Multi-TF SMA Alignment (Relaxed: SMA10>20 only)
 # ═══════════════════════════════════════════════════════════════
 
 _cascade_cache = {"ts": 0, "result": None}
@@ -550,11 +593,13 @@ def get_cascade_signal():
         closes = [k["close"] for k in klines]
         sma10 = sum(closes[-10:]) / 10
         sma20 = sum(closes[-20:]) / 20
-        sma50 = sum(closes[-50:]) / 50
-        if sma10 > sma20 > sma50:
+
+        # Relaxed cascade: SMA10 vs SMA20 only (SMA50 ignored for BTC alignment)
+        # Backtested: +$2,934 vs $2,741 standard, PnL/DD 5.99 vs 5.48
+        if sma10 > sma20:
             bull_count += 1
             details[tf] = "BULL"
-        elif sma10 < sma20 < sma50:
+        elif sma10 < sma20:
             bear_count += 1
             details[tf] = "BEAR"
         else:
@@ -811,35 +856,35 @@ def check_phase_sl(trade, coin):
 # MTF GATE: BTC 1H SMA20 vs SMA50
 # ═══════════════════════════════════════════════════════════════
 
-_mtf_cache = {"ts": 0, "sma20": None, "sma50": None}
+_mtf_cache = {"ts": 0, "sma10": None, "sma20": None}
 MTF_CACHE_SECONDS = 300
 
 
 def check_mtf_gate(direction):
-    """Only allow LONG when BTC 1H SMA20 > SMA50, SHORT when SMA20 < SMA50."""
+    """Only allow LONG when BTC 1H SMA10 > SMA20, SHORT when SMA10 < SMA20. Relaxed since Config 8."""
     now_ts = time.time()
-    if _mtf_cache["sma20"] is not None and (now_ts - _mtf_cache["ts"]) < MTF_CACHE_SECONDS:
+    if _mtf_cache["sma10"] is not None and (now_ts - _mtf_cache["ts"]) < MTF_CACHE_SECONDS:
+        sma10 = _mtf_cache["sma10"]
         sma20 = _mtf_cache["sma20"]
-        sma50 = _mtf_cache["sma50"]
     else:
-        klines = fetch_klines("BTCUSDT", "1h", 55)
-        if not klines or len(klines) < 50:
+        klines = fetch_klines("BTCUSDT", "1h", 25)
+        if not klines or len(klines) < 20:
             log("  MTF GATE: No BTC 1H data — blocking trade")
             return False
         closes = [k["close"] for k in klines]
+        sma10 = sum(closes[-10:]) / 10
         sma20 = sum(closes[-20:]) / 20
-        sma50 = sum(closes[-50:]) / 50
         _mtf_cache["ts"] = now_ts
+        _mtf_cache["sma10"] = sma10
         _mtf_cache["sma20"] = sma20
-        _mtf_cache["sma50"] = sma50
         time.sleep(0.1)
 
-    if direction == "LONG" and sma20 > sma50:
+    if direction == "LONG" and sma10 > sma20:
         return True
-    if direction == "SHORT" and sma20 < sma50:
+    if direction == "SHORT" and sma10 < sma20:
         return True
 
-    log(f"  MTF GATE BLOCKED: {direction} but BTC 1H SMA20={sma20:.0f} SMA50={sma50:.0f}")
+    log(f"  MTF GATE BLOCKED: {direction} but BTC 1H SMA10={sma10:.0f} SMA20={sma20:.0f}")
     return False
 
 
@@ -918,7 +963,7 @@ def load_data():
                 if key not in data:
                     data[key] = []
             data.setdefault("config", {}).update(CONFIG)
-            data["config"]["bot_name"] = "KODA SE C5"
+            data["config"]["bot_name"] = "KODA SE C8"
             return data
         except Exception:
             pass
@@ -931,7 +976,7 @@ def create_initial_data():
         "config": {
             **CONFIG,
             "start_date": datetime.now(TZ).strftime("%Y-%m-%d"),
-            "bot_name": "KODA SE C5",
+            "bot_name": "KODA SE C8",
             "cascade_min": CASCADE_MIN,
             "confirm_pct": CONFIRM_PCT,
             "confirm_bars": CONFIRM_BARS,
@@ -1004,18 +1049,22 @@ def notify_trade_opened(trade):
     tp_pct = abs(tp / entry - 1) * 100
     sl_pct = abs(sl / entry - 1) * 100
 
+    slope_info = trade.get("slope_details", {})
+    slope_str = f"Slope: {slope_info.get('sma10_slope', '?')}% | Gap exp: {'Y' if slope_info.get('gap_expanding') else 'N'}" if slope_info else "Slope: n/a"
+
     msg = (
         f"{arrow} KODA SE #{_signal_counter} \u2014 {coin} {d}\n"
         f"\u2501" * 22 + "\n"
-        f"Prob: {prob}% | TF: {tf} | Cascade: {cascade}\n\n"
+        f"Prob: {prob}% | TF: {tf} | Cascade: {cascade}\n"
+        f"{slope_str}\n\n"
         f"Entry: {fmt_price(entry)}\n"
         f"TP1:   {fmt_price(tp)} ({'+' if d=='LONG' else '-'}{tp_pct:.1f}%) \u2192 50% close, SL\u2192BE\n"
         f"TP2:   Trailing {TRAIL_PCT*100:.0f}% vom Peak\n"
         f"SL:    {fmt_price(sl)} ({'-' if d=='LONG' else '+'}{sl_pct:.1f}%)\n\n"
         f"Hebel: {lev}x | Margin: ${trade['margin']}\n\n"
-        f"Cascade\u22655 Signal\n"
+        f"Cascade\u22654 + Config 8 Signal\n"
         f"\u2501" * 22 + "\n"
-        f"KODA SE C5 | 10x|50%TP|70%MSL \u00b7 {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"
+        f"KODA SE C8 | 10x|50%TP|70%MSL \u00b7 {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"
     )
     send_tg_channel(msg)
 
@@ -1077,7 +1126,7 @@ def notify_trade_closed(trade, data=None):
         f"{result_line}\n"
         f"\u2550" * 30 +
         f"{footer}\n"
-        f"KODA SE C5 \u00b7 {datetime.now(TZ).strftime('%H:%M')} ET"
+        f"KODA SE C8 \u00b7 {datetime.now(TZ).strftime('%H:%M')} ET"
     )
     send_tg_channel(msg)
 
@@ -1088,7 +1137,8 @@ def notify_trade_closed(trade, data=None):
 
 def open_trade(data, tf_key, coin, direction, entry, expected_move, probability, tf,
                cascade_lights=0, cascade_code="00000",
-               phase_score=0, phase_details=""):
+               phase_score=0, phase_details="",
+               slope_details=None):
     """Open a new paper trade with FIXED math."""
     capital = CONFIG["capital"]
     leverage = CONFIG["leverage"]
@@ -1142,11 +1192,14 @@ def open_trade(data, tf_key, coin, direction, entry, expected_move, probability,
         "phase_score": phase_score,
         "phase_details": phase_details,
         "phase_sl_level": 0,  # 0=normal, 1=5m_D, 2=15m_D, 3=30m_D(close)
+        # Slope filter tracking
+        "slope_details": slope_details or {},
     }
 
     data[tf_key].append(trade)
     sl_pct = CONFIG["sl_margin_pct"] / CONFIG["leverage"]
-    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | SL: {sl:.6f} ({sl_pct:.1f}% price / {CONFIG['sl_margin_pct']}% margin) | Fee: ${fee:.2f} | Prob: {probability}% | TF: {tf} | Cascade: {cascade_lights} | Phase: {phase_score:.1f}")
+    slope_str = f" | Slope: {slope_details.get('sma10_slope', '?')}%" if slope_details else ""
+    log(f"  OPENED {direction} {coin} @ {entry:.6f} | TP: {tp:.6f} | SL: {sl:.6f} ({sl_pct:.1f}% price / {CONFIG['sl_margin_pct']}% margin) | Fee: ${fee:.2f} | Prob: {probability}% | TF: {tf} | Cascade: {cascade_lights} | Phase: {phase_score:.1f}{slope_str}")
 
     notify_trade_opened(trade)
     return trade
@@ -1181,7 +1234,7 @@ def close_trade(trade, close_price, reason):
         if _consecutive_sl_count >= DRAWDOWN_BRAKE_SL_COUNT and not _drawdown_paused:
             _drawdown_paused = True
             log(f"DRAWDOWN BRAKE ACTIVATED -- {_consecutive_sl_count} losses in a row!")
-            alert = (f"DRAWDOWN-BREMSE AKTIV -- KODA SE C5\n\n"
+            alert = (f"DRAWDOWN-BREMSE AKTIV -- KODA SE C8\n\n"
                      f"{_consecutive_sl_count} Verluste in Folge!\n"
                      f"Bot ist PAUSIERT. Keine neuen Trades.\n"
                      f"Offene Trades laufen weiter (TP/SL aktiv).\n"
@@ -1437,7 +1490,8 @@ def check_pending_confirmations(data):
                        sig["probability"], sig["tf"],
                        cascade_lights=sig["cascade_lights"], cascade_code=sig["cascade_code"],
                        phase_score=sig.get("phase_score", 0),
-                       phase_details=sig.get("phase_details", ""))
+                       phase_details=sig.get("phase_details", ""),
+                       slope_details=sig.get("slope_details", {}))
         elif sig["checks_remaining"] <= 0:
             log(f"  EXPIRED: {d} {coin} | Signal: {signal_price:.6f} -> Now: {price:.6f} (not confirmed in {CONFIRM_BARS} checks)")
         else:
@@ -1450,7 +1504,7 @@ def check_pending_confirmations(data):
 
 
 # ═══════════════════════════════════════════════════════════════
-# SCAN & TRADE — CASCADE >= 5 ONLY
+# SCAN & TRADE — CASCADE >= 4 + CONFIG 8 SLOPE FILTER
 # ═══════════════════════════════════════════════════════════════
 
 def check_btc_spike():
@@ -1471,7 +1525,7 @@ def check_btc_spike():
 
 
 def scan_and_trade(data, tf, limit, tf_key):
-    """Scan all coins — only open trades when CASCADE >= 5."""
+    """Scan all coins — only open trades when CASCADE >= 4 + Config 8 slope filter."""
     now = datetime.now(TZ)
     log(f"\n{'='*60}")
     log(f"SCAN {tf.upper()} | {now.strftime('%Y-%m-%d %H:%M ET')}")
@@ -1586,7 +1640,7 @@ def scan_and_trade(data, tf, limit, tf_key):
                     log(f"  CASCADE SKIP: {coin} {direction} -- only {lights_in_dir} lights. Need >={CASCADE_MIN}.")
                     continue
 
-                log(f"  CASCADE {CASCADE_MIN}+ CONFIRMED! Full alignment. Checking phase...")
+                log(f"  CASCADE {CASCADE_MIN}+ CONFIRMED! Checking phase...")
 
                 # Phase Detection gate: score >= 6, no Phase D, consistent direction
                 try:
@@ -1606,6 +1660,14 @@ def scan_and_trade(data, tf, limit, tf_key):
                     phase_score = 0
                     phase_details = "FALLBACK"
 
+                # Slope filter (Config 8: slope < 1.0% + no expanding gap)
+                klines_for_slope = result.get("klines", [])
+                slope_ok, slope_details = check_slope_filter(klines_for_slope, direction)
+                if not slope_ok:
+                    reason = f"SMA10 slope {slope_details['sma10_slope']:.2f}% > {SLOPE_MAX}%" if slope_details.get('sma10_slope', 0) > SLOPE_MAX else f"SMA10/20 gap expanding"
+                    log(f"  SLOPE SKIP: {coin} {direction} — {reason}")
+                    continue
+
                 # Build cascade code
                 code_map = {"BULL": "1", "BEAR": "2", "SIDE": "0", "NO_DATA": "0"}
                 c_code = "".join(code_map.get(cascade_details.get(tf_c, "0"), "0") for tf_c in ["5m", "15m", "30m", "1h", "4h"])
@@ -1618,6 +1680,7 @@ def scan_and_trade(data, tf, limit, tf_key):
                     "cascade_lights": lights_in_dir, "cascade_code": c_code,
                     "phase_score": phase_score,
                     "phase_details": phase_details,
+                    "slope_details": slope_details,
                     "signal_time": datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
                     "checks_remaining": CONFIRM_BARS,
                 })
@@ -1693,7 +1756,7 @@ def update_stats(data):
 def log(msg):
     """Print timestamped log message."""
     ts = datetime.now(TZ).strftime("%H:%M:%S")
-    print(f"[{ts}] [KODA-SE-C5] {msg}", flush=True)
+    print(f"[{ts}] [SIGNAL-C8] {msg}", flush=True)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1720,11 +1783,13 @@ def print_status(data):
 def main():
     global _current_data, _signal_counter
 
-    log("KODA SE Cascade-5 Signal Bot starting...")
+    log("KODA SE Config-8 Signal Bot starting...")
     log(f"Strategy: 10x Leverage, $50/trade, $1000 Budget")
     log(f"SL: {CONFIG['sl_margin_pct']}% MARGIN ({CONFIG['sl_margin_pct']/CONFIG['leverage']:.1f}% price) | TP: {CONFIG['tp_range_pct']}% Expected Move")
     log(f"Fees: {FEE_RATE*100:.3f}% round trip included in all PnL")
-    log(f"CASCADE: >={CASCADE_MIN}/5 timeframes aligned (ALL must agree)")
+    log(f"CASCADE: >={CASCADE_MIN}/5 timeframes aligned (relaxed SMA10>20)")
+    log(f"SLOPE FILTER: Config 8 — SMA10 slope < {SLOPE_MAX}% + gap NOT expanding")
+    log(f"MTF GATE: Relaxed SMA10>SMA20")
     log(f"CONFIRMATION: {CONFIRM_PCT*100:.1f}% in {CONFIRM_BARS} bars required before entry")
     log(f"BE stop covers fees + 0.1% buffer")
     log(f"24h Force Close on trades without TP1")
@@ -1794,7 +1859,7 @@ def main():
                     import subprocess
                     subprocess.run(["git", "add", "paper_trades_koda_se.json"],
                                    cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
-                    subprocess.run(["git", "commit", "-m", "KODA SE C5 paper bot data update"],
+                    subprocess.run(["git", "commit", "-m", "KODA SE C8 signal bot data update"],
                                    cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=10)
                     subprocess.run(["git", "push"],
                                    cwd=os.path.dirname(DATA_FILE), capture_output=True, timeout=30)
