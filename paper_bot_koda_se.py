@@ -57,7 +57,7 @@ DRAWDOWN_BRAKE_SL_COUNT = 5    # 5 SLs in a row -> pause
 
 # Slope Filter Config 8: Slope < 1.0% AND gap must NOT be expanding
 SLOPE_MAX = 1.0
-REQUIRE_GAP_NOT_EXPANDING = True
+REQUIRE_GAP_NOT_EXPANDING = False  # Disabled — kills trades in trending market
 
 # Phase Detection config
 PHASE_ENTRY_MIN_SCORE = 3.0    # Minimum phase score for entry
