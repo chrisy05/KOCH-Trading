@@ -848,8 +848,9 @@ def calculate_phase_score(coin, direction):
     opposite_count = 0
     details_parts = []
 
-    # Only check Phase D on signal TFs (15m, 30m, 1h) — ignore 5m (too noisy) and 4h (too slow)
-    phase_d_tfs = ["15m", "30m", "1h"]
+    # Phase D = NO LONGER blocks entry — only used for SL tightening
+    # Only OPPOSITE direction on 15m/30m/1h blocks entry
+    block_tfs = ["15m", "30m", "1h"]
 
     for tf in PHASE_TFS:
         if tf not in phases:
@@ -860,19 +861,16 @@ def calculate_phase_score(coin, direction):
 
         if phase_dir == direction:
             score += PHASE_SCORES[phase]
-            if phase == 'D' and tf in phase_d_tfs:
-                has_phase_d = True
             details_parts.append(f"{tf}:{phase}")
         elif phase_dir is not None and phase_dir != direction:
-            # Opposite direction — only block on signal TFs
-            if tf in phase_d_tfs:
+            # Opposite direction on signal TFs = block
+            if tf in block_tfs:
                 opposite_count += 1
             details_parts.append(f"{tf}:{phase}(!{phase_dir})")
         else:
-            # Phase X (no trend)
             details_parts.append(f"{tf}:X")
 
-    # If signal TFs show opposite direction, block entry
+    # Only opposite direction blocks, Phase D does NOT block (handled by SL management)
     if opposite_count > 0:
         has_phase_d = True
 
