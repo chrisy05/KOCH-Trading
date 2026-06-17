@@ -62,7 +62,7 @@ CONFIG = {
     "max_open_30m": 20,
 }
 
-CASCADE_MIN = 4               # Minimum 4/5 timeframes aligned
+CASCADE_MIN = 3               # Minimum 4/5 timeframes aligned
 CONFIRM_PCT = 0.003            # 0.3% confirmation
 CONFIRM_BARS = 8               # 8 minutes timeout
 TRAIL_PCT = 0.02               # 2% trailing
@@ -962,7 +962,7 @@ def get_cascade_signal():
     if _cascade_cache["result"] is not None and (now_ts - _cascade_cache["ts"]) < CASCADE_CACHE_SECONDS:
         return _cascade_cache["result"]
 
-    timeframes = ["5m", "15m", "30m", "1h", "4h"]
+    timeframes = ["15m", "30m", "1h", "4h"]
     bull_count = 0
     bear_count = 0
     details = {}

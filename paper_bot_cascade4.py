@@ -35,7 +35,7 @@ CONFIG = {
     "max_open_30m": 20,
 }
 
-CASCADE_MIN = 4               # Minimum 4/5 timeframes aligned
+CASCADE_MIN = 3               # Minimum 3/4 timeframes aligned (5m removed from BTC cascade)
 CONFIRM_PCT = 0.003            # 0.3% confirmation
 CONFIRM_BARS = 8               # 8 minutes timeout
 TRAIL_PCT = 0.02               # 2% trailing
@@ -619,7 +619,7 @@ def get_cascade_signal():
     if _cascade_cache["result"] is not None and (now_ts - _cascade_cache["ts"]) < CASCADE_CACHE_SECONDS:
         return _cascade_cache["result"]
 
-    timeframes = ["5m", "15m", "30m", "1h", "4h"]
+    timeframes = ["15m", "30m", "1h", "4h"]  # 5m removed — flips too fast for BTC cascade
     bull_count = 0
     bear_count = 0
     details = {}
@@ -1823,8 +1823,8 @@ def main():
                 check_pending_confirmations(data)
 
             # 15min scan: run at 0, 15, 30, 45
-            current_15m_slot = (hour * 60 + minute) // 15
-            if minute % 15 == 0 and current_15m_slot != last_15m_scan:
+            current_15m_slot = (hour * 60 + minute) // 5
+            if minute % 5 == 0 and current_15m_slot != last_15m_scan:
                 last_15m_scan = current_15m_slot
                 scan_and_trade(data, "15m", 800, "trades_15m")
                 update_stats(data)
@@ -1832,8 +1832,8 @@ def main():
                 print_status(data)
 
             # 30m scan: run at 0, 30
-            current_30m_slot = (hour * 60 + minute) // 30
-            if minute % 30 == 0 and current_30m_slot != last_30m_scan:
+            current_30m_slot = (hour * 60 + minute) // 5
+            if minute % 5 == 0 and current_30m_slot != last_30m_scan:
                 last_30m_scan = current_30m_slot
                 scan_and_trade(data, "30m", 500, "trades_30m")
                 update_stats(data)
