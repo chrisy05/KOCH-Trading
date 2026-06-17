@@ -60,8 +60,8 @@ SLOPE_MAX = 1.0
 REQUIRE_GAP_NOT_EXPANDING = True
 
 # Phase Detection config
-PHASE_ENTRY_MIN_SCORE = 6.0    # Minimum phase score for entry
-PHASE_SCORES = {'C': 2.0, 'B': 1.5, 'A': 1.0, 'D': -1.0, 'X': 0.0}
+PHASE_ENTRY_MIN_SCORE = 3.0    # Minimum phase score for entry
+PHASE_SCORES = {'C': 2.0, 'B': 1.5, 'A': 1.0, 'D': 0.0, 'X': 0.0}
 PHASE_TFS = ["5m", "15m", "30m", "1h", "4h"]
 PHASE_SL_LEVELS = {
     0: 0.07,   # Normal: 70% margin / 10x = 7% price
