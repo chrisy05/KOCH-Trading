@@ -62,22 +62,22 @@
   <div class="grid-4">
     <div class="stat-box">
       <div class="label">Einzahlungen Gesamt</div>
-      <div class="value blue">20,000</div>
+      <div class="value blue" id="kpi-einzahlungen">—</div>
       <div class="sub">USDT (TR 10K + GT 10K)</div>
     </div>
     <div class="stat-box">
       <div class="label">Gewinne Gesamt</div>
-      <div class="value green" id="kpi-gewinne">4,987</div>
+      <div class="value green" id="kpi-gewinne">—</div>
       <div class="sub">USDT gesamt</div>
     </div>
     <div class="stat-box">
       <div class="label">Bereits Ausbezahlt</div>
-      <div class="value white" id="kpi-ausbezahlt">7,615</div>
+      <div class="value white" id="kpi-ausbezahlt">—</div>
       <div class="sub">USDT verteilt</div>
     </div>
     <div class="stat-box">
       <div class="label">Offen zur Verteilung</div>
-      <div class="value red" id="kpi-offen">-3,403</div>
+      <div class="value" id="kpi-offen">—</div>
       <div class="sub">USDT (noch nicht ausbezahlt)</div>
     </div>
   </div>
@@ -86,13 +86,13 @@
   <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
     <div class="stat-box" style="border-left:3px solid #3b9eff;">
       <div class="label">TR Kumuliert</div>
-      <div class="value blue">2,499.50</div>
-      <div class="sub">USDT ausbezahlt | ROE: <span class="green" style="font-weight:700">+25.00%</span> auf $10,000</div>
+      <div class="value blue" id="kpi-tr">—</div>
+      <div class="sub">USDT ausbezahlt | ROE: <span id="kpi-tr-roe" class="green" style="font-weight:700">—</span> auf $10,000</div>
     </div>
     <div class="stat-box" style="border-left:3px solid #f59e0b;">
       <div class="label">GT Kumuliert</div>
-      <div class="value yellow">1,308.50</div>
-      <div class="sub">USDT ausbezahlt | ROE: <span class="green" style="font-weight:700">+13.09%</span> auf $10,000</div>
+      <div class="value yellow" id="kpi-gt">—</div>
+      <div class="sub">USDT ausbezahlt | ROE: <span id="kpi-gt-roe" class="green" style="font-weight:700">—</span> auf $10,000</div>
     </div>
   </div>
 
@@ -160,81 +160,7 @@
           <th>Status</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>1</td>
-          <td>31.03.2026</td>
-          <td class="num gray">—</td>
-          <td class="num">1,090</td>
-          <td class="num red">0</td>
-          <td class="num green"><b>1,090</b></td>
-          <td class="num">545.00</td>
-          <td class="num">—</td>
-          <td class="num">545.00</td>
-          <td><span class="badge badge-green">Ausbezahlt</span></td>
-        </tr>
-        <tr>
-          <td>2</td>
-          <td>07.04.2026</td>
-          <td class="num gray">—</td>
-          <td class="num">866</td>
-          <td class="num red">0</td>
-          <td class="num green"><b>866</b></td>
-          <td class="num">433.00</td>
-          <td class="num">—</td>
-          <td class="num">433.00</td>
-          <td><span class="badge badge-green">Ausbezahlt</span></td>
-        </tr>
-        <tr>
-          <td>3</td>
-          <td>09.04.2026</td>
-          <td class="num gray">—</td>
-          <td class="num">426</td>
-          <td class="num red">0</td>
-          <td class="num green"><b>426</b></td>
-          <td class="num">213.00</td>
-          <td class="num">—</td>
-          <td class="num">213.00</td>
-          <td><span class="badge badge-green">Ausbezahlt</span></td>
-        </tr>
-        <tr>
-          <td>4</td>
-          <td>26.04.2026</td>
-          <td class="num gray">—</td>
-          <td class="num">2,350</td>
-          <td class="num red">-100 (Claude)</td>
-          <td class="num green"><b>2,250</b></td>
-          <td class="num">562.50</td>
-          <td class="num">562.50</td>
-          <td class="num">1,125.00</td>
-          <td><span class="badge badge-green">Ausbezahlt</span></td>
-        </tr>
-        <!-- Auszahlung #5 -->
-        <tr>
-          <td>5</td>
-          <td>12.05.2026</td>
-          <td class="num gray">—</td>
-          <td class="num">2,983</td>
-          <td class="num red">0</td>
-          <td class="num green"><b>2,983</b></td>
-          <td class="num">746</td>
-          <td class="num">746</td>
-          <td class="num">1,491</td>
-          <td><span class="badge badge-green">Ausbezahlt</span></td>
-        </tr>
-        <!-- Aktueller Zeitraum -->
-        <tr style="background:#0d1b2e">
-          <td>6</td>
-          <td><b>Aktuell</b><br><span class="gray" style="font-size:.72rem">seit 12.05.</span></td>
-          <td class="num yellow">-306.63</td>
-          <td class="num red">-3,403</td>
-          <td class="num red">0</td>
-          <td class="num red"><b>-3,403</b></td>
-          <td class="num red">-851</td>
-          <td class="num red">-851</td>
-          <td class="num red">-1,701</td>
-          <td><span class="badge badge-yellow">43 Trades</span></td>
-        </tr>
+      <tbody id="payout-table-body">
       </tbody>
     </table>
   </div>
@@ -243,6 +169,90 @@
 </div>
 
 <footer>KOCH Trading Dashboard 2026 · Auszahlungen & Gewinnverteilung</footer>
+
+<script>document.write('<scr'+'ipt src="trades_data.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait briefly for trades_data.js to load
+  setTimeout(renderPayouts, 50);
+});
+
+function renderPayouts() {
+  if (typeof TRADE_DATA === 'undefined' || !TRADE_DATA.payout_data) {
+    setTimeout(renderPayouts, 100);
+    return;
+  }
+
+  const P = TRADE_DATA.payout_data;
+  const fmt = (v) => Math.abs(v) < 1 ? v.toFixed(2) : v.toLocaleString('de-DE', {maximumFractionDigits: 2, minimumFractionDigits: 0});
+  const fmtSigned = (v) => (v >= 0 ? '+' : '') + fmt(v);
+  const colorClass = (v) => v >= 0 ? 'green' : 'red';
+
+  // --- KPIs ---
+  document.getElementById('kpi-einzahlungen').textContent = P.einzahlungen.toLocaleString('de-DE');
+  document.getElementById('kpi-gewinne').textContent = fmt(P.totals.gewinne_gesamt);
+  document.getElementById('kpi-ausbezahlt').textContent = fmt(P.totals.ausbezahlt);
+
+  const offenEl = document.getElementById('kpi-offen');
+  offenEl.textContent = fmt(P.totals.offen);
+  offenEl.className = 'value ' + colorClass(P.totals.offen);
+
+  // --- TR / GT ---
+  document.getElementById('kpi-tr').textContent = fmt(P.totals.tr_kumuliert);
+  document.getElementById('kpi-gt').textContent = fmt(P.totals.gt_kumuliert);
+
+  const trRoe = (P.totals.tr_kumuliert / 10000 * 100);
+  const gtRoe = (P.totals.gt_kumuliert / 10000 * 100);
+  const trRoeEl = document.getElementById('kpi-tr-roe');
+  const gtRoeEl = document.getElementById('kpi-gt-roe');
+  trRoeEl.textContent = fmtSigned(trRoe) + '%';
+  trRoeEl.className = colorClass(trRoe);
+  trRoeEl.style.fontWeight = '700';
+  gtRoeEl.textContent = fmtSigned(gtRoe) + '%';
+  gtRoeEl.className = colorClass(gtRoe);
+  gtRoeEl.style.fontWeight = '700';
+
+  // --- Payout Table ---
+  const tbody = document.getElementById('payout-table-body');
+  let html = '';
+
+  // Historical payouts
+  P.payouts.forEach(p => {
+    const verteilung = p.verteilung;
+    const ausgabenText = p.ausgaben !== 0 ? fmt(p.ausgaben) + (p.ausgaben_detail ? ' (' + p.ausgaben_detail + ')' : '') : '0';
+    html += '<tr>';
+    html += '<td>' + p.nr + '</td>';
+    html += '<td>' + p.datum + '</td>';
+    html += '<td class="num gray">&mdash;</td>';
+    html += '<td class="num">' + fmt(p.gewinn) + '</td>';
+    html += '<td class="num red">' + ausgabenText + '</td>';
+    html += '<td class="num green"><b>' + fmt(verteilung) + '</b></td>';
+    html += '<td class="num">' + fmt(p.tr) + '</td>';
+    html += '<td class="num">' + (p.gt === 0 ? '&mdash;' : fmt(p.gt)) + '</td>';
+    html += '<td class="num">' + fmt(p.ck) + '</td>';
+    html += '<td><span class="badge badge-green">Ausbezahlt</span></td>';
+    html += '</tr>';
+  });
+
+  // Current period
+  const cp = P.current_period;
+  const cpColor = colorClass(cp.pnl);
+  html += '<tr style="background:#0d1b2e">';
+  html += '<td>' + cp.nr + '</td>';
+  html += '<td><b>Aktuell</b><br><span class="gray" style="font-size:.72rem">seit ' + cp.seit.substring(0, 6) + '</span></td>';
+  html += '<td class="num yellow">' + fmt(cp.mt_50) + '</td>';
+  html += '<td class="num ' + cpColor + '">' + fmt(cp.pnl) + '</td>';
+  html += '<td class="num red">0</td>';
+  html += '<td class="num ' + cpColor + '"><b>' + fmt(cp.verteilung) + '</b></td>';
+  html += '<td class="num ' + cpColor + '">' + fmt(cp.tr) + '</td>';
+  html += '<td class="num ' + cpColor + '">' + fmt(cp.gt) + '</td>';
+  html += '<td class="num ' + cpColor + '">' + fmt(cp.ck) + '</td>';
+  html += '<td><span class="badge badge-yellow">' + cp.trades + ' Trades</span></td>';
+  html += '</tr>';
+
+  tbody.innerHTML = html;
+}
+</script>
 
 </body>
 </html>

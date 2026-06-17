@@ -128,11 +128,70 @@ def main():
             trades.extend(extra)
             print(f"  Extra trades loaded: {len(extra)}")
 
+    # --- Payout (Auszahlung) Calculation ---
+    PAYOUTS = [
+        {"nr": 1, "datum": "31.03.2026", "gewinn": 1090, "ausgaben": 0, "ausgaben_detail": "", "tr": 545, "gt": 0, "ck": 545},
+        {"nr": 2, "datum": "07.04.2026", "gewinn": 866, "ausgaben": 0, "ausgaben_detail": "", "tr": 433, "gt": 0, "ck": 433},
+        {"nr": 3, "datum": "09.04.2026", "gewinn": 426, "ausgaben": 0, "ausgaben_detail": "", "tr": 213, "gt": 0, "ck": 213},
+        {"nr": 4, "datum": "26.04.2026", "gewinn": 2350, "ausgaben": -100, "ausgaben_detail": "Claude Code Abo", "tr": 562.50, "gt": 562.50, "ck": 1125},
+        {"nr": 5, "datum": "12.05.2026", "gewinn": 2983, "ausgaben": 0, "ausgaben_detail": "", "tr": 746, "gt": 746, "ck": 1491},
+    ]
+    LAST_PAYOUT_TRADE_NR = 81
+
+    # Verteilung = gewinn + ausgaben (ausgaben are negative)
+    for p in PAYOUTS:
+        p["verteilung"] = p["gewinn"] + p["ausgaben"]
+
+    # Current period: trades after last payout
+    period_trades = [t for t in trades if t["nr"] > LAST_PAYOUT_TRADE_NR]
+    period_pnl = sum(t.get("net_pnl") or t.get("pnl") or 0 for t in period_trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
+    period_count = sum(1 for t in period_trades if t.get("ausstieg_dat"))
+
+    # MT trades (MarkTrade) get 50% of their PnL
+    mt_trades = [t for t in period_trades if t.get("signal") == "MarkTrade"]
+    mt_pnl_total = sum(t.get("net_pnl") or t.get("pnl") or 0 for t in mt_trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
+    mt_pnl_50 = mt_pnl_total * 0.5
+
+    # Total PnL across ALL trades
+    total_pnl = sum(t.get("net_pnl") or t.get("pnl") or 0 for t in trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
+
+    # Totals from historical payouts
+    total_ausbezahlt = sum(p["verteilung"] for p in PAYOUTS)
+    total_tr = sum(p["tr"] for p in PAYOUTS)
+    total_gt = sum(p["gt"] for p in PAYOUTS)
+    total_ck = sum(p["ck"] for p in PAYOUTS)
+
+    payout_data = {
+        "payouts": PAYOUTS,
+        "last_payout_trade_nr": LAST_PAYOUT_TRADE_NR,
+        "einzahlungen": 20000,
+        "current_period": {
+            "nr": 6,
+            "seit": "12.05.2026",
+            "trades": period_count,
+            "pnl": round(period_pnl, 2),
+            "mt_50": round(mt_pnl_50, 2),
+            "verteilung": round(period_pnl, 2),
+            "tr": round(period_pnl * 0.25, 2),
+            "gt": round(period_pnl * 0.25, 2),
+            "ck": round(period_pnl * 0.50, 2),
+        },
+        "totals": {
+            "gewinne_gesamt": round(total_pnl, 2),
+            "ausbezahlt": round(total_ausbezahlt, 2),
+            "tr_kumuliert": round(total_tr + period_pnl * 0.25, 2),
+            "gt_kumuliert": round(total_gt + period_pnl * 0.25, 2),
+            "ck_kumuliert": round(total_ck + period_pnl * 0.50, 2),
+            "offen": round(period_pnl, 2),
+        }
+    }
+
     data = {
         "trades": trades,
         "einzahlungen": einzahlungen,
         "generated": datetime.now().strftime("%d.%m.%Y %H:%M"),
-        "total_einzahlungen": sum(e["summe"] for e in einzahlungen)
+        "total_einzahlungen": sum(e["summe"] for e in einzahlungen),
+        "payout_data": payout_data
     }
 
     js = "// Auto-generated from TOCH_Trading_2026_v2.1.xlsx\n"
