@@ -1599,6 +1599,19 @@ def scan_and_trade(data, tf, limit, tf_key):
     for coin in COINS:
         if coin in open_coins:
             continue
+        
+        # Per-coin cooldown: no new trade if this coin was traded in last 4h
+        _coin_cooldown_hours = 4
+        recent_trades = [t for t in data.get(tf_key, []) if t.get("coin") == coin and t.get("open_time", "")]
+        if recent_trades:
+            last_trade_time = max(t["open_time"] for t in recent_trades)
+            try:
+                from datetime import datetime, timedelta
+                lt = datetime.fromisoformat(last_trade_time)
+                if (datetime.now(TZ) - lt.replace(tzinfo=TZ if lt.tzinfo is None else lt.tzinfo)).total_seconds() < _coin_cooldown_hours * 3600:
+                    continue
+            except:
+                pass
 
         try:
             result = full_analyze(coin, tf, limit)
