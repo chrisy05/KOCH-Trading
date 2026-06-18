@@ -44,6 +44,12 @@ FEE_RATE = 0.0011              # 0.11% round trip
 # Slope Filter Config 2: Reject if SMA10 slope > 1.0%
 SLOPE_MAX = 1.0  # max SMA10 slope in % (3-bar change)
 
+# C8 Strategy: High Win-Rate Hours Only (UTC)
+TRADING_HOURS_UTC = {0, 3, 5, 6, 7, 8, 9, 11, 14, 20, 21, 22}
+
+# C8 Strategy: BTC Momentum Gate threshold (0.2%)
+BTC_MOMENTUM_THRESHOLD = 0.002
+
 # Phase Detection config
 PHASE_ENTRY_MIN_SCORE = 4.0    # Minimum phase score for entry
 PHASE_SCORES = {'C': 2.0, 'B': 1.5, 'A': 1.0, 'D': 0.0, 'X': 0.0}
@@ -1542,12 +1548,38 @@ def check_btc_spike():
         return False
 
 
+def check_btc_momentum(direction, threshold=None):
+    """C8: Check if BTC has momentum in trade direction (>= 0.2% in 1h)."""
+    if threshold is None:
+        threshold = BTC_MOMENTUM_THRESHOLD
+    try:
+        klines = fetch_klines("BTCUSDT", "1h", 2)
+        if not klines or len(klines) < 2:
+            return True, 0.0  # allow on error
+        current = klines[-1]["close"]
+        prev = klines[-2]["close"]  # 1h ago
+        change = (current - prev) / prev
+        if direction == "LONG" and change >= threshold:
+            return True, change
+        if direction == "SHORT" and change <= -threshold:
+            return True, change
+        return False, change
+    except Exception:
+        return True, 0.0  # allow on error
+
+
 def scan_and_trade(data, tf, limit, tf_key):
     """Scan all coins and open trades where conditions are met.
-    FIX 5: Require cascade lights_in_dir >= 4 (CASCADE_MIN)."""
+    C8 Strategy: C4+Phase + Time Filter + Slope + BTC Momentum Gate."""
+    # C8: Trading Hours Filter (UTC)
+    utc_hour = datetime.now(timezone.utc).hour
+    if utc_hour not in TRADING_HOURS_UTC:
+        log(f"[CASCADE4] TIME SKIP: UTC hour {utc_hour} not in trading hours")
+        return
+
     now = datetime.now(TZ)
     log(f"\n{'='*60}")
-    log(f"SCAN {tf.upper()} | {now.strftime('%Y-%m-%d %H:%M ET')}")
+    log(f"SCAN {tf.upper()} | {now.strftime('%Y-%m-%d %H:%M ET')} | UTC {utc_hour}h")
     log(f"{'='*60}")
 
     if _drawdown_paused:
@@ -1694,6 +1726,13 @@ def scan_and_trade(data, tf, limit, tf_key):
                 slope_ok, slope_details = check_slope_filter(klines_for_slope, direction)
                 if not slope_ok:
                     log(f"  SLOPE SKIP: {coin} {direction} — SMA10 slope {slope_details['sma10_slope']:.2f}% > {SLOPE_MAX}%")
+                    continue
+
+                # C8: BTC Momentum Gate (0.2% in 1h in trade direction)
+                btc_mom_ok, btc_change = check_btc_momentum(direction)
+                if not btc_mom_ok:
+                    needed = f"+{BTC_MOMENTUM_THRESHOLD*100:.2f}%" if direction == "LONG" else f"-{BTC_MOMENTUM_THRESHOLD*100:.2f}%"
+                    log(f"[CASCADE4] BTC MOMENTUM SKIP: {direction} but BTC 1h change {btc_change*100:+.2f}% (need {needed})")
                     continue
 
                 # Check max open limit again
