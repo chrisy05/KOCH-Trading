@@ -1421,7 +1421,7 @@ def check_open_trades(data):
                         trade["close_reason"] = "TP1+BE"
                         trade["status"] = "closed"
                         log(f"  TP2 BE: {coin} SHORT | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
-                    elif recent_high >= trail_stop and trail_stop < be_stop:
+                    elif recent_high >= trail_stop and trail_stop > be_stop:
                         tp2_pnl = calc_pnl("SHORT", trade["entry"], trail_stop, trade["size"]) * 0.5
                         total_pnl = trade.get("tp1_pnl", 0) + tp2_pnl
                         trade["pnl"] = round(total_pnl, 2)

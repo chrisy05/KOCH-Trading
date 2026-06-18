@@ -1446,7 +1446,7 @@ def check_open_trades(data):
                         trade["status"] = "closed"
                         log(f"  TP2 BE: {coin} SHORT | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: ${tp2_pnl:.2f} = ${total_pnl:.2f}")
                         notify_trade_closed(trade, _current_data)
-                    elif recent_high >= trail_stop and trail_stop < be_stop:
+                    elif recent_high >= trail_stop and trail_stop > be_stop:
                         tp2_raw = calc_pnl("SHORT", trade["entry"], trail_stop, trade["size"]) * 0.5
                         remaining_fee = trade.get("fee", calc_fee(trade["entry"], trade["size"])) * 0.5
                         tp2_pnl = tp2_raw - remaining_fee

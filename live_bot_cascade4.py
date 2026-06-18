@@ -2070,7 +2070,7 @@ def check_open_trades(data):
                         log(f"  TP2 BE: {coin} SHORT | TP1: ${trade.get('tp1_pnl', 0):.2f} + TP2: $0.00 = ${total_pnl:.2f}")
                         notify_trade_closed(trade, _current_data)
 
-                    elif recent_high >= trail_stop and trail_stop < be_stop:
+                    elif recent_high >= trail_stop and trail_stop > be_stop:
                         if LIVE_MODE and trade.get("mode") == "LIVE" and trade.get("bybit_qty"):
                             result = close_position_market(bybit_sym, "Buy", trade["bybit_qty"])
                             if not result or result.get("retCode") != 0:
