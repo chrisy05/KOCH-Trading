@@ -69,7 +69,7 @@ TRAIL_PCT = 0.02               # 2% trailing
 FEE_RATE = 0.0011              # 0.11% round trip
 
 # Phase Detection config
-PHASE_ENTRY_MIN_SCORE = 3.0    # Minimum phase score for entry
+PHASE_ENTRY_MIN_SCORE = 4.0    # Minimum phase score for entry
 PHASE_SCORES = {'C': 2.0, 'B': 1.5, 'A': 1.0, 'D': 0.0, 'X': 0.0}
 PHASE_TFS = ["5m", "15m", "30m", "1h", "4h"]
 PHASE_SL_LEVELS = {
@@ -1153,9 +1153,10 @@ def calculate_phase_score(coin, direction):
     opposite_count = 0
     details_parts = []
 
-    # Phase D = NO LONGER blocks entry — only used for SL tightening
-    # Only OPPOSITE direction on 15m/30m/1h blocks entry
-    block_tfs = ["15m", "30m", "1h"]
+    # Phase D blocks on 30m/1h only (not 5m/15m/4h)
+    # Opposite direction blocks on 15m/30m/1h
+    phase_d_block_tfs = ["30m", "1h"]
+    opposite_block_tfs = ["15m", "30m", "1h"]
 
     for tf in PHASE_TFS:
         if tf not in phases:
@@ -1166,9 +1167,11 @@ def calculate_phase_score(coin, direction):
 
         if phase_dir == direction:
             score += PHASE_SCORES[phase]
+            if phase == 'D' and tf in phase_d_block_tfs:
+                has_phase_d = True
             details_parts.append(f"{tf}:{phase}")
         elif phase_dir is not None and phase_dir != direction:
-            if tf in block_tfs:
+            if tf in opposite_block_tfs:
                 opposite_count += 1
             details_parts.append(f"{tf}:{phase}(!{phase_dir})")
         else:

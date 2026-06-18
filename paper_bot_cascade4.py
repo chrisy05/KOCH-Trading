@@ -45,7 +45,7 @@ FEE_RATE = 0.0011              # 0.11% round trip
 SLOPE_MAX = 1.0  # max SMA10 slope in % (3-bar change)
 
 # Phase Detection config
-PHASE_ENTRY_MIN_SCORE = 3.0    # Minimum phase score for entry
+PHASE_ENTRY_MIN_SCORE = 4.0    # Minimum phase score for entry
 PHASE_SCORES = {'C': 2.0, 'B': 1.5, 'A': 1.0, 'D': 0.0, 'X': 0.0}
 PHASE_TFS = ["5m", "15m", "30m", "1h", "4h"]
 PHASE_SL_LEVELS = {
@@ -1612,6 +1612,17 @@ def scan_and_trade(data, tf, limit, tf_key):
     for coin in COINS:
         if coin in open_coins:
             continue
+        
+        # Per-coin cooldown 4h
+        recent = [t for t in data.get(tf_key, []) if t.get("coin") == coin and t.get("open_time", "")]
+        if recent:
+            last_time = max(t["open_time"] for t in recent)
+            try:
+                lt = datetime.fromisoformat(last_time)
+                if (datetime.now(TZ) - lt.replace(tzinfo=TZ if lt.tzinfo is None else lt.tzinfo)).total_seconds() < 14400:
+                    continue
+            except:
+                pass
 
         try:
             result = full_analyze(coin, tf, limit)
