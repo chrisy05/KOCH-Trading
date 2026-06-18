@@ -1,5 +1,56 @@
 # Current Work
 
+## Erledigt (12.06.2026 — NK/DCA Strategy Backtest: NK REDUZIERT PnL massiv)
+
+### 6 Configs: Viona-style NK + Relaxed BTC Cascade, 3 Monate, 23 Coins
+
+**Script:** `/Trading/backtest_nk_strategy.py`
+**Results:** `/Trading/backtest_nk_strategy_results.json`
+
+**KONZEPT:** Statt Single Entry, Viona-style 3-Step DCA:
+- MO: 10% Capital ($5) bei Signal
+- NK1: 25% ($12.50) wenn Preis 1.8% gegen Trade laeuft
+- NK2: 65% ($32.50) wenn Preis 3.8% gegen Trade laeuft
+- SL: 5.6% vom ORIGINAL Entry
+- TP: 60% EM vom aktuellen Durchschnittspreis
+
+**ERGEBNIS: NK FUNKTIONIERT NICHT — Single Entry bleibt klar besser**
+
+| # | Config | Trades | WR% | Net PnL | MaxDD | PnL/DD | NK1 | NK2 | FullSL |
+|---|--------|--------|-----|---------|-------|--------|-----|-----|--------|
+| 1 | Baseline C4+Phase (single) | 908 | 52.4% | **$2,741** | $500 | **5.48** | - | - | - |
+| 2 | C4+Phase+NK | 914 | 53.8% | $258 | $139 | 1.86 | 267 | 29 | 25 |
+| 3 | Relaxed BTC+Phase (single) | 1028 | 52.4% | **$2,934** | $490 | **5.99** | - | - | - |
+| 4 | Relaxed BTC+Phase+NK | 1035 | 53.8% | $320 | $124 | 2.58 | 285 | 29 | 24 |
+| 5 | C3+Phase+NK | 994 | 54.3% | $329 | $122 | 2.69 | 275 | 29 | 24 |
+| 6 | Relaxed BTC C3+Phase+NK | 1035 | 53.9% | $323 | $124 | 2.61 | 285 | 29 | 24 |
+
+**Key Findings:**
+1. **NK reduziert Net PnL um ~90%**: $2,741 -> $258 (C4) bzw. $2,934 -> $320 (Relaxed)
+2. **NK senkt MaxDD deutlich**: $500 -> $139 (-72%), ABER PnL/DD sinkt trotzdem (5.48 -> 1.86)
+3. **WR steigt nur minimal**: 52.4% -> 53.8% (+1.4pp) — NK verbessert WR kaum
+4. **NK1 wird in ~28% der Trades gefuellt** — 3.2% erreichen NK2
+5. **Full SL (alle NKs + SL) tritt bei 2.3-2.7% der Trades auf** — selten aber teuer
+6. **Relaxed BTC Cascade (SMA10>20 only) ist BESSER**: +13% mehr Trades, $2,934 vs $2,741, PnL/DD 5.99 vs 5.48
+7. **C3 vs C4 bei NK: fast identisch** — Cascade-Threshold macht bei NK kaum Unterschied
+
+**Warum NK schadet:**
+- MO Entry ist nur 10% Capital ($5) = viel kleinere Position bei den 70%+ Trades die direkt laufen
+- NK1/NK2 werden nur bei Trades gefuellt die gegen dich laufen = genau die schlechten Trades bekommen mehr Kapital
+- Phase Detection PHASE_EXIT (58% aller Trades) schliesst frueh = NK hat keine Zeit zu wirken
+- SL bei NK ist enger (5.6% vs 7%) = mehr SL-Hits
+- **Grundproblem: Bei Trend-Following Entries (Phase C + Cascade) laufen Trades meist sofort in die richtige Richtung — DCA fuer Entries die zurueckkommen widerspricht dem Trend-Ansatz**
+
+**Positive Erkenntnisse:**
+- **Relaxed BTC Cascade ist eine echte Verbesserung** fuer Single-Entry-Strategie
+- Config 3 (Relaxed + Single) ist BESSER als Config 1 (Standard + Single): +$193 mehr PnL, besserer PnL/DD
+- Relaxed produziert +13% mehr Trades bei gleicher WR
+
+**EMPFEHLUNG:**
+- NK/DCA NICHT implementieren — Single Entry bleibt optimal
+- Relaxed BTC Cascade (SMA10>20 only) als Verbesserung in Betracht ziehen
+- Phase FULL + Single Entry + Relaxed Cascade = bestes Ergebnis ($2,934, PnL/DD 5.99)
+
 ## Erledigt (12.06.2026 — Trend+Pullback+Momentum Backtest: NICHT profitabel)
 
 ### 10 Configs (7x 15m + 3x 30m) + 6 Extra ohne 7-Score, 3 Monate, 23 Coins
