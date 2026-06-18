@@ -38,7 +38,7 @@ CONFIG = {
 CASCADE_MIN = 3               # Minimum 3/4 timeframes aligned (5m removed from BTC cascade)
 CONFIRM_PCT = 0.003            # 0.3% confirmation
 CONFIRM_BARS = 8               # 8 minutes timeout
-TRAIL_PCT = 0.02               # 2% trailing
+TRAIL_PCT = 0.002  # 0.2% price = 2% margin at 10x               # 2% trailing
 FEE_RATE = 0.0011              # 0.11% round trip
 
 # Slope Filter Config 2: Reject if SMA10 slope > 1.0%

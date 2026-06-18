@@ -65,7 +65,7 @@ CONFIG = {
 CASCADE_MIN = 3               # Minimum 4/5 timeframes aligned
 CONFIRM_PCT = 0.003            # 0.3% confirmation
 CONFIRM_BARS = 8               # 8 minutes timeout
-TRAIL_PCT = 0.02               # 2% trailing
+TRAIL_PCT = 0.002  # 0.2% price = 2% margin at 10x               # 2% trailing
 FEE_RATE = 0.0011              # 0.11% round trip
 
 # C8 Strategy: High Win-Rate Hours Only (UTC)
