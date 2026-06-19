@@ -30,10 +30,26 @@ BOT_TOKEN = "8623243424:AAEqo7FlHPqZzZHrpLMQJFBxGnNY382YhW4"
 CHANNEL_ID = "-1003770314055"
 CHRIS_ID = "351653518"
 
-COINS = [
-    "BTC", "ETH", "ADA", "AVAX", "BCH", "BNB", "DOGE",
-    "HBAR", "LINK", "LTC", "SOL", "SUI", "TRX", "XMR", "XRP"
-]
+COINS_A = ["BTC", "ETH", "ADA", "AVAX", "BCH", "BNB", "DOGE", "HBAR", "LINK", "LTC", "SOL", "SUI", "TRX", "XMR", "XRP"]
+COINS_B = ["AAVE", "BAT", "BNT", "CFX", "CRV", "DOT", "DYDX", "ENS", "FIDA", "FIL", "ICP", "IMX", "IP", "JASMY", "JUP", "KAS", "METIS", "NEAR", "OGN", "ONE", "OP", "SEI", "SUSHI", "THETA", "TON", "UNI", "WLD"]
+COINS = COINS_A + COINS_B
+
+def get_leverage(coin, tf):
+    """Get leverage — Group A: original EE2, Group B: max 15x"""
+    if coin in COINS_A:
+        if tf == "30m":
+            return {"BTC": 22, "ETH": 22, "BNB": 22}.get(coin, 15)
+        else:
+            return {"BTC": 17, "ETH": 17, "BNB": 17}.get(coin, 12)
+    else:  # Group B — max 15x
+        if tf == "30m":
+            return min(15, 15)
+        else:
+            return min(12, 12)
+
+def get_group(coin):
+    return "A" if coin in COINS_A else "TEST B"
+
 
 TIMEFRAMES = ["30m", "1h", "2h"]
 
@@ -443,10 +459,10 @@ def format_signal_message(coin, tf, direction, variante, entry, sl, tp1, tp2, tp
     pattern_label = "Lower Low" if pattern == "LL" else "Higher High"
 
     msg = (
-        f"🎯 EE2 SIGNAL #{sig_num}\n\n"
+        f"🎯 KODA — Signal Engine\nEE2 SIGNAL #{sig_num} [{get_group(coin)}]\n\n"
         f"{coin}USDT — {direction}\n"
         f"📊 TF: {tf}\n"
-        f"⚙️ Hebel: {leverage}x\n\n"
+        f"⚙️ Hebel: {get_leverage(coin, tf)}x\n\n"
         f"📍 Entry: ${fp(entry)}\n"
         f"🛑 SL: ${fp(sl)} ({sl_dist_pct:.1f}%)\n\n"
         f"💰 Auszahlungsplan:\n"
@@ -585,8 +601,8 @@ def main():
             log.error(f"Scan error: {e}", exc_info=True)
             tg_send(CHRIS_ID, f"⚠️ EE2 Scanner Fehler: {e}")
 
-        log.info("Sleeping 3600s until next scan")
-        time.sleep(3600)
+        log.info("Sleeping 900s (15 min) until next scan")
+        time.sleep(900)  # scan every 15 min
 
 if __name__ == "__main__":
     main()
