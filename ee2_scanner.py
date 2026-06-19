@@ -232,10 +232,10 @@ def find_swing_highs(highs, lookback=2):
     return swings
 
 # ── TP/SL Calculation ──────────────────────────────────────────
-def calc_tp_sl(entry, direction, leverage, candles_before_signal):
+def calc_tp_sl(entry, direction, leverage, candles, swing_low=None, swing_high=None):
     """
     TP: 15%, 22.5%, 30% on MARGIN = divide by leverage for PRICE
-    SL: Below/above the low/high of the last 2 candles before signal
+    SL: Below swing low (LONG) or above swing high (SHORT) with 0.2% buffer
     """
     tp1_price_pct = 0.15 / leverage
     tp2_price_pct = 0.225 / leverage
@@ -245,12 +245,20 @@ def calc_tp_sl(entry, direction, leverage, candles_before_signal):
         tp1 = entry * (1 + tp1_price_pct)
         tp2 = entry * (1 + tp2_price_pct)
         tp3 = entry * (1 + tp3_price_pct)
-        sl = min(k["low"] for k in candles_before_signal[-2:])
+        # SL below the swing low (the LL point) with small buffer
+        if swing_low is not None:
+            sl = swing_low * 0.998  # 0.2% below swing low
+        else:
+            sl = min(k["low"] for k in candles[-3:]) * 0.998
     else:
         tp1 = entry * (1 - tp1_price_pct)
         tp2 = entry * (1 - tp2_price_pct)
         tp3 = entry * (1 - tp3_price_pct)
-        sl = max(k["high"] for k in candles_before_signal[-2:])
+        # SL above the swing high (the HH point) with small buffer
+        if swing_high is not None:
+            sl = swing_high * 1.002  # 0.2% above swing high
+        else:
+            sl = max(k["high"] for k in candles[-3:]) * 1.002
 
     # SL distance as margin %
     sl_margin_pct = abs(entry - sl) / entry * leverage * 100
@@ -534,7 +542,9 @@ def run_scan():
 
                 # Calculate TP/SL
                 tp1, tp2, tp3, sl, sl_margin_pct = calc_tp_sl(
-                    entry, direction, lev, candles
+                    entry, direction, lev, candles,
+                    swing_low=sig.get("swing2") if direction == "LONG" else None,
+                    swing_high=sig.get("swing2") if direction == "SHORT" else None
                 )
 
                 # Skip if SL too wide (>25% margin)
