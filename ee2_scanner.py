@@ -94,9 +94,8 @@ def tg_send(chat_id, text):
         log.error(f"TG send error: {e}")
 
 def tg_broadcast(text):
-    """Send to channel + Chris"""
+    """Send signals ONLY to channel — not to Chris bot (that's for system info only)"""
     tg_send(CHANNEL_ID, text)
-    tg_send(CHRIS_ID, text)
 
 # ── Signal Counter ──────────────────────────────────────────────
 def get_signal_number():
@@ -317,8 +316,8 @@ def detect_signals(coin, tf, candles):
 
         # 1. Lower Low
         if sl2_price < sl1_price:
-            # 2. Second swing within last 5 candles
-            if last_candle_idx - sl2_idx <= 5:
+            # 2. Second swing = current or previous candle ONLY
+            if last_candle_idx - sl2_idx <= 1:
                 tmo_at_sl1 = get_tmo_at_candle(sl1_idx)
                 tmo_at_sl2 = get_tmo_at_candle(sl2_idx)
                 tmo_current = tmo[-1] if tmo else None
@@ -349,8 +348,8 @@ def detect_signals(coin, tf, candles):
 
         # 1. Higher High
         if sh2_price > sh1_price:
-            # 2. Second swing within last 5 candles
-            if last_candle_idx - sh2_idx <= 5:
+            # 2. Second swing = current or previous candle ONLY
+            if last_candle_idx - sh2_idx <= 1:
                 tmo_at_sh1 = get_tmo_at_candle(sh1_idx)
                 tmo_at_sh2 = get_tmo_at_candle(sh2_idx)
                 tmo_current = tmo[-1] if tmo else None
@@ -382,7 +381,7 @@ def detect_signals(coin, tf, candles):
         # 1. Lower Low on price
         if sl2_price < sl1_price:
             # Within last 5 candles
-            if last_candle_idx - sl2_idx <= 5:
+            if last_candle_idx - sl2_idx <= 1:
                 tmo_at_sl1 = get_tmo_at_candle(sl1_idx)
                 tmo_at_sl2 = get_tmo_at_candle(sl2_idx)
 
@@ -415,7 +414,7 @@ def detect_signals(coin, tf, candles):
         # 1. Higher High on price
         if sh2_price > sh1_price:
             # Within last 5 candles
-            if last_candle_idx - sh2_idx <= 5:
+            if last_candle_idx - sh2_idx <= 1:
                 tmo_at_sh1 = get_tmo_at_candle(sh1_idx)
                 tmo_at_sh2 = get_tmo_at_candle(sh2_idx)
 
