@@ -173,42 +173,32 @@ def calc_ema(data, period):
         ema.append(data[i] * mult + ema[-1] * (1 - mult))
     return ema
 
-def calc_tmo(closes, length=14, calc_length=5, smooth1=3, smooth2=3):
+def calc_ee_momentum(opens, closes, length=15, calc_ema_len=3, smooth_ema=5, signal_ema=3):
     """
-    EE Momentum Shift / TMO with EMA smoothing
-    Settings: 14 5 3 3 EMA EMA EMA
+    EE Momentum Shift — exact replica of Pine Script ER1_v3.pine
+    Settings: Length=15, Calc=3, Smooth=5, Signal=3
+    raw = sum of (close > open[j] ? +1 : close < open[j] ? -1 : 0) for j=1 to length-1
+    ee_s1 = EMA(raw, 3), ee_main = EMA(ee_s1, 5), ee_sig = EMA(ee_main, 3)
+    Range: approx -14 to +14. Extreme zones: <= -9.7 (oversold) or >= +9.7 (overbought)
     """
-    if len(closes) < length + calc_length + smooth1 + smooth2:
+    if len(closes) < length + 10:
         return [], []
-
-    # Step 1: Delta
-    deltas = []
+    
+    raw_values = []
     for i in range(length, len(closes)):
-        if closes[i] > closes[i - length]:
-            delta = 1
-        elif closes[i] < closes[i - length]:
-            delta = -1
-        else:
-            delta = 0
-        deltas.append(delta)
+        raw = 0
+        for j in range(1, length):
+            if closes[i] > opens[i - j]:
+                raw += 1
+            elif closes[i] < opens[i - j]:
+                raw -= 1
+        raw_values.append(raw)
+    
+    ee_s1 = calc_ema(raw_values, calc_ema_len)
+    ee_main = calc_ema(ee_s1, smooth_ema)
+    ee_sig = calc_ema(ee_main, signal_ema)
+    return ee_main, ee_sig
 
-    # Step 2: Running sum over calc_length
-    tmo_raw = []
-    for i in range(calc_length - 1, len(deltas)):
-        tmo_raw.append(sum(deltas[i - calc_length + 1:i + 1]))
-
-    if not tmo_raw:
-        return [], []
-
-    # Step 3: Smooth with EMA (smooth1)
-    tmo = calc_ema(tmo_raw, smooth1)
-
-    # Step 4: Signal line = EMA of TMO (smooth2)
-    signal = calc_ema(tmo, smooth2)
-
-    return tmo, signal
-
-# ── Swing Detection ────────────────────────────────────────────
 def find_swing_lows(lows, lookback=2):
     """Swing low = candle lower than lookback candles on each side"""
     swings = []
@@ -282,7 +272,7 @@ def detect_signals(coin, tf, candles):
     lows = [c["low"] for c in candles]
     highs = [c["high"] for c in candles]
 
-    tmo, signal = calc_tmo(closes)
+    tmo, signal = calc_ee_momentum(opens, closes)
     if not tmo or len(tmo) < 5:
         return []
 
