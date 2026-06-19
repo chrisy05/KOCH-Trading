@@ -70,8 +70,7 @@ def tg_send(chat_id, text):
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         data = urllib.parse.urlencode({
             "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML"
+            "text": text
         }).encode()
         req = urllib.request.Request(url, data=data, headers={"User-Agent": "EE2Scanner/1.0"})
         urllib.request.urlopen(req, context=ssl_ctx, timeout=15)
@@ -268,6 +267,7 @@ def detect_signals(coin, tf, candles):
     if len(candles) < 30:
         return []
 
+    opens = [c["open"] for c in candles]
     closes = [c["close"] for c in candles]
     lows = [c["low"] for c in candles]
     highs = [c["high"] for c in candles]
@@ -279,7 +279,7 @@ def detect_signals(coin, tf, candles):
     # TMO array is shorter than candles due to lookback
     # Offset: length(14) + calc_length-1(4) = 18 candles consumed before first tmo_raw
     # Then smooth1 doesn't consume but starts from 0
-    tmo_offset = 14 + (5 - 1)  # = 18
+    tmo_offset = 15  # length consumed before first raw value  # = 18
 
     swing_lows = find_swing_lows(lows, lookback=2)
     swing_highs = find_swing_highs(highs, lookback=2)
