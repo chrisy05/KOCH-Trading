@@ -615,3 +615,120 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ═══════════════════════════════════════════════════════════════
+# SIGNAL TRACKING — verfolgt ob TP/SL erreicht wurde
+# ═══════════════════════════════════════════════════════════════
+
+TRACKING_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard", "ee2_tracking.json")
+if not os.path.exists(TRACKING_FILE):
+    TRACKING_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ee2_tracking.json")
+
+def update_tracking():
+    """Check all tracked signals — did price hit TP1 or SL?"""
+    if not os.path.exists(TRACKING_FILE):
+        return
+    
+    try:
+        with open(TRACKING_FILE) as f:
+            tracking = json.load(f)
+    except:
+        return
+    
+    updated = False
+    for sig in tracking.get("signals", []):
+        # Skip already resolved
+        if sig.get("hit_first") is not None:
+            continue
+        
+        coin = sig.get("coin", "")
+        tp1 = sig.get("tp1")
+        sl = sig.get("sl")
+        direction = sig.get("direction", "")
+        entry = sig.get("entry")
+        
+        if not all([coin, tp1, sl, direction, entry]):
+            continue
+        
+        # Get current price
+        symbol = f"{coin}USDT"
+        price = get_current_price(symbol)
+        if price is None:
+            continue
+        
+        # Also check recent high/low
+        high, low = get_recent_highlow(symbol, 5)
+        if high is None:
+            high = price
+        if low is None:
+            low = price
+        
+        leverage = sig.get("leverage", 10)
+        
+        if direction == "LONG":
+            if high >= tp1:
+                sig["hit_first"] = "TP"
+                sig["price_at_tp1"] = True
+                raw_pnl = (tp1 - entry) * (50 * leverage / entry)
+                sig["auto_pnl"] = round(raw_pnl - abs(entry * (50 * leverage / entry)) * 0.0011, 2)
+                sig["auto_result"] = "WIN"
+                updated = True
+                log.info(f"  TRACKING: {coin} LONG #{sig['signal_nr']} → TP1 HIT! PnL: ${sig['auto_pnl']}")
+            elif low <= sl:
+                sig["hit_first"] = "SL"
+                sig["price_at_sl"] = True
+                raw_pnl = (sl - entry) * (50 * leverage / entry)
+                sig["auto_pnl"] = round(raw_pnl - abs(entry * (50 * leverage / entry)) * 0.0011, 2)
+                sig["auto_result"] = "LOSS"
+                updated = True
+                log.info(f"  TRACKING: {coin} LONG #{sig['signal_nr']} → SL HIT! PnL: ${sig['auto_pnl']}")
+        else:  # SHORT
+            if low <= tp1:
+                sig["hit_first"] = "TP"
+                sig["price_at_tp1"] = True
+                raw_pnl = (entry - tp1) * (50 * leverage / entry)
+                sig["auto_pnl"] = round(raw_pnl - abs(entry * (50 * leverage / entry)) * 0.0011, 2)
+                sig["auto_result"] = "WIN"
+                updated = True
+                log.info(f"  TRACKING: {coin} SHORT #{sig['signal_nr']} → TP1 HIT! PnL: ${sig['auto_pnl']}")
+            elif high >= sl:
+                sig["hit_first"] = "SL"
+                sig["price_at_sl"] = True
+                raw_pnl = (entry - sl) * (50 * leverage / entry)
+                sig["auto_pnl"] = round(raw_pnl - abs(entry * (50 * leverage / entry)) * 0.0011, 2)
+                sig["auto_result"] = "LOSS"
+                updated = True
+                log.info(f"  TRACKING: {coin} SHORT #{sig['signal_nr']} → SL HIT! PnL: ${sig['auto_pnl']}")
+        
+        time.sleep(0.05)
+    
+    if updated:
+        # Calculate stats
+        resolved = [s for s in tracking["signals"] if s.get("hit_first")]
+        wins = len([s for s in resolved if s["auto_result"] == "WIN"])
+        losses = len([s for s in resolved if s["auto_result"] == "LOSS"])
+        total_pnl = sum(s.get("auto_pnl", 0) for s in resolved)
+        wr = wins / len(resolved) * 100 if resolved else 0
+        
+        tracking["stats"] = {
+            "total": len(resolved),
+            "wins": wins,
+            "losses": losses,
+            "wr": round(wr, 1),
+            "total_pnl": round(total_pnl, 2),
+            "pending": len([s for s in tracking["signals"] if s.get("hit_first") is None]),
+        }
+        
+        with open(TRACKING_FILE, "w") as f:
+            json.dump(tracking, f, indent=2, ensure_ascii=False)
+
+# Patch run_scan to also call update_tracking
+_original_run_scan = run_scan
+def run_scan_with_tracking():
+    _original_run_scan()
+    try:
+        update_tracking()
+    except Exception as e:
+        log.error(f"Tracking error: {e}")
+run_scan = run_scan_with_tracking
