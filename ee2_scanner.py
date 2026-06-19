@@ -508,9 +508,7 @@ def run_scan():
     log.info("=" * 60)
     log.info("Starting EE2 scan cycle")
 
-    if not is_trading_time():
-        log.info("Outside trading hours — skipping")
-        return
+    # Trading hours check removed — crypto trades 24/7
 
     total_signals = 0
 
@@ -597,6 +595,9 @@ def run_scan():
             time.sleep(0.1)  # Rate limit between API calls
 
     log.info(f"Scan complete — {total_signals} signals detected")
+    if total_signals == 0:
+        from datetime import timezone, timedelta
+        tg_send(CHRIS_ID, f"🔍 EE2 Scan — nichts gefunden ({datetime.now(timezone(timedelta(hours=-4))).strftime('%H:%M')})")
 
 # ── Main Loop ───────────────────────────────────────────────────
 def main():
