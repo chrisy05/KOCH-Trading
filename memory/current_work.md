@@ -1,5 +1,58 @@
 # Current Work
 
+## Erledigt (12.06.2026 — EE2 Signal Scanner erstellt)
+
+### ee2_scanner.py — Autonomer stuendlicher Scanner
+
+**Datei:** `/Trading/ee2_scanner.py`
+
+**Was:** Autonomer EE2 Signal Scanner der stuendlich laeuft:
+- 15 Coins (BTC, ETH, ADA, AVAX, BCH, BNB, DOGE, HBAR, LINK, LTC, SOL, SUI, TRX, XMR, XRP)
+- 3 Timeframes (30m, 1h, 2h)
+- TMO 14/5/3/3 EMA Berechnung
+- Variante A: LL/HH + TMO Extreme (>=9.7 / <=-9.7) + Momentum Shift
+- Variante B: Preis-Divergenz (LL/HH auf Preis, gegenlaeufig auf TMO)
+- Swing Point Detection (2 Candles lookback each side)
+- TP: 15%/22.5%/30% MARGIN (geteilt durch Leverage fuer Price%)
+- SL: Low/High der letzten 2 Candles vor Signal
+- SL Skip wenn >25% Margin
+- Trading Hours Check (CEST, kein Weekend, kein US Open)
+- 8h Cooldown pro Coin+TF
+- Telegram: Channel -1003770314055 + Chris direkt
+- Leverage-Tabelle: 30m BTC/ETH/BNB=22x, rest=15x; 1h/2h BTC/ETH/BNB=17x, rest=12x
+- Signals gespeichert in dashboard/ee2_signals.json
+- Log: ee2_scanner.log
+
+**Status:** py_compile OK. Chris muss Start bestaetigen.
+
+## Erledigt (12.06.2026 — C8 Strategy in alle 3 Bots implementiert)
+
+### C8 = C4+Phase + Time Filter + Slope + BTC Momentum Gate
+
+**3 Dateien aktualisiert:**
+- `paper_bot_cascade4.py` — Time Filter + BTC Momentum Gate hinzugefuegt
+- `live_bot_cascade4.py` — Time Filter + BTC Momentum Gate hinzugefuegt
+- `paper_bot_koda_se.py` — Time Filter + BTC Momentum Gate hinzugefuegt
+
+**C8 Filter (alle 3 Bots):**
+1. **Time Filter (UTC):** Nur Stunden {0,3,5,6,7,8,9,11,14,20,21,22} — Skip: 1,2,4,10,12,13,15,16,17,18,19,23
+2. **Slope Filter < 1.0%** — war bereits vorhanden (paper_bot_cascade4 + koda_se)
+3. **BTC Momentum Gate 0.2%:** BTC muss >= 0.2% in Trade-Richtung in letzter 1h bewegt haben
+
+**Reihenfolge in scan_and_trade():**
+1. Time Filter (am Anfang, vor allem)
+2. Cascade >= 3 (CASCADE_MIN)
+3. Phase Detection (Score >= 4.0, keine Phase D)
+4. Slope Filter < 1.0%
+5. BTC Momentum Gate 0.2%
+6. Confirmation Queue (0.3% in 8 bars)
+
+**Logging:**
+- `[CASCADE4] TIME SKIP: UTC hour 15 not in trading hours`
+- `[CASCADE4] BTC MOMENTUM SKIP: SHORT but BTC 1h change +0.15% (need -0.20%)`
+
+**Status:** py_compile OK auf allen 3 Dateien. Chris muss Neustart bestaetigen.
+
 ## Erledigt (12.06.2026 — NK/DCA Strategy Backtest: NK REDUZIERT PnL massiv)
 
 ### 6 Configs: Viona-style NK + Relaxed BTC Cascade, 3 Monate, 23 Coins
