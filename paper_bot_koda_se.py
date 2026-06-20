@@ -1070,9 +1070,22 @@ def notify_trade_opened(trade):
         f"Hebel: {lev}x | Margin: ${trade['margin']}\n\n"
         f"Cascade\u22654 + Config 8 Signal\n"
         f"\u2501" * 22 + "\n"
-        f"KODA SE C8 | 10x|50%TP|70%MSL \u00b7 {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET"
+        f"Trade #{trade['id']} | KODA SE C8 | {datetime.now(TZ).strftime('%d.%m.%Y %H:%M')} ET\n"
+        f"{get_footer_stats(data)}"
     )
     send_tg_channel(msg)
+
+
+def get_footer_stats(data):
+    """Footer line with Total | WR for signal messages."""
+    all_closed = []
+    for tf in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+        all_closed.extend([t for t in data.get(tf, []) if t.get("status") == "closed"])
+    total = len(all_closed)
+    wins = len([t for t in all_closed if (t.get("pnl") or 0) > 0])
+    wr = (wins / total * 100) if total > 0 else 0
+    pnl = sum(t.get("pnl", 0) for t in all_closed)
+    return f"📊 Total: {total} | WR: {wr:.0f}% | PnL: ${pnl:+.2f}"
 
 
 def get_overall_stats(data):
@@ -1130,9 +1143,9 @@ def notify_trade_closed(trade, data=None):
         f"Exit:   {fmt_price(close)}\n"
         f"Dauer:  {duration}\n\n"
         f"{result_line}\n"
-        f"\u2550" * 30 +
-        f"{footer}\n"
-        f"KODA SE C8 \u00b7 {datetime.now(TZ).strftime('%H:%M')} ET"
+        f"\u2550" * 30 + "\n"
+        f"Trade #{trade.get('id','?')} | KODA SE C8 \u00b7 {datetime.now(TZ).strftime('%H:%M')} ET\n"
+        f"{get_footer_stats(_current_data)}"
     )
     send_tg_channel(msg)
 
@@ -1638,7 +1651,6 @@ def scan_and_trade(data, tf, limit, tf_key):
         if recent_trades:
             last_trade_time = max(t["open_time"] for t in recent_trades)
             try:
-                from datetime import datetime, timedelta
                 lt = datetime.fromisoformat(last_trade_time)
                 if (datetime.now(TZ) - lt.replace(tzinfo=TZ if lt.tzinfo is None else lt.tzinfo)).total_seconds() < _coin_cooldown_hours * 3600:
                     continue
