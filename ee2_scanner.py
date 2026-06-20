@@ -331,9 +331,9 @@ def detect_signals(coin, tf, candles):
                 tmo_current = tmo[-1] if tmo else None
                 tmo_prev = tmo[-2] if len(tmo) >= 2 else None
 
-                # 3. TMO was at or below -9.7 at EITHER swing low
-                if tmo_at_sl1 is not None and tmo_at_sl2 is not None:
-                    if tmo_at_sl1 <= -TMO_EXTREME or tmo_at_sl2 <= -TMO_EXTREME:
+                # 3. TMO must be extreme at the SECOND swing low (the current one)
+                if tmo_at_sl2 is not None:
+                    if tmo_at_sl2 <= -TMO_EXTREME:
                         # 4. TMO turning up
                         if tmo_current is not None and tmo_prev is not None and tmo_current > tmo_prev:
                             signals.append({
@@ -363,9 +363,9 @@ def detect_signals(coin, tf, candles):
                 tmo_current = tmo[-1] if tmo else None
                 tmo_prev = tmo[-2] if len(tmo) >= 2 else None
 
-                # 3. TMO was at or above +9.7 at EITHER swing high
-                if tmo_at_sh1 is not None and tmo_at_sh2 is not None:
-                    if tmo_at_sh1 >= TMO_EXTREME or tmo_at_sh2 >= TMO_EXTREME:
+                # 3. TMO must be extreme at the SECOND swing high (the current one)
+                if tmo_at_sh2 is not None:
+                    if tmo_at_sh2 >= TMO_EXTREME:
                         # 4. TMO turning down
                         if tmo_current is not None and tmo_prev is not None and tmo_current < tmo_prev:
                             signals.append({
