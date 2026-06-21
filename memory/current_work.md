@@ -1,5 +1,120 @@
 # Current Work
 
+## Erledigt (12.06.2026 — EE2 Top 5 TP Strategy Comparison)
+
+### 100% TP1 vs 50% TP1 + 1.5% Price Trailing — Trail VERLIERT
+
+**Script:** `/Trading/ee2_top5_tp_comparison.py`
+**Results:** `/Trading/ee2_top5_tp_comparison.json`
+
+**Setup:** 90 Tage, 30m Signale, 1m Walk-Forward, $500 Margin, 15x Leverage, 0.11% Fees, BTC-confirmed only
+
+**Strat A:** 100% close at TP1 (+15% margin = +1% price)
+**Strat B:** 50% close at TP1, remaining 50% mit 1.5% Price Trail + BE Stop (entry+0.21%)
+
+**ERGEBNIS: Strategy B ist -$1,295 SCHLECHTER als Strategy A**
+
+| Coin | Strat A | Strat B | Diff | Trail | BE | SL |
+|------|---------|---------|------|-------|----|----|
+| DYDX | -$177 | -$116 | +$61 | 18 | 21 | 11 |
+| WLD | +$107 | +$129 | +$22 | 15 | 10 | 8 |
+| FIDA | -$203 | -$831 | -$628 | 12 | 19 | 12 |
+| BAT | -$303 | -$808 | -$504 | 15 | 19 | 16 |
+| KAS | -$49 | -$295 | -$246 | 21 | 19 | 20 |
+| TOTAL | -$626 | -$1,921 | -$1,295 | 81 | 88 | 67 |
+
+**Strategy B Breakdown (236 Trades):**
+- Trail: 81 (34%) — Preis lief weiter, Trailing funktionierte
+- BE: 88 (37%) — kam zurueck zu Entry nach TP1 → nur 50% Gewinn
+- SL: 67 (28%) — gestoppt vor TP1 (identisch zu Strat A)
+
+**Key Findings:**
+1. **37% der Trades kommen nach TP1 zurueck zu BE** — das halbiert den TP1-Gewinn fuer diese Trades
+2. **Trail funktioniert nur in 34% der Faelle** — Avg Trail Profit $79, Best $276 (DYDX)
+3. **FIDA/BAT besonders schlecht** mit Trail (-$628/-$504 Differenz) — viele BE-Exits
+4. **Nur DYDX/WLD marginal besser** mit Trail (+$61/+$22) — staerkere Trends
+5. **1.5% Price Trail bei 15x = 22.5% Margin Retrace** — das ist VIEL Spielraum, trotzdem kommen 37% zurueck
+6. **Grundproblem:** EE2 ist Mean-Reversion → 1% Moves sind oft das Maximum, danach Reversal
+
+**EMPFEHLUNG:** 100% TP1 bleibt ueberlegen. Kein Trailing bei EE2 Signalen.
+
+## Erledigt (20.06.2026 — EE2 Top 5 1-Minute Verification)
+
+### 1m Klines bestaetigen 30m WR exakt — alle 5 Coins CONFIRMED
+
+**Script:** `/Trading/ee2_top5_1m_verify.py`
+**Results:** `/Trading/ee2_top5_1m_verification.json`
+
+**Setup:** 90 Tage, 30m Signale, 1m TP/SL Verification, 15x Leverage, 48h Walk-Forward
+
+**ERGEBNIS: 30m WR = 1m WR bei BTC-bestaetigten Signalen (identisch!)**
+
+| Coin | 30m WR (BTC) | 1m WR (BTC) | 1m WR (no BTC) | Sigs | BTC Sigs | Confirmed |
+|------|-------------|-------------|----------------|------|----------|-----------|
+| DYDX | 78.0% | 78.0% | 67.6% | 296 | 50 | YES |
+| WLD | 75.8% | 75.8% | 66.4% | 280 | 33 | YES |
+| FIDA | 72.1% | 72.1% | 69.6% | 328 | 43 | YES |
+| BAT | 68.0% | 68.0% | 59.2% | 293 | 50 | YES |
+| KAS | 66.7% | 66.7% | 65.0% | 294 | 60 | YES |
+
+**Key Findings:**
+1. **1m WR = 30m WR exakt** bei BTC-bestaetigten Signalen — 30m Backtest war bereits korrekt
+2. **Ohne BTC Confirmation: WR sinkt 2-9pp** — DYDX 67.6%, WLD 66.4%, BAT 59.2%
+3. **BTC Confirmation IST relevant fuer diese Top-Coins** (trotz Overall-Ergebnis von +0.4pp)
+4. **FIDA ist am stabilsten**: 72.1% mit BTC, 69.6% ohne — nur -2.5pp Differenz
+5. **BAT profitiert am meisten von BTC Filter**: 68.0% vs 59.2% (-8.8pp ohne)
+6. **Alle Coins: 0 Timeouts** bei BTC-bestaetigten Signalen
+7. **DYDX SHORT besonders stark**: 88.9% WR (8/9), aber kleine Sample Size
+8. **WLD SHORT ohne BTC**: 75.5% WR (138 Trades) — staerkstes Einzel-Segment
+
+**Fazit:** Die 30m Walk-Forward Methode ist zuverlaessig — 1m Verification bestaetigt identische Ergebnisse. BTC Confirmation filtert effektiv bei diesen Top-Coins (im Gegensatz zum Gesamt-Pool von 42 Coins).
+
+## Erledigt (20.06.2026 — EE2 BTC-Altcoin Korrelations-Backtest)
+
+### BTC EE2 Signal als Altcoin-Filter: KEIN signifikanter Vorteil
+
+**Script:** `/Trading/backtest_ee2_btc_correlation.py`
+**Results:** `/Trading/ee2_btc_correlation_results.json`
+
+**Setup:** 90 Tage, 30m, 42 Coins (15 Group A Large Caps + 27 Group B Mid Caps)
+- EE2 Signal: LL/HH + TMO Extreme (<=9.7 / >=+9.7) + TMO turning
+- TP1: 15% Margin / Leverage, SL: Swing Low/High * 0.998/1.002
+- Walk-Forward: 48h max, TP vs SL vs Timeout
+
+**BTC eigene Performance:** 276 Signale, WR 45.7% (126W/150L), Avg PnL -3.03%
+
+**ERGEBNIS: BTC Confirmation bringt NICHTS**
+
+| Vergleich | Signals | WR% | Avg PnL |
+|-----------|---------|-----|---------|
+| MIT BTC Confirmation | 2,815 | 56.4% | -2.17% |
+| OHNE BTC | 9,726 | 56.0% | +0.03% |
+| **Improvement** | — | **+0.4pp** | **-2.20%** |
+
+**Direction Breakdown:**
+- LONG w/ BTC: 57.3% WR, -3.56% Avg PnL
+- SHORT w/ BTC: 54.6% WR, +0.36% Avg PnL
+- LONG w/o BTC: 52.3% WR, -0.85% Avg PnL
+- SHORT w/o BTC: 59.4% WR, +0.85% Avg PnL
+
+**Group A vs B:** Beide +1.2pp mit BTC (vernachlaessigbar)
+
+**Top Coins mit BTC Confirmation:**
+- DYDX: 78.0% WR (39W/11L), +2.59% Avg
+- WLD: 75.8% WR (25W/8L), +3.95% Avg
+- FIDA: 72.1% WR (31W/12L), +2.35% Avg
+- BAT: 68.0% WR (34W/16L), +2.09% Avg
+
+**Key Findings:**
+1. BTC EE2 auf 30m ist selbst ein schwaches Signal (45.7% WR, negative PnL)
+2. WR-Verbesserung durch BTC Confirmation: nur +0.4pp — statistisch irrelevant
+3. Avg PnL wird SCHLECHTER mit BTC Confirmation (-2.17% vs +0.03%)
+4. SHORT Signale generell besser als LONG (59.4% vs 52.3% ohne BTC)
+5. EE2 ist ein Mean-Reversion Signal — auf 30m zu rauschig fuer zuverlaessige BTC-Korrelation
+6. Einzelne Coins (DYDX, WLD, FIDA) zeigen gute WR mit BTC, aber Sample Size zu klein
+
+**EMPFEHLUNG:** BTC EE2 NICHT als Altcoin-Filter verwenden. EE2 Signale einzeln pro Coin bewerten.
+
 ## Erledigt (12.06.2026 — EE2 Signal Scanner erstellt)
 
 ### ee2_scanner.py — Autonomer stuendlicher Scanner
