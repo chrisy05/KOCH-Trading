@@ -26,9 +26,10 @@ CONFIG = {
     "fee_rate": 0.0011,      # 0.11% round trip
 }
 
+# Whitelist: 13 Coins mit ≥50% WR aus Backtest
 COINS_A = [
-    "BTC", "ETH", "ADA", "AVAX", "BCH", "BNB", "DOGE",
-    "HBAR", "LINK", "LTC", "SOL", "SUI", "TRX", "XMR", "XRP",
+    "BTC", "ETH", "BCH", "BNB", "DOGE", "HBAR", "LTC",
+    "SUI", "SEI", "BAT", "THETA", "BNT", "DOT",
 ]
 
 TZ = timezone(timedelta(hours=-4))
