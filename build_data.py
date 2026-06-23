@@ -144,16 +144,16 @@ def main():
 
     # Current period: trades after last payout
     period_trades = [t for t in trades if t["nr"] > LAST_PAYOUT_TRADE_NR]
-    period_pnl = sum(t.get("net_pnl") or t.get("pnl") or 0 for t in period_trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
+    period_pnl = sum(float(t.get("net_pnl") or t.get("pnl") or 0) for t in period_trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
     period_count = sum(1 for t in period_trades if t.get("ausstieg_dat"))
 
     # MT trades (MarkTrade) get 50% of their PnL
     mt_trades = [t for t in period_trades if t.get("signal") == "MarkTrade"]
-    mt_pnl_total = sum(t.get("net_pnl") or t.get("pnl") or 0 for t in mt_trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
+    mt_pnl_total = sum(float(t.get("net_pnl") or t.get("pnl") or 0) for t in mt_trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
     mt_pnl_50 = mt_pnl_total * 0.5
 
     # Total PnL across ALL trades
-    total_pnl = sum(t.get("net_pnl") or t.get("pnl") or 0 for t in trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
+    total_pnl = sum(float(t.get("net_pnl") or t.get("pnl") or 0) for t in trades if (t.get("net_pnl") is not None or t.get("pnl") is not None))
 
     # Totals from historical payouts
     total_ausbezahlt = sum(p["verteilung"] for p in PAYOUTS)

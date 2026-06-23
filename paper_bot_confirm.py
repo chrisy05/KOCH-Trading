@@ -248,6 +248,19 @@ def check_new_signals(data):
         if coin not in COINS_A:
             continue
 
+        # Skip stale signals — max 1h old
+        sig_time = sig.get("timestamp", "")
+        if sig_time:
+            try:
+                from datetime import datetime as dt2, timezone as tz2
+                sig_dt = dt2.fromisoformat(sig_time)
+                age_min = (dt2.now(tz2.utc) - sig_dt).total_seconds() / 60
+                if age_min > 60:
+                    processed.add(sig_nr)
+                    continue
+            except:
+                pass
+
         # Max 1 trade per coin
         if coin in open_coins:
             log.info(f"Skip signal #{sig_nr} {coin} — already has open trade")

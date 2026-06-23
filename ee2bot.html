@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="pragma" content="no-cache">
+<title>EE2 Confirmation Bot</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d0d;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+a{color:#00c8ff;text-decoration:none}
+a:hover{color:#fff}
+
+header{background:#111;border-bottom:1px solid #222;padding:16px 20px;display:flex;align-items:center;gap:12px}
+header a.back{color:#888;font-size:13px;transition:color .2s}
+header a.back:hover{color:#fff}
+header h1{font-size:18px;font-weight:600;color:#00c8ff}
+header .sep{color:#333}
+.paper-badge{background:#f59e0b15;color:#f59e0b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;margin-left:8px}
+
+.container{max-width:1300px;margin:0 auto;padding:24px 20px}
+
+/* Strategy Info Box */
+.info-box{background:#161616;border:1px solid #1e1e1e;border-left:3px solid #22c55e;border-radius:12px;padding:18px 20px;margin-bottom:24px}
+.info-box h2{font-size:14px;font-weight:700;color:#22c55e;margin-bottom:10px}
+.info-settings{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.info-settings span{background:#1a1a1a;color:#aaa;font-size:12px;padding:4px 10px;border-radius:6px}
+.info-settings span b{color:#e0e0e0;font-weight:600}
+.coin-list{font-size:12px;color:#555}
+.coin-list span{color:#7ab8ff;font-weight:600}
+
+/* Stats Grid */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:700px){.grid-4{grid-template-columns:1fr 1fr}}
+.stat-box{background:#161616;border:1px solid #1e1e1e;border-radius:12px;padding:18px 14px;text-align:center}
+.stat-box .label{font-size:.7rem;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.stat-box .value{font-size:1.8rem;font-weight:700}
+.stat-box .sub{font-size:.72rem;color:#444;margin-top:3px}
+.green{color:#22c55e}.red{color:#ef4444}.blue{color:#00c8ff}.yellow{color:#f59e0b}.white{color:#e0e0e0}
+
+/* Card */
+.card{background:#161616;border:1px solid #1e1e1e;border-radius:12px;padding:20px;margin-bottom:16px}
+.card h2{font-size:.75rem;font-weight:600;letter-spacing:1.5px;color:#555;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.card h2 .count{font-size:.7rem;background:#1e1e1e;color:#888;padding:2px 8px;border-radius:8px}
+
+/* Table */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{background:#131313;color:#555;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;border-bottom:1px solid #222;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #181818;font-size:13px;white-space:nowrap}
+tr:hover td{background:#1a1a1a}
+
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700}
+.long{background:rgba(0,200,100,.12);color:#00c864}
+.short{background:rgba(255,60,60,.12);color:#ff5555}
+.badge-win{background:rgba(34,197,94,0.15);color:#22c55e}
+.badge-loss{background:rgba(239,68,68,0.15);color:#ef4444}
+.coin-tag{background:#1a2535;color:#7ab8ff;padding:2px 8px;border-radius:4px;font-weight:700;font-size:12px}
+.pos{color:#00c864}.neg{color:#ff5555}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+.empty-state{text-align:center;padding:40px 20px;color:#555;font-size:.9rem}
+
+footer{text-align:center;padding:20px;color:#333;font-size:.72rem;border-top:1px solid #1a1a1a;margin-top:8px}
+.heartbeat{font-size:.7rem;color:#444;margin-top:4px}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="cockpit.html" class="back">← Cockpit</a>
+  <span class="sep">|</span>
+  <h1>EE2 Confirmation Bot</h1>
+  <span class="paper-badge">PAPER</span>
+</header>
+
+<div class="container">
+
+<!-- Strategy Info Box -->
+<div class="info-box">
+  <h2>EE2 Reversal Strategy</h2>
+  <div class="info-settings">
+    <span><b>Coins:</b> 13 Whitelist</span>
+    <span><b>TF:</b> 30m, 1h</span>
+    <span><b>SL:</b> 5% Price</span>
+    <span><b>TP:</b> 3-stufig (15/22.5/30% Margin)</span>
+    <span><b>TMO:</b> ≥9.5 + Valley extrem</span>
+    <span><b>Cooldown:</b> 8h</span>
+  </div>
+  <div class="coin-list">Coins: <span>BTC ETH BCH BNB DOGE HBAR LTC SUI SEI BAT THETA BNT DOT</span></div>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid-4">
+  <div class="stat-box">
+    <div class="label">Total Trades</div>
+    <div class="value white" id="stat-total">--</div>
+  </div>
+  <div class="stat-box">
+    <div class="label">Win Rate</div>
+    <div class="value green" id="stat-winrate">--%</div>
+    <div class="sub" id="stat-wl">0W / 0L</div>
+  </div>
+  <div class="stat-box">
+    <div class="label">Total PnL</div>
+    <div class="value" id="stat-pnl">--</div>
+  </div>
+  <div class="stat-box">
+    <div class="label">Avg PnL / Trade</div>
+    <div class="value" id="stat-avg">--</div>
+  </div>
+</div>
+
+<!-- Open Trades -->
+<div class="card">
+  <h2>Open Trades <span class="count" id="open-count">0</span></h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Coin</th><th>Direction</th><th>TF</th><th>Entry</th><th>Current</th><th>TP1</th><th>SL</th><th>PnL</th><th>ROI</th><th>Duration</th><th>Signal#</th>
+        </tr>
+      </thead>
+      <tbody id="open-body">
+        <tr><td colspan="12" class="empty-state">Lade Daten...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Trade Log -->
+<div class="card">
+  <h2>Trade Log <span class="count" id="log-count">0</span></h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Coin</th><th>Direction</th><th>TF</th><th>Entry</th><th>Close</th><th>PnL</th><th>ROI</th><th>Duration</th><th>Result</th><th>Closed At</th>
+        </tr>
+      </thead>
+      <tbody id="log-body">
+        <tr><td colspan="11" class="empty-state">Lade Daten...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="heartbeat" id="heartbeat"></div>
+
+</div>
+
+<footer>EE2 Confirmation Bot — Paper Mode — Auto-Refresh 30s</footer>
+
+<script>
+const JSON_URL = 'paper_trades_confirm.json';
+const BINANCE_PRICE_URL = 'https://fapi.binance.com/fapi/v1/ticker/price?symbol=';
+let priceCache = {};
+
+function fmt(n, dec=2) {
+  if (n == null || isNaN(n)) return '--';
+  return Number(n).toFixed(dec);
+}
+
+function fmtUsd(n) {
+  if (n == null || isNaN(n)) return '--';
+  const v = Number(n);
+  const s = v >= 0 ? '+' : '';
+  return s + '$' + v.toFixed(2);
+}
+
+function fmtPct(n) {
+  if (n == null || isNaN(n)) return '--';
+  const v = Number(n);
+  const s = v >= 0 ? '+' : '';
+  return s + v.toFixed(2) + '%';
+}
+
+function pnlClass(n) {
+  if (n == null || isNaN(n)) return '';
+  return Number(n) >= 0 ? 'pos' : 'neg';
+}
+
+function formatDuration(startStr, endStr) {
+  if (!startStr) return '--';
+  const start = new Date(startStr);
+  const end = endStr ? new Date(endStr) : new Date();
+  let diff = Math.floor((end - start) / 1000);
+  if (diff < 0) diff = 0;
+  const d = Math.floor(diff / 86400);
+  const h = Math.floor((diff % 86400) / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  if (d > 0) return d + 'd ' + h + 'h';
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+}
+
+function dirBadge(dir) {
+  if (!dir) return '';
+  const d = dir.toUpperCase();
+  return '<span class="badge ' + (d === 'LONG' ? 'long' : 'short') + '">' + d + '</span>';
+}
+
+function resultBadge(res) {
+  if (!res) return '--';
+  const r = res.toUpperCase();
+  return '<span class="badge ' + (r === 'WIN' ? 'badge-win' : 'badge-loss') + '">' + r + '</span>';
+}
+
+function fmtPrice(p) {
+  if (p == null) return '--';
+  const v = Number(p);
+  if (v >= 1000) return v.toFixed(2);
+  if (v >= 1) return v.toFixed(4);
+  return v.toFixed(6);
+}
+
+async function fetchCurrentPrice(coin) {
+  const symbol = coin.replace(/USDT$/i, '').toUpperCase() + 'USDT';
+  if (priceCache[symbol] && (Date.now() - priceCache[symbol].ts < 25000)) {
+    return priceCache[symbol].price;
+  }
+  try {
+    const resp = await fetch(BINANCE_PRICE_URL + symbol);
+    const data = await resp.json();
+    const price = parseFloat(data.price);
+    priceCache[symbol] = { price, ts: Date.now() };
+    return price;
+  } catch(e) {
+    return null;
+  }
+}
+
+function calcUnrealizedPnl(trade, currentPrice) {
+  if (!currentPrice || !trade.entry || !trade.leverage) return { pnl: null, roi: null };
+  const entry = parseFloat(trade.entry);
+  const lev = parseFloat(trade.leverage);
+  const cap = parseFloat(trade.capital || trade.margin || 50);
+  const dir = (trade.direction || '').toUpperCase();
+  let priceDiff;
+  if (dir === 'LONG') {
+    priceDiff = (currentPrice - entry) / entry;
+  } else {
+    priceDiff = (entry - currentPrice) / entry;
+  }
+  const roi = priceDiff * lev * 100;
+  const pnl = priceDiff * lev * cap;
+  return { pnl, roi };
+}
+
+async function loadData() {
+  try {
+    const resp = await fetch(JSON_URL + '?t=' + Date.now());
+    const data = await resp.json();
+
+    const allTrades = [...(data.trades_30m || []), ...(data.trades_1h || [])];
+    const openTrades = allTrades.filter(t => t.status === 'open');
+    const closedTrades = allTrades.filter(t => t.status === 'closed');
+
+    // Sort closed trades newest first
+    closedTrades.sort((a, b) => {
+      if (!a.close_time) return 1;
+      if (!b.close_time) return -1;
+      return new Date(b.close_time) - new Date(a.close_time);
+    });
+
+    // Stats
+    const stats = data.stats || {};
+    const totalTrades = stats.total || stats.total_trades || closedTrades.length;
+    const wins = stats.wins != null ? stats.wins : closedTrades.filter(t => t.result === 'WIN').length;
+    const losses = stats.losses != null ? stats.losses : closedTrades.filter(t => t.result === 'LOSS').length;
+    const winRate = totalTrades > 0 ? (wins / totalTrades * 100) : 0;
+    const totalPnl = stats.total_pnl != null ? stats.total_pnl : closedTrades.reduce((s, t) => s + (parseFloat(t.pnl) || 0), 0);
+    const avgPnl = totalTrades > 0 ? totalPnl / totalTrades : 0;
+
+    // Also show W/L in winrate subtitle
+    const wrSub = document.getElementById('stat-wl');
+    if (wrSub) wrSub.textContent = wins + 'W / ' + losses + 'L';
+
+    document.getElementById('stat-total').textContent = totalTrades;
+    const wrEl = document.getElementById('stat-winrate');
+    wrEl.textContent = fmt(winRate, 1) + '%';
+    wrEl.className = 'value ' + (winRate >= 50 ? 'green' : 'red');
+
+    const pnlEl = document.getElementById('stat-pnl');
+    pnlEl.textContent = fmtUsd(totalPnl);
+    pnlEl.className = 'value ' + pnlClass(totalPnl);
+
+    const avgEl = document.getElementById('stat-avg');
+    avgEl.textContent = fmtUsd(avgPnl);
+    avgEl.className = 'value ' + pnlClass(avgPnl);
+
+    // Open Trades
+    document.getElementById('open-count').textContent = openTrades.length;
+    const openBody = document.getElementById('open-body');
+    if (openTrades.length === 0) {
+      openBody.innerHTML = '<tr><td colspan="12" class="empty-state">Keine offenen Trades</td></tr>';
+    } else {
+      // Fetch all current prices
+      const pricePromises = openTrades.map(t => fetchCurrentPrice(t.coin));
+      const prices = await Promise.all(pricePromises);
+
+      let rows = '';
+      openTrades.forEach((t, i) => {
+        const curPrice = prices[i] || t.current_price;
+        let pnl, roi;
+        if (t.pnl != null && t.roi != null) {
+          pnl = parseFloat(t.pnl); roi = parseFloat(t.roi);
+        } else {
+          const calc = calcUnrealizedPnl(t, curPrice);
+          pnl = calc.pnl; roi = calc.roi;
+        }
+        const tp1 = t.tp ? fmtPrice(Array.isArray(t.tp) ? t.tp[0] : t.tp) : '--';
+        rows += '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><span class="coin-tag">' + (t.coin || '') + '</span></td>' +
+          '<td>' + dirBadge(t.direction) + '</td>' +
+          '<td>' + (t.tf || '') + '</td>' +
+          '<td class="num">' + fmtPrice(t.entry) + '</td>' +
+          '<td class="num">' + (curPrice ? fmtPrice(curPrice) : '--') + '</td>' +
+          '<td class="num">' + tp1 + '</td>' +
+          '<td class="num">' + fmtPrice(t.sl) + '</td>' +
+          '<td class="num ' + pnlClass(pnl) + '">' + fmtUsd(pnl) + '</td>' +
+          '<td class="num ' + pnlClass(roi) + '">' + fmtPct(roi) + '</td>' +
+          '<td>' + formatDuration(t.open_time, null) + '</td>' +
+          '<td>' + (t.signal_nr || '--') + '</td>' +
+          '</tr>';
+      });
+      openBody.innerHTML = rows;
+    }
+
+    // Trade Log
+    document.getElementById('log-count').textContent = closedTrades.length;
+    const logBody = document.getElementById('log-body');
+    if (closedTrades.length === 0) {
+      logBody.innerHTML = '<tr><td colspan="11" class="empty-state">Keine geschlossenen Trades</td></tr>';
+    } else {
+      let rows = '';
+      closedTrades.forEach((t, i) => {
+        const pnl = parseFloat(t.pnl) || 0;
+        const entry = parseFloat(t.entry) || 0;
+        const closeP = parseFloat(t.close_price) || 0;
+        const lev = parseFloat(t.leverage) || 1;
+        const dir = (t.direction || '').toUpperCase();
+        let roi = 0;
+        if (entry > 0) {
+          const priceDiff = dir === 'LONG' ? (closeP - entry) / entry : (entry - closeP) / entry;
+          roi = priceDiff * lev * 100;
+        }
+        const closedAt = t.close_time ? new Date(t.close_time).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '--';
+        rows += '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><span class="coin-tag">' + (t.coin || '') + '</span></td>' +
+          '<td>' + dirBadge(t.direction) + '</td>' +
+          '<td>' + (t.tf || '') + '</td>' +
+          '<td class="num">' + fmtPrice(t.entry) + '</td>' +
+          '<td class="num">' + fmtPrice(t.close_price) + '</td>' +
+          '<td class="num ' + pnlClass(pnl) + '">' + fmtUsd(pnl) + '</td>' +
+          '<td class="num ' + pnlClass(roi) + '">' + fmtPct(roi) + '</td>' +
+          '<td>' + formatDuration(t.open_time, t.close_time) + '</td>' +
+          '<td>' + resultBadge(t.result) + '</td>' +
+          '<td>' + closedAt + '</td>' +
+          '</tr>';
+      });
+      logBody.innerHTML = rows;
+    }
+
+    // Heartbeat
+    if (data._heartbeat) {
+      const hb = new Date(data._heartbeat);
+      document.getElementById('heartbeat').textContent = 'Heartbeat: ' + hb.toLocaleString('de-DE') + ' — Next refresh in 30s';
+    }
+
+  } catch(e) {
+    console.error('Load error:', e);
+    document.getElementById('open-body').innerHTML = '<tr><td colspan="12" class="empty-state">Fehler beim Laden: ' + e.message + '</td></tr>';
+    document.getElementById('log-body').innerHTML = '<tr><td colspan="11" class="empty-state">Fehler beim Laden</td></tr>';
+  }
+}
+
+// Initial load + auto-refresh
+loadData();
+setInterval(loadData, 30000);
+</script>
+
+</body>
+</html>
