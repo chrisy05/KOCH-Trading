@@ -2,7 +2,7 @@
 """
 EE2 Auto-Trader — Paper Mode
 Reads ee2_signals.json, auto-trades Gruppe A signals.
-TP1 at +15% margin, SL from signal. No partial close, no trailing.
+3-stage TP: 33% at TP1 (+15%), 33% at TP2 (+22.5%), 34% at TP3 (+30%). SL from signal, moves up after each TP.
 """
 
 import json
@@ -41,6 +41,8 @@ LOG_FILE = os.path.join(SCRIPT_DIR, "..", "ee2_trader.log")
 # Telegram
 TG_TOKEN = "8623243424:AAEqo7FlHPqZzZHrpLMQJFBxGnNY382YhW4"
 CHRIS_ID = "351653518"
+KODA_SE_TOKEN = "8716936978:AAGauC-r4RmpGvtSR9qS72TR-aJvRaVBPB8"
+KODA_SE_CHANNEL = "-1003770314055"
 
 # SSL
 ssl_ctx = ssl.create_default_context()
@@ -74,6 +76,16 @@ def tg_send(text):
         urllib.request.urlopen(req, context=ssl_ctx, timeout=15)
     except Exception as e:
         log.error(f"TG send error: {e}")
+
+def tg_koda(text):
+    """Send message to KODA Signal Engine channel."""
+    try:
+        url = f"https://api.telegram.org/bot{KODA_SE_TOKEN}/sendMessage"
+        data = urllib.parse.urlencode({"chat_id": KODA_SE_CHANNEL, "text": text}).encode()
+        req = urllib.request.Request(url, data=data, headers={"User-Agent": "EE2Trader/1.0"})
+        urllib.request.urlopen(req, context=ssl_ctx, timeout=15)
+    except Exception as e:
+        log.error(f"TG KODA send error: {e}")
 
 # ═══════════════════════════════════════════════════════════════
 # BINANCE API
@@ -220,6 +232,8 @@ def get_processed_signal_numbers(data):
     return processed
 
 
+COOLDOWN_HOURS = 8
+
 def get_open_coins(data):
     """Get set of coins with open trades."""
     coins = set()
@@ -228,6 +242,25 @@ def get_open_coins(data):
             if t.get("status") == "open":
                 coins.add(t["coin"])
     return coins
+
+
+def check_coin_tf_cooldown(data, coin, tf):
+    """Return True if cooldown (8h) since last trade for coin+tf has passed."""
+    last_open = None
+    for key in ["trades_15m", "trades_30m", "trades_1h", "trades_4h"]:
+        for t in data.get(key, []):
+            if t.get("coin") == coin and t.get("tf") == tf:
+                ot = t.get("open_time")
+                if ot and (last_open is None or ot > last_open):
+                    last_open = ot
+    if last_open is None:
+        return True  # no previous trade
+    try:
+        last_dt = datetime.fromisoformat(last_open).replace(tzinfo=TZ)
+        elapsed_h = (datetime.now(TZ) - last_dt).total_seconds() / 3600
+        return elapsed_h >= COOLDOWN_HOURS
+    except Exception:
+        return True
 
 
 def check_new_signals(data):
@@ -267,6 +300,12 @@ def check_new_signals(data):
             processed.add(sig_nr)  # mark as seen so we don't keep logging
             continue
 
+        # 8h cooldown per coin+tf
+        if not check_coin_tf_cooldown(data, coin, tf):
+            log.info(f"Skip signal #{sig_nr} {coin} {tf} — 8h cooldown active")
+            processed.add(sig_nr)
+            continue
+
         direction = sig.get("direction", "LONG")
         entry = sig.get("entry")
         sl = sig.get("sl")
@@ -277,11 +316,15 @@ def check_new_signals(data):
             log.warning(f"Skip signal #{sig_nr} — missing entry/sl")
             continue
 
-        # Calculate TP1: +15% margin gain
+        # Calculate TP1/TP2/TP3: 3-stufig (15/22.5/30% Margin)
         if direction == "LONG":
-            tp = entry * (1 + 0.15 / leverage)
+            tp1 = entry * (1 + 0.15 / leverage)
+            tp2 = entry * (1 + 0.225 / leverage)
+            tp3 = entry * (1 + 0.30 / leverage)
         else:
-            tp = entry * (1 - 0.15 / leverage)
+            tp1 = entry * (1 - 0.15 / leverage)
+            tp2 = entry * (1 - 0.225 / leverage)
+            tp3 = entry * (1 - 0.30 / leverage)
 
         # Position sizing
         capital = CONFIG["capital"]
@@ -295,19 +338,26 @@ def check_new_signals(data):
             "direction": direction,
             "leverage": leverage,
             "entry": round(entry, 8),
-            "tp": round(tp, 8),
+            "tp": round(tp1, 8),
+            "tp1": round(tp1, 8),
+            "tp2": round(tp2, 8),
+            "tp3": round(tp3, 8),
             "sl": round(sl, 8),
+            "sl_current": round(sl, 8),
             "size": round(size, 6),
+            "size_remaining": round(size, 6),
             "margin": margin,
             "open_time": datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
             "close_time": None,
             "close_price": None,
             "close_reason": None,
             "pnl": 0,
+            "pnl_realized": 0,
             "roi": 0,
             "status": "open",
+            "phase": "open",
             "signal_nr": sig_nr,
-            "group": "A",
+            "group": "WL",
         }
 
         # All trades go into trades_30m (as specified)
@@ -315,11 +365,10 @@ def check_new_signals(data):
         open_coins.add(coin)
         processed.add(sig_nr)
 
-        tp_pct = abs(tp / entry - 1) * 100
         sl_pct = abs(sl / entry - 1) * 100
 
         log.info(f"OPENED #{trade['id']} | Signal #{sig_nr} | {direction} {coin} {tf} | "
-                 f"Entry: {fmt(entry)} | TP: {fmt(tp)} (+{tp_pct:.2f}%) | "
+                 f"Entry: {fmt(entry)} | TP1: {fmt(tp1)} | TP2: {fmt(tp2)} | TP3: {fmt(tp3)} | "
                  f"SL: {fmt(sl)} (-{sl_pct:.2f}%) | Lev: {leverage}x")
 
         # Telegram notification
@@ -328,7 +377,9 @@ def check_new_signals(data):
             f"{arrow} EE2 TRADE OPENED\n"
             f"Signal #{sig_nr} | {coin} {direction} | {tf}\n"
             f"Entry: {fmt(entry)}\n"
-            f"TP1: {fmt(tp)} (+{tp_pct:.1f}%)\n"
+            f"TP1: {fmt(tp1)} (+15% Margin) → 33% close\n"
+            f"TP2: {fmt(tp2)} (+22.5%) → 33% close\n"
+            f"TP3: {fmt(tp3)} (+30%) → Rest close\n"
             f"SL: {fmt(sl)} (-{sl_pct:.1f}%)\n"
             f"Leverage: {leverage}x | Margin: ${margin}"
         )
@@ -369,68 +420,122 @@ def check_open_trades(data):
 
             direction = trade["direction"]
             entry = trade["entry"]
-            tp = trade["tp"]
-            sl = trade["sl"]
-            size = trade["size"]
+            sl_current = trade.get("sl_current", trade["sl"])
+            phase = trade.get("phase", "open")
+            size_remaining = trade.get("size_remaining", trade["size"])
+            tp1 = trade.get("tp1", trade.get("tp"))
+            tp2 = trade.get("tp2")
+            tp3 = trade.get("tp3")
+            leverage = trade.get("leverage", 12)
 
-            # Check TP/SL using recent high/low (catches wicks)
-            if direction == "LONG":
-                # TP hit?
-                if recent_high >= tp:
-                    close_trade(trade, tp, "TP1", data)
-                    continue
-                # SL hit?
-                if recent_low <= sl:
-                    close_trade(trade, sl, "SL", data)
-                    continue
-            else:  # SHORT
-                # TP hit?
-                if recent_low <= tp:
-                    close_trade(trade, tp, "TP1", data)
-                    continue
-                # SL hit?
-                if recent_high >= sl:
-                    close_trade(trade, sl, "SL", data)
+            # Check SL first (at current SL level)
+            sl_hit = (direction == "LONG" and recent_low <= sl_current) or \
+                     (direction == "SHORT" and recent_high >= sl_current)
+
+            if sl_hit:
+                # Close remaining position at current SL
+                close_trade_3stage(trade, sl_current, "SL", data)
+                continue
+
+            # Check TP progression
+            if phase == "open" and tp1:
+                tp1_hit = (direction == "LONG" and recent_high >= tp1) or \
+                          (direction == "SHORT" and recent_low <= tp1)
+                if tp1_hit:
+                    # Close 33.3%, move SL to entry + 2.5% margin
+                    portion = trade["size"] * 0.333
+                    if direction == "LONG":
+                        realized = (tp1 - entry) * portion
+                    else:
+                        realized = (entry - tp1) * portion
+                    fee = abs(entry * portion) * CONFIG["fee_rate"]
+                    trade["pnl_realized"] = round(trade.get("pnl_realized", 0) + realized - fee, 2)
+                    trade["size_remaining"] = round(trade["size"] * 0.667, 6)
+                    trade["phase"] = "tp1"
+                    # Move SL to entry + 2.5% margin
+                    sl_move = entry * (0.025 / leverage)
+                    trade["sl_current"] = round(entry + sl_move if direction == "LONG" else entry - sl_move, 8)
+                    log.info(f"  TP1 HIT #{trade['id']} {trade['coin']} | 33% closed +${realized-fee:.2f} | SL → +2.5% Margin")
+                    tg_send(f"🎯 TP1 HIT — {trade['coin']} {direction}\n33% geschlossen, +${realized-fee:.2f}\nSL → Break-Even +2.5% Margin\nRest laeuft weiter → TP2/TP3")
+                    tg_koda(f"🎯 TP1 HIT — {trade['coin']} {direction} | {trade['tf']}\n33% geschlossen, +${realized-fee:.2f}\nSL → Break-Even +2.5% Margin\nRest laeuft weiter → TP2/TP3")
+
+            if trade.get("phase") == "tp1" and tp2:
+                tp2_hit = (direction == "LONG" and recent_high >= tp2) or \
+                          (direction == "SHORT" and recent_low <= tp2)
+                if tp2_hit:
+                    portion = trade["size"] * 0.333
+                    if direction == "LONG":
+                        realized = (tp2 - entry) * portion
+                    else:
+                        realized = (entry - tp2) * portion
+                    fee = abs(entry * portion) * CONFIG["fee_rate"]
+                    trade["pnl_realized"] = round(trade.get("pnl_realized", 0) + realized - fee, 2)
+                    trade["size_remaining"] = round(trade["size"] * 0.334, 6)
+                    trade["phase"] = "tp2"
+                    # Move SL to entry + 7.5% margin
+                    sl_move = entry * (0.075 / leverage)
+                    trade["sl_current"] = round(entry + sl_move if direction == "LONG" else entry - sl_move, 8)
+                    log.info(f"  TP2 HIT #{trade['id']} {trade['coin']} | 33% closed +${realized-fee:.2f} | SL → +7.5% Margin")
+                    tg_send(f"🎯🎯 TP2 HIT — {trade['coin']} {direction}\n66% geschlossen\nSL → +7.5% Margin\nRest laeuft → TP3")
+                    tg_koda(f"🎯🎯 TP2 HIT — {trade['coin']} {direction} | {trade['tf']}\n66% geschlossen\nSL → +7.5% Margin\nRest laeuft → TP3")
+
+            if trade.get("phase") == "tp2" and tp3:
+                tp3_hit = (direction == "LONG" and recent_high >= tp3) or \
+                          (direction == "SHORT" and recent_low <= tp3)
+                if tp3_hit:
+                    # Full close — all 3 TPs hit
+                    close_trade_3stage(trade, tp3, "TP3_FULL", data)
                     continue
 
-            # Update unrealized PnL
+            # Update unrealized PnL (on remaining position)
             if direction == "LONG":
-                raw_pnl = (current_price - entry) * size
+                raw_pnl = (current_price - entry) * trade.get("size_remaining", trade["size"])
             else:
-                raw_pnl = (entry - current_price) * size
-            fee = abs(entry * size) * CONFIG["fee_rate"]
-            trade["pnl"] = round(raw_pnl - fee, 2)
-            trade["roi"] = round(trade["pnl"] / trade["margin"] * 100, 2)
+                raw_pnl = (entry - current_price) * trade.get("size_remaining", trade["size"])
+            fee = abs(entry * trade.get("size_remaining", trade["size"])) * CONFIG["fee_rate"]
+            total_pnl = trade.get("pnl_realized", 0) + raw_pnl - fee
+            trade["pnl"] = round(total_pnl, 2)
+            trade["roi"] = round(total_pnl / trade["margin"] * 100, 2)
 
 
-def close_trade(trade, close_price, reason, data):
-    """Close a trade and calculate final PnL."""
+def close_trade_3stage(trade, close_price, reason, data):
+    """Close remaining position — handles partial close history."""
     direction = trade["direction"]
     entry = trade["entry"]
-    size = trade["size"]
+    size_remaining = trade.get("size_remaining", trade["size"])
+    phase = trade.get("phase", "open")
 
+    # PnL on remaining portion
     if direction == "LONG":
-        raw_pnl = (close_price - entry) * size
+        raw_pnl = (close_price - entry) * size_remaining
     else:
-        raw_pnl = (entry - close_price) * size
+        raw_pnl = (entry - close_price) * size_remaining
 
-    fee = abs(entry * size) * CONFIG["fee_rate"]
-    pnl = raw_pnl - fee
-    roi = pnl / trade["margin"] * 100
+    fee = abs(entry * size_remaining) * CONFIG["fee_rate"]
+    final_portion_pnl = raw_pnl - fee
+
+    # Total PnL = previously realized + this final close
+    total_pnl = trade.get("pnl_realized", 0) + final_portion_pnl
+    roi = total_pnl / trade["margin"] * 100
 
     trade["close_time"] = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M:%S")
     trade["close_price"] = round(close_price, 8)
     trade["close_reason"] = reason
-    trade["pnl"] = round(pnl, 2)
+    trade["pnl"] = round(total_pnl, 2)
     trade["roi"] = round(roi, 2)
     trade["status"] = "closed"
+    trade["phase"] = "closed"
 
-    result = "WIN" if pnl > 0 else "LOSS"
-    log.info(f"CLOSED #{trade['id']} | {direction} {trade['coin']} | {reason} | "
-             f"PnL: ${pnl:.2f} ({roi:+.1f}%) | {result}")
+    result = "WIN" if total_pnl > 0 else "LOSS"
+    trade["result"] = result
+    phase_info = f" (after {phase})" if phase != "open" else ""
+    log.info(f"CLOSED #{trade['id']} | {direction} {trade['coin']} | {reason}{phase_info} | "
+             f"PnL: ${total_pnl:.2f} ({roi:+.1f}%) | {result}")
 
     # Telegram notification
-    emoji = "✅" if pnl > 0 else "❌"
+    emoji = "✅" if total_pnl > 0 else "❌"
+    if reason == "TP3_FULL":
+        emoji = "🎯🎯🎯"
 
     # Duration
     duration = ""
@@ -455,13 +560,14 @@ def close_trade(trade, close_price, reason, data):
         f"{emoji} EE2 TRADE CLOSED — {reason}\n"
         f"{trade['coin']} {direction} | {trade['tf']}\n"
         f"Entry: {fmt(entry)} → Exit: {fmt(close_price)}\n"
-        f"PnL: ${pnl:+.2f} ({roi:+.1f}%)\n"
+        f"PnL: ${total_pnl:+.2f} ({roi:+.1f}%)\n"
         f"Duration: {duration}\n"
         f"─────────────────\n"
         f"Total: {stats.get('total', 0)} | W/L: {stats.get('wins', 0)}/{stats.get('losses', 0)} | "
         f"WR: {stats.get('winrate', 0):.0f}% | PnL: ${stats.get('total_pnl', 0):+.2f}"
     )
     tg_send(msg)
+    tg_koda(msg)
 
 # ═══════════════════════════════════════════════════════════════
 # GIT PUSH
@@ -534,9 +640,10 @@ def main():
         "start_date": data.get("config", {}).get("start_date", datetime.now(TZ).strftime("%Y-%m-%d")),
     }
 
-    tg_send("🟢 EE2 Auto-Trader gestartet (Paper Mode)\n"
-            f"Capital: ${CONFIG['capital']}/Trade | TP: +15% Margin | SL: Signal\n"
-            f"Coins: {len(COINS_A)} Gruppe A")
+    tg_send("🟢 EE2 Confirmation Bot gestartet (Paper)\n"
+            f"Capital: ${CONFIG['capital']}/Trade | SL: 5% Price\n"
+            f"TP: 3-stufig (15/22.5/30% Margin, je 33%)\n"
+            f"Coins: {len(COINS_A)} Whitelist | TF: 30m+1h")
 
     cycle = 0
     while True:

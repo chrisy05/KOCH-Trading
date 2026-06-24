@@ -595,9 +595,77 @@ def run_scan():
             time.sleep(0.1)  # Rate limit between API calls
 
     log.info(f"Scan complete — {total_signals} signals detected")
-    if total_signals == 0:
-        from datetime import timezone, timedelta
-        tg_send(CHRIS_ID, f"🔍 EE2 Scan — nichts gefunden ({datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-4))).strftime('%H:%M')})")
+
+# ── Daily Summary ────────────────────────────────────────────────
+_last_summary_date = None
+
+def send_daily_summary():
+    """Send 24h stats summary to KODA Signal Engine at 20:00."""
+    global _last_summary_date
+    from datetime import timezone, timedelta
+    tz = timezone(timedelta(hours=-4))
+    now = datetime.datetime.now(tz)
+    today = now.date()
+
+    if _last_summary_date == today:
+        return
+    if now.hour != 20:
+        return
+
+    _last_summary_date = today
+
+    # Load trade data
+    trades_file = os.path.join(SCANNER_DIR, "paper_trades_confirm.json")
+    try:
+        with open(trades_file) as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+
+    all_trades = []
+    for key in data:
+        if isinstance(data[key], list):
+            all_trades.extend(data[key])
+
+    cutoff = now - datetime.timedelta(hours=24)
+    closed_24h = [
+        t for t in all_trades
+        if t.get("status") == "closed" and t.get("close_time")
+        and datetime.datetime.fromisoformat(t["close_time"]).replace(tzinfo=tz) >= cutoff
+    ]
+
+    wins = len([t for t in closed_24h if (t.get("pnl") or 0) > 0])
+    losses = len(closed_24h) - wins
+    total_pnl = sum(t.get("pnl", 0) for t in closed_24h)
+    wr = (wins / len(closed_24h) * 100) if closed_24h else 0
+
+    # Count signals from last 24h
+    signals_file = os.path.join(SCANNER_DIR, "ee2_signals.json")
+    signals_24h = 0
+    try:
+        with open(signals_file) as f:
+            sdata = json.load(f)
+        sigs = sdata if isinstance(sdata, list) else sdata.get("signals", [])
+        signals_24h = sum(
+            1 for s in sigs
+            if s.get("time") and datetime.datetime.fromisoformat(s["time"]).replace(tzinfo=tz) >= cutoff
+        )
+    except Exception:
+        pass
+
+    msg = (
+        f"📊 EE2 Tages-Report ({now.strftime('%d.%m.%Y')})\n"
+        f"─────────────────\n"
+        f"Signale (24h): {signals_24h}\n"
+        f"Trades closed: {len(closed_24h)} | W/L: {wins}/{losses}\n"
+        f"WR: {wr:.0f}% | PnL: ${total_pnl:+.2f}\n"
+        f"─────────────────\n"
+        f"EE2 Confirmation Bot (Paper)"
+    )
+
+    tg_send(CHRIS_ID, msg)
+    tg_send(CHANNEL_ID, msg)
+    log.info("Daily summary sent")
 
 # ── Main Loop ───────────────────────────────────────────────────
 def main():
@@ -607,6 +675,7 @@ def main():
     while True:
         try:
             run_scan()
+            send_daily_summary()
         except Exception as e:
             log.error(f"Scan error: {e}", exc_info=True)
             tg_send(CHRIS_ID, f"⚠️ EE2 Scanner Fehler: {e}")

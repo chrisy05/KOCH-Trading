@@ -18,6 +18,11 @@ git add \
     extra_trades.json \
     paper_trades_cascade4.json \
     paper_trades_koda_se.json \
+    paper_trades_confirm.json \
+    ee2_signals.json \
+    ee2_tracking.json \
+    ee2bot.html \
+    cockpit.html \
     bot.html \
     live_trades*.json \
     bybit_live_data.json \
