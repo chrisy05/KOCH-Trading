@@ -118,7 +118,8 @@ footer{text-align:center;padding:20px;color:#2a3a50;font-size:.75rem;border-top:
 
 <script>document.write('<scr'+'ipt src="trades_data.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>
-const ALL_TRADES=TRADE_DATA.trades;
+function _n(v){if(v===null||v===undefined||v==='')return null;const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n;}
+const ALL_TRADES=TRADE_DATA.trades.map(t=>({...t,pnl:_n(t.pnl),roi:_n(t.roi),net_pnl:_n(t.net_pnl)}));
 
 // ── Date Parser ──────────────────────────────────────────────────────────────
 function parseDate(s) {
